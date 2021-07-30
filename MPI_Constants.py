@@ -7,6 +7,7 @@ MPI_DATATYPE = [8, # 0 - MPI_DOUBLE
                 ]
 
 
+# (MPIC)onstants
 MPIC_SEND=0
 MPIC_RECV=1
 
@@ -40,6 +41,11 @@ actions = ["init",
 "location"]
 
 
+# send <trg> <?> <#amount> <MPI_DATATYPE>
+# recv <src> <?> <#amount> <MPI_DATATYPE>
+# bsend <#amount> <root> <MPI_DATATYPE>
+
+
 class SendRecv:
     def __init__(self, kind, rank, partner, size, baseCycle):
         self.kind=kind; # SEND or RECV
@@ -48,6 +54,24 @@ class SendRecv:
         self.size = size;
         self.baseCycle = baseCycle;
 
+    def __str__(self):
+        if self.kind == MPIC_SEND:
+            return str(self.rank) + " SEND to " + str(self.partner);
+        elif self.kind == MPIC_RECV:
+            return str(self.rank) + " RECV from " + str(self.partner);
+        return "Unknown SendRecv " + str(self.kind)
+        
+'''        
+        match self.kind:
+            case MPIC_SEND:
+                return str(self.rank) + " SEND to " + str(self.partner);
+            case MPIC_SEND:
+                return str(self.rank) + " RECV from " + str(self.partner);
+            default:
+                return "Unknown SendRecv";
+'''
+
+
 class MQ_Match:
     def __init__(self, rankS, rankR, size, baseCycle, endCycle):
         self.rankS = rankS;
@@ -55,3 +79,85 @@ class MQ_Match:
         self.size = size;
         self.baseCycle = baseCycle;
         self.endCycle = endCycle;
+
+
+class MQ_bcast_entry:
+    def __init__ (self, rank, root, size, baseCycle):
+        self.rank = rank;
+        self.root = root;
+        self.size = size;
+        self.baseCycle = baseCycle;
+
+
+class MQ_Bcast:
+    def __init__(self, num_ranks, root, size):
+        self.num_ranks = num_ranks;
+        self.entries = []
+        self.root = root;
+        self.size = size;
+        self.baseCycle = 0;
+        
+    def incEntry(self, bcast_entry):
+        self.entries.append(bcast_entry)
+        #print("bcast_entry at: " + str(bcast_entry.baseCycle))
+        # self.ranks.append(rank);
+        if self.baseCycle < bcast_entry.baseCycle:
+            self.baseCycle = bcast_entry.baseCycle;
+
+    def isReady(self):
+        return self.num_ranks == len(self.entries)
+        #return self.ready == self.num_ranks;
+
+    def process(self):
+        assert self.num_ranks == len(self.entries)
+        sr_list = [];
+        for rank in range(self.num_ranks):
+            mask = 0x1;
+            #print(mask)
+            #relative_rank = (rank >= self.root) if rank - self.root else rank - self.root + self.num_ranks;
+            if rank >= self.root:
+                relative_rank = rank - self.root;
+            else:
+                relative_rank = rank - self.root + self.num_ranks;
+
+            #print("Rank "+str(rank) + " relative rank "+str(relative_rank) + " root " + str(self.root))
+            while mask < self.num_ranks:
+                if relative_rank & mask:
+                    src = rank - mask;
+                    if src < 0:
+                        src = src + self.num_ranks;
+                    #print("Rank " + str(rank) + " received from " + str(src));
+                    sr = SendRecv(MPIC_RECV, rank, src, self.size, self.baseCycle);
+                    sr_list.append(sr);
+                    break;
+                mask = mask << 1;
+                #print(mask)
+
+            mask = mask >> 1;
+            #print(mask)
+            while mask > 0:
+                if relative_rank + mask < self.num_ranks:
+                    dst = rank + mask;
+                    if dst >= self.num_ranks:
+                        dst = dst - self.num_ranks;
+                    sr = SendRecv(MPIC_SEND, rank, dst, self.size, self.baseCycle);
+                    sr_list.append(sr);
+                    #print("Rank " + str(rank) + " sends to " + str(dst));
+                mask = mask >> 1;
+                #print(mask)
+
+        #for i in range(len(sr_list)):
+        #    print(sr_list[i])
+
+        return sr_list;
+
+
+
+'''
+class CO_Bcast:
+    def __init__(self, rank, baseCycle, root, size):
+        self.rank = rank;
+        self.baseCycle = baseCycle;
+        self.root = root;
+        self.size = size;
+'''

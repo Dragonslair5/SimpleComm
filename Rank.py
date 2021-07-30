@@ -45,6 +45,14 @@ class Rank:
             size = int(workload[4]) * datatype;
             sr = SendRecv(MPIC_RECV, self.rank, source, size, self.cycle);
             return sr;
+        if(operation == "bcast"):
+            self.state = Rank.S_COMMUNICATING;
+            root = int(workload[3])
+            datatype = MPI_DATATYPE[int(workload[4])]
+            size = int(workload[2]) * datatype
+            #bc = CO_Bcast(self.rank, self.cycle, root, size)
+            bc = MQ_bcast_entry(self.rank, root, size, self.cycle);
+            return bc;
         if(operation == "finalize"):
             self.state = Rank.S_ENDED;
             return None;

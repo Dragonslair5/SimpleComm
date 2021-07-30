@@ -20,7 +20,7 @@ def main():
 
 
     # StartUp the simulation engine
-    simEngine = SimpleCommEngine();
+    simEngine = SimpleCommEngine(nRanks);
 
     # Read up the traces
     simEngine.read_traces(nRanks, files_path);
@@ -29,6 +29,7 @@ def main():
     run = 0;
     while run < nRanks:
         run = simEngine.simulate();
+        simEngine.showResults();
 
     simEngine.showResults();
 
