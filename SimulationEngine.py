@@ -55,7 +55,6 @@ class SimpleCommEngine:
         # Process Collective Operations
         self.MQ.processCollectiveOperations();
 
-
         # Process MatchQueue
         match = self.MQ.processMatchQueue(self.list_ranks);
         if match is not None:

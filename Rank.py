@@ -29,26 +29,26 @@ class Rank:
         if operation == "init":
             return None;
         if operation == "compute":
-            self.cycle = self.cycle + int(workload[2]);
+            self.cycle = self.cycle + int(float(workload[2])); # need to float->int cause of scientific notation
             return None;
         if(operation == "send"):
             self.state = Rank.S_COMMUNICATING;
             target=int(workload[2]);
-            datatype = MPI_DATATYPE[int(workload[5])];
+            datatype = getDataTypeSize(int(workload[5]));
             size = int(workload[4]) * datatype;
             sr = SendRecv(MPIC_SEND, self.rank, target, size, self.cycle);
             return sr;
         if(operation == "recv"):
             self.state = Rank.S_COMMUNICATING;
             source=int(workload[2]);
-            datatype = MPI_DATATYPE[int(workload[5])];
+            datatype = getDataTypeSize(int(workload[5]));
             size = int(workload[4]) * datatype;
             sr = SendRecv(MPIC_RECV, self.rank, source, size, self.cycle);
             return sr;
         if(operation == "bcast"):
             self.state = Rank.S_COMMUNICATING;
             root = int(workload[3])
-            datatype = MPI_DATATYPE[int(workload[4])]
+            datatype = getDataTypeSize(int(workload[4]))
             size = int(workload[2]) * datatype
             #bc = CO_Bcast(self.rank, self.cycle, root, size)
             bc = MQ_bcast_entry(self.rank, root, size, self.cycle);

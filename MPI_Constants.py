@@ -1,10 +1,22 @@
 
 
 
-MPI_DATATYPE = [8, # 0 - MPI_DOUBLE
-                4, # 1 - MPI_INT
-                1  # 2 - MPI_CHAR
-                ]
+def getDataTypeSize(datatype: int) -> int:
+    if datatype == 0: # MPI_DOUBLE
+        return 8;
+    if datatype == 1: # MPI_INT
+        return 4;
+    if datatype == 2: # MPI_CHAR
+        return 1;
+    if datatype == 23: # MPI_INTEGER32
+        return 4;
+    assert datatype == 0, "Unknown datatype " + str(datatype)
+
+
+#MPI_DATATYPE = [8, # 0 - MPI_DOUBLE
+#                4, # 1 - MPI_INT
+#                1  # 2 - MPI_CHAR
+#                ]
 
 
 # (MPIC)onstants
@@ -47,7 +59,7 @@ actions = ["init",
 
 
 class SendRecv:
-    def __init__(self, kind, rank, partner, size, baseCycle):
+    def __init__(self, kind, rank, partner, size, baseCycle, operation_origin = "Unknown"):
         self.kind=kind; # SEND or RECV
         self.rank = rank;
         self.partner = partner;
