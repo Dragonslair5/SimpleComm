@@ -1,102 +1,9 @@
+from tp_utils import *
+from MPI_Constants import *
+from SendRecv import *
 
 
-
-def getDataTypeSize(datatype: int) -> int:
-    if datatype == 0: # MPI_DOUBLE
-        return 8;
-    if datatype == 1: # MPI_INT
-        return 4;
-    if datatype == 2: # MPI_CHAR
-        return 1;
-    if datatype == 23: # MPI_INTEGER32
-        return 4;
-    assert datatype == 0, "Unknown datatype " + str(datatype)
-
-
-#MPI_DATATYPE = [8, # 0 - MPI_DOUBLE
-#                4, # 1 - MPI_INT
-#                1  # 2 - MPI_CHAR
-#                ]
-
-
-# (MPIC)onstants
-MPIC_SEND=0
-MPIC_RECV=1
-
-actions = ["init",
-"finalize",
-"comm_size",
-"comm_split",
-"comm_dup",
-"send",
-"isend",
-"recv",
-"irecv",
-"test",
-"wait",
-"waitall",
-"barrier",
-"bcast",
-"reduce",
-"allreduce",
-"alltoall",
-"alltoallv",
-"gather",
-"scatter",
-"gatherv",
-"scatterv",
-"allgather",
-"allgatherv",
-"reducescatter",
-"compute",
-"sleep",
-"location"]
-
-
-# send <trg> <?> <#amount> <MPI_DATATYPE>
-# recv <src> <?> <#amount> <MPI_DATATYPE>
-# bsend <#amount> <root> <MPI_DATATYPE>
-
-
-'''
-class SendRecv:
-    def __init__(self, kind, rank, partner, size, baseCycle, operation_origin = "Unknown"):
-        self.kind=kind; # SEND or RECV
-        self.rank = rank;
-        self.partner = partner;
-        self.size = size;
-        self.baseCycle = baseCycle;
-
-    def __str__(self):
-        if self.kind == MPIC_SEND:
-            return str(self.rank) + " SEND to " + str(self.partner);
-        elif self.kind == MPIC_RECV:
-            return str(self.rank) + " RECV from " + str(self.partner);
-        return "Unknown SendRecv " + str(self.kind)
-'''
-
-'''        
-        match self.kind:
-            case MPIC_SEND:
-                return str(self.rank) + " SEND to " + str(self.partner);
-            case MPIC_SEND:
-                return str(self.rank) + " RECV from " + str(self.partner);
-            default:
-                return "Unknown SendRecv";
-'''
-
-
-class MQ_Match:
-    def __init__(self, rankS, rankR, size, baseCycle, endCycle):
-        self.rankS = rankS;
-        self.rankR = rankR;
-        self.size = size;
-        self.baseCycle = baseCycle;
-        self.endCycle = endCycle;
-
-
-'''
-class MQ_bcast_entry:
+class MQ_Bcast_entry:
     def __init__ (self, rank, root, size, baseCycle):
         self.rank = rank;
         self.root = root;
@@ -165,14 +72,3 @@ class MQ_Bcast:
         #    print(sr_list[i])
 
         return sr_list;
-'''
-
-
-'''
-class CO_Bcast:
-    def __init__(self, rank, baseCycle, root, size):
-        self.rank = rank;
-        self.baseCycle = baseCycle;
-        self.root = root;
-        self.size = size;
-'''

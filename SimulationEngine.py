@@ -44,7 +44,7 @@ class SimpleCommEngine:
             if operation is not None:
                 if isinstance(operation, SendRecv):
                     self.MQ.includeSendRecv(operation);
-                elif isinstance(operation, MQ_bcast_entry):
+                elif isinstance(operation, MQ_Bcast_entry):
                     self.MQ.include_Bcast(operation, len(self.list_ranks));
             if self.list_ranks[ri].state == Rank.S_ENDED:
                 END = END + 1

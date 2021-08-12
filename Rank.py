@@ -1,6 +1,8 @@
 
 from tp_utils import *
 from MPI_Constants import *
+from SendRecv import *
+from Col_Bcast import *
 
 class Rank:
 
@@ -51,7 +53,7 @@ class Rank:
             datatype = getDataTypeSize(int(workload[4]))
             size = int(workload[2]) * datatype
             #bc = CO_Bcast(self.rank, self.cycle, root, size)
-            bc = MQ_bcast_entry(self.rank, root, size, self.cycle);
+            bc = MQ_Bcast_entry(self.rank, root, size, self.cycle);
             return bc;
         if(operation == "finalize"):
             self.state = Rank.S_ENDED;
