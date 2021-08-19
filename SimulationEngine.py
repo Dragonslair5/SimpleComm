@@ -5,6 +5,8 @@ from MessageQueue import *
 
 
 
+
+
 class SimpleCommEngine:
 
     def __init__(self, nRanks):
@@ -37,6 +39,8 @@ class SimpleCommEngine:
         self.nSteps = self.nSteps + 1;
         END = 0 # When END equals number of Ranks, it is the end
         
+        self.MQ.op_message = "" # Clearing op_message (used for debugging coolective operations)
+
         # Step forward
         for ri in range(len(self.list_ranks)):
             # Try to progress on simulation (step)
@@ -46,6 +50,12 @@ class SimpleCommEngine:
                     self.MQ.includeSendRecv(operation);
                 elif isinstance(operation, MQ_Bcast_entry):
                     self.MQ.include_Bcast(operation, len(self.list_ranks));
+                elif isinstance(operation, MQ_Barrier_entry):
+                    self.MQ.include_Barrier(operation, len(self.list_ranks));
+                elif isinstance(operation, MQ_Reduce_entry):
+                    self.MQ.include_Reduce(operation, len(self.list_ranks));
+                elif isinstance(operation, MQ_Allreduce_entry):
+                    self.MQ.include_Allreduce(operation, len(self.list_ranks));
             if self.list_ranks[ri].state == Rank.S_ENDED:
                 END = END + 1
 
@@ -72,7 +82,14 @@ class SimpleCommEngine:
 
 
     def showResults(self):
-        print(bcolors.OKGREEN + "Result - step " + str(self.nSteps) + bcolors.ENDC)
+        print(bcolors.OKGREEN + "Result - step " + str(self.nSteps) + bcolors.OKPURPLE + self.MQ.op_message + bcolors.ENDC)
+        for ri in range(len(self.list_ranks)):
+            rank = self.list_ranks[ri];
+            if self.saveState[ri] != rank.cycle:
+                print(bcolors.OKCYAN, end='');
+            print("{: <15}".format(rank.current_operation), end='');
+            print(bcolors.ENDC, end='');
+        print("");
         for ri in range(len(self.list_ranks)):
             rank = self.list_ranks[ri];
             if self.saveState[ri] != rank.cycle:
@@ -80,5 +97,6 @@ class SimpleCommEngine:
                 print(bcolors.OKCYAN, end='');
             print("{: <15}".format(rank.cycle), end='');
             print(bcolors.ENDC, end='');
-        print("")
+        print("");
+        op_message = ""
 

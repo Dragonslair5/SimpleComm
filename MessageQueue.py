@@ -5,10 +5,10 @@ from Rank import *
 # This function is like a placeholder
 # TODO: expand this
 def SimpleCommunicationCalculus(workload):
-    workload = int(workload)
+    workload = int(workload) + 16
     latency=1;
     bandwidth=1;
-    return 10
+    #return 10
     return latency + workload/bandwidth;
 
 
@@ -16,10 +16,20 @@ class MessageQueue:
 
 
     def __init__(self, numRanks):
+        
+        # For debugging purpose
+        self.op_message = ""
+
+        # General SendRecv/Match queue
         self.sendQ = [];
         self.recvQ = [];
         self.matchQ = [];
+        
+        # A queue for each collective operation
         self.bcastQ = [];
+        self.barrierQ = [];
+        self.reduceQ = [];
+        self.allreduceQ = [];
 
         self.blockablePendingMessage = [0] * numRanks;
         
@@ -55,6 +65,49 @@ class MessageQueue:
         mqBcast.incEntry(bcast_entry);
         self.bcastQ.append(mqBcast);
         return None;
+
+    def include_Barrier(self, barrier_entry, numRanks):
+
+        # TODO: Expand to multiple communicators
+        # Considering only 1 for now
+        if len(self.barrierQ) == 0:
+            barrier = MQ_Barrier(numRanks);
+            self.barrierQ.append(barrier);
+
+        self.barrierQ[0].incEntry(barrier_entry);
+        return None;
+    
+    
+    def include_Reduce(self, reduce_entry, numRanks):
+        
+        root = reduce_entry.root;
+        size = reduce_entry.size;
+        
+        # TODO: Expand to multiple communicators
+        # Considering only 1 for now
+        if len(self.reduceQ) == 0:
+            reduce = MQ_Reduce(numRanks, root, size);
+            self.reduceQ.append(reduce);
+
+        self.reduceQ[0].incEntry(reduce_entry);
+        return None;
+
+
+    def include_Allreduce(self, allreduce_entry, numRanks):
+        size = allreduce_entry.size;
+
+        # TODO: Expand to multiple communicators
+        # Considering only 1 for now
+        if len(self.allreduceQ) == 0:
+            allreduce = MQ_Allreduce(numRanks, size);
+            self.allreduceQ.append(allreduce);
+
+        self.allreduceQ[0].incEntry(allreduce_entry);
+        return None;
+
+
+
+
 
     def checkMatch(self, sendrecv: SendRecv):
         # Look on recvQ or sendQ?
@@ -99,23 +152,72 @@ class MessageQueue:
 
     def processCollectiveOperations(self):
 
+        # ******************************************************************
         # bcast (broadcast)
         removal_indexes = []
         for bi in range(len(self.bcastQ)):
             if self.bcastQ[bi].isReady():
                 sr_list = self.bcastQ[bi].process();
+                self.op_message = self.op_message + " bcast";
                 #print(sr_list)
                 while len(sr_list) > 0:
                     sr = sr_list.pop(0);
                     self.includeSendRecv(sr);
-                removal_indexes.append(bi)
+                removal_indexes.append(bi);
         
         for i in range(len(removal_indexes)-1, -1, -1):
             #print("Removing " + str(removal_indexes[i]) )
             del self.bcastQ[removal_indexes[i]]
             #self.bcastQ.del(removal_indexes[i]);
 
+        # ******************************************************************
+        # barrier (barrier)
+        removal_indexes = []
+        for bi in range(len(self.barrierQ)):
+            if self.barrierQ[bi].isReady():
+                sr_list = self.barrierQ[bi].process();
+                self.op_message = self.op_message + " barrier";
+                while len(sr_list) > 0:
+                    sr = sr_list.pop(0);
+                    self.includeSendRecv(sr);
+                removal_indexes.append(bi);
 
+        for i in range(len(removal_indexes)-1, -1, -1):
+            #print("Removing " + str(removal_indexes[i]) )
+            del self.barrierQ[removal_indexes[i]]
+
+        # ******************************************************************
+        # reduce (reduce)
+        removal_indexes = []
+        for ri in range(len(self.reduceQ)):
+            if self.reduceQ[ri].isReady():
+                sr_list = self.reduceQ[ri].process();
+                self.op_message = self.op_message + " reduce";
+                while len(sr_list) > 0:
+                    sr = sr_list.pop(0);
+                    self.includeSendRecv(sr);
+                removal_indexes.append(ri);
+        
+        for i in range(len(removal_indexes)-1, -1, -1):
+            #print("Removing " + str(removal_indexes[i]) )
+            del self.reduceQ[removal_indexes[i]]
+
+        # ******************************************************************
+        # allreduce (allreduce)
+        removal_indexes = []
+        for ri in range(len(self.allreduceQ)):
+            if self.allreduceQ[ri].isReady():
+                sr_list = self.allreduceQ[ri].process();
+                self.op_message = self.op_message + " allreduce";
+                while len(sr_list) > 0:
+                    sr = sr_list.pop(0);
+                    #print(sr)
+                    self.includeSendRecv(sr);
+                removal_indexes.append(ri);
+        
+        for i in range(len(removal_indexes)-1, -1, -1):
+            #print("Removing " + str(removal_indexes[i]) )
+            del self.allreduceQ[removal_indexes[i]]
 
 
 
@@ -142,6 +244,7 @@ class MessageQueue:
         # Pop the earliest match from the queue
         earliest_match = self.matchQ.pop(index_earliest_request);
 
+        
         # This is the actual SINGLE CHANNEL CIRCUIT SWITCHING
         # Push forward everyone that shares communication with the earliest
         for mi in range( len(self.matchQ) ):

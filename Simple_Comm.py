@@ -30,6 +30,7 @@ def main():
 
     simEngine.showResults();
 
+    #printColors();
 
 if __name__ == "__main__":
     main()

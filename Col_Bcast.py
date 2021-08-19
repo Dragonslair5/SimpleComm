@@ -14,7 +14,7 @@ class MQ_Bcast_entry:
 class MQ_Bcast:
     def __init__(self, num_ranks, root, size):
         self.num_ranks = num_ranks;
-        self.entries = []
+        self.entries = [];
         self.root = root;
         self.size = size;
         self.baseCycle = 0;
@@ -30,9 +30,12 @@ class MQ_Bcast:
         return self.num_ranks == len(self.entries)
         #return self.ready == self.num_ranks;
 
+    # Based on SimGrid
+    # bcast__binomial_tree (bcast-binomial-tree.cpp)
     def process(self):
         assert self.num_ranks == len(self.entries)
         sr_list = [];
+
         for rank in range(self.num_ranks):
             mask = 0x1;
             #print(mask)
@@ -49,7 +52,7 @@ class MQ_Bcast:
                     if src < 0:
                         src = src + self.num_ranks;
                     #print("Rank " + str(rank) + " received from " + str(src));
-                    sr = SendRecv(MPIC_RECV, rank, src, self.size, self.baseCycle);
+                    sr = SendRecv(MPIC_RECV, rank, src, self.size, self.baseCycle, "bcast");
                     sr_list.append(sr);
                     break;
                 mask = mask << 1;
@@ -62,7 +65,7 @@ class MQ_Bcast:
                     dst = rank + mask;
                     if dst >= self.num_ranks:
                         dst = dst - self.num_ranks;
-                    sr = SendRecv(MPIC_SEND, rank, dst, self.size, self.baseCycle);
+                    sr = SendRecv(MPIC_SEND, rank, dst, self.size, self.baseCycle, "bcast");
                     sr_list.append(sr);
                     #print("Rank " + str(rank) + " sends to " + str(dst));
                 mask = mask >> 1;

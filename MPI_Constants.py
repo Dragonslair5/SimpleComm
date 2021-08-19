@@ -94,6 +94,8 @@ class MQ_Match:
         self.baseCycle = baseCycle;
         self.endCycle = endCycle;
 
+        #print(str(self.rankS) + " -> " + str(self.rankR))
+
 
 '''
 class MQ_bcast_entry:
