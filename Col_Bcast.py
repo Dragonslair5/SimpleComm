@@ -18,8 +18,10 @@ class MQ_Bcast:
         self.root = root;
         self.size = size;
         self.baseCycle = 0;
+        self.op_name = "bcast"
         
-    def incEntry(self, bcast_entry):
+    def incEntry(self, bcast_entry: MQ_Bcast_entry):
+        assert isinstance(bcast_entry, MQ_Bcast_entry);
         self.entries.append(bcast_entry)
         #print("bcast_entry at: " + str(bcast_entry.baseCycle))
         # self.ranks.append(rank);

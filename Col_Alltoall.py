@@ -2,35 +2,45 @@ from tp_utils import *
 from MPI_Constants import *
 from SendRecv import *
 
-class MQ_Allreduce_entry:
-    def __init__ (self, rank, size, baseCycle):
+class MQ_Alltoall_entry:
+    def __init__ (self, rank, sendsize, recvsize, baseCycle):
         self.rank = rank;
-        self.size = size;
+        self.sendsize = sendsize;
+        self.recvsize = recvsize;
         self.baseCycle = baseCycle;
 
-class MQ_Allreduce:
-    def __init__ (self, num_ranks, size):
+class MQ_Alltoall:
+    def __init__ (self, num_ranks, recvsize, sendsize):
         self.num_ranks = num_ranks;
         self.entries = [];
-        self.size = size;
+        self.sendsize = sendsize;
+        self.recvsize = recvsize;
         self.baseCycle = 0;
-        self.op_name = "allreduce"
+        self.op_name = "alltoall"
     
-    def incEntry(self, allreduce_entry: MQ_Allreduce_entry):
-        assert isinstance(allreduce_entry, MQ_Allreduce_entry);
-        self.entries.append(allreduce_entry);
-        if self.baseCycle < allreduce_entry.baseCycle:
-            self.baseCycle = allreduce_entry.baseCycle;
+    def incEntry(self, alltoall_entry: MQ_Alltoall_entry):
+        assert isinstance(alltoall_entry, MQ_Alltoall_entry);
+        self.entries.append(alltoall_entry);
+        if self.baseCycle < alltoall_entry.baseCycle:
+            self.baseCycle = alltoall_entry.baseCycle;
 
     def isReady(self):
         return self.num_ranks == len(self.entries);
 
     # Based on SimGrid
-    # allreduce__default (smpi_default_selector.cpp)
-    # [1](reduce->0)   [2](0->bcast)
+    # alltoall__basic_linear (alltoall-basic-linear.cpp)
     def process(self):
         assert self.isReady();
         sr_list = []
+
+        for i in range(self.num_ranks):
+            rank = self.entries[i].rank;
+            
+
+
+
+
+        self.size = self.entries[0].sendsize;
 
         # [1] Reduce
         for rank in range(1, self.num_ranks):

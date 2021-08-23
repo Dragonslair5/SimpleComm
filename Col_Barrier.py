@@ -12,9 +12,11 @@ class MQ_Barrier:
         self.num_ranks = num_ranks;
         self.entries = [];
         self.baseCycle = 0;
+        self.op_name = "barrier"
     
     # TODO: Maybe we do not need a baseCycle here? use baseCycle of each entry instead?
     def incEntry(self, barrier_entry: MQ_Barrier_entry):
+        assert isinstance(barrier_entry, MQ_Barrier_entry);
         self.entries.append(barrier_entry);
         if self.baseCycle < barrier_entry.baseCycle:
             self.baseCycle = barrier_entry.baseCycle;

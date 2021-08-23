@@ -1,6 +1,7 @@
 
 import sys
 from Col_Allreduce import MQ_Allreduce_entry
+from Col_Alltoall import MQ_Alltoall_entry
 
 from tp_utils import *
 from MPI_Constants import *
@@ -86,6 +87,15 @@ class Rank:
             size = int(workload[2]) * datatype;
             allreduce = MQ_Allreduce_entry(self.rank, size, self.cycle);
             return allreduce;
+        if(operation == "alltoall"):
+            self.current_operation = "alltoall-" + str(self.index);
+            self.state = Rank.S_COMMUNICATING;
+            send_datatype = getDataTypeSize(int(workload[4]));
+            recv_datatype = getDataTypeSize(int(workload[5]));
+            send_size = int(workload[2]) * send_datatype;
+            recv_size = int(workload[3]) * recv_datatype;
+            alltoall = MQ_Alltoall_entry(self.rank, send_size, recv_size, self.cycle);
+            return alltoall;
         if(operation == "finalize"):
             self.current_operation = "finalize-" + str(self.index);
             self.state = Rank.S_ENDED;

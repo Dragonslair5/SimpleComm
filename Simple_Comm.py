@@ -28,7 +28,7 @@ def main():
         run = simEngine.simulate();
         simEngine.showResults();
 
-    simEngine.showResults();
+    #simEngine.showResults();
 
     #printColors();
 

@@ -1,4 +1,5 @@
 
+from Col_Alltoall import MQ_Alltoall
 from Rank import *
 
 
@@ -8,7 +9,7 @@ def SimpleCommunicationCalculus(workload):
     workload = int(workload) + 16
     latency=1;
     bandwidth=1;
-    #return 10
+    return 10
     return latency + workload/bandwidth;
 
 
@@ -25,11 +26,24 @@ class MessageQueue:
         self.recvQ = [];
         self.matchQ = [];
         
+
+        # Master Queue for Collectives
+        self.CollectiveQueues = [];
+
         # A queue for each collective operation
         self.bcastQ = [];
+        self.CollectiveQueues.append(self.bcastQ);
         self.barrierQ = [];
+        self.CollectiveQueues.append(self.barrierQ);
         self.reduceQ = [];
+        self.CollectiveQueues.append(self.reduceQ);
         self.allreduceQ = [];
+        self.CollectiveQueues.append(self.allreduceQ);
+        self.alltoallQ = [];
+        self.CollectiveQueues.append(self.alltoallQ);
+
+        
+
 
         self.blockablePendingMessage = [0] * numRanks;
         
@@ -105,6 +119,18 @@ class MessageQueue:
         self.allreduceQ[0].incEntry(allreduce_entry);
         return None;
 
+    def include_Alltoall(self, alltoall_entry: MQ_Alltoall_entry, numRanks):
+        sendsize = alltoall_entry.sendsize;
+        recvsize = alltoall_entry.recvsize;
+        
+        # TODO: Expand to multiple communicators
+        # Considering only 1 for now
+        if len(self.alltoallQ) == 0:
+            alltoall = MQ_Alltoall(numRanks, recvsize, sendsize);
+            self.alltoallQ.append(alltoall);
+
+        self.alltoallQ[0].incEntry(alltoall_entry);
+        return None;
 
 
 
@@ -151,6 +177,28 @@ class MessageQueue:
 
 
     def processCollectiveOperations(self):
+
+        
+        # Select Queue
+        for qi in range(len(self.CollectiveQueues)):
+            opQueue = self.CollectiveQueues[qi];
+            removal_indexes = [];
+            # Select Operation
+            for opi in range(len(opQueue)):
+                if opQueue[opi].isReady():
+                    sr_list = opQueue[opi].process();
+                    self.op_message = opQueue[opi].op_name;
+                    while len(sr_list) > 0:
+                        sr = sr_list.pop(0);
+                        self.includeSendRecv(sr);
+                    removal_indexes.append(opi)
+            
+            for i in range(len(removal_indexes)-1, -1, -1):
+                del opQueue[removal_indexes[i]];
+
+        return None;
+        
+
 
         # ******************************************************************
         # bcast (broadcast)
@@ -218,6 +266,23 @@ class MessageQueue:
         for i in range(len(removal_indexes)-1, -1, -1):
             #print("Removing " + str(removal_indexes[i]) )
             del self.allreduceQ[removal_indexes[i]]
+
+        # ******************************************************************
+        # alltoall (alltoall)
+        removal_indexes = []
+        for ai in range(len(self.alltoallQ)):
+            if self.alltoallQ[ai].isReady():
+                sr_list = self.alltoallQ[ai].process();
+                self.op_message = self.op_message + " alltoall";
+                while len(sr_list) > 0:
+                    sr = sr_list.pop(0);
+                    #print(sr)
+                    self.includeSendRecv(sr);
+                removal_indexes.append(ai);
+        
+        for i in range(len(removal_indexes)-1, -1, -1):
+            #print("Removing " + str(removal_indexes[i]) )
+            del self.alltoallQ[removal_indexes[i]]
 
 
 

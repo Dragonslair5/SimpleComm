@@ -16,8 +16,10 @@ class MQ_Reduce:
         self.root = root;
         self.size = size;
         self.baseCycle = 0;
+        self.op_name = "bcast"
     
     def incEntry(self, reduce_entry: MQ_Reduce_entry):
+        assert isinstance(reduce_entry, MQ_Reduce_entry);
         self.entries.append(reduce_entry);
         if self.baseCycle < reduce_entry.baseCycle:
             self.baseCycle = reduce_entry.baseCycle;

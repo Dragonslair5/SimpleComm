@@ -56,6 +56,8 @@ class SimpleCommEngine:
                     self.MQ.include_Reduce(operation, len(self.list_ranks));
                 elif isinstance(operation, MQ_Allreduce_entry):
                     self.MQ.include_Allreduce(operation, len(self.list_ranks));
+                elif isinstance(operation, MQ_Alltoall_entry):
+                    self.MQ.include_Alltoall(operation, len(self.list_ranks));
             if self.list_ranks[ri].state == Rank.S_ENDED:
                 END = END + 1
 
