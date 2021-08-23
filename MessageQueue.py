@@ -26,24 +26,12 @@ class MessageQueue:
         self.recvQ = [];
         self.matchQ = [];
         
-
-        # Master Queue for Collectives
-        self.CollectiveQueues = [];
-
         # A queue for each collective operation
         self.bcastQ = [];
-        self.CollectiveQueues.append(self.bcastQ);
         self.barrierQ = [];
-        self.CollectiveQueues.append(self.barrierQ);
         self.reduceQ = [];
-        self.CollectiveQueues.append(self.reduceQ);
         self.allreduceQ = [];
-        self.CollectiveQueues.append(self.allreduceQ);
         self.alltoallQ = [];
-        self.CollectiveQueues.append(self.alltoallQ);
-
-        
-
 
         self.blockablePendingMessage = [0] * numRanks;
         
@@ -177,28 +165,6 @@ class MessageQueue:
 
 
     def processCollectiveOperations(self):
-
-        
-        # Select Queue
-        for qi in range(len(self.CollectiveQueues)):
-            opQueue = self.CollectiveQueues[qi];
-            removal_indexes = [];
-            # Select Operation
-            for opi in range(len(opQueue)):
-                if opQueue[opi].isReady():
-                    sr_list = opQueue[opi].process();
-                    self.op_message = opQueue[opi].op_name;
-                    while len(sr_list) > 0:
-                        sr = sr_list.pop(0);
-                        self.includeSendRecv(sr);
-                    removal_indexes.append(opi)
-            
-            for i in range(len(removal_indexes)-1, -1, -1):
-                del opQueue[removal_indexes[i]];
-
-        return None;
-        
-
 
         # ******************************************************************
         # bcast (broadcast)
