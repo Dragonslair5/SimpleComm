@@ -18,7 +18,7 @@ class MQ_Bcast:
         self.root = root;
         self.size = size;
         self.baseCycle = 0;
-        self.op_name = "bcast"
+        self.op_name = "bcast";
         
     def incEntry(self, bcast_entry: MQ_Bcast_entry):
         assert isinstance(bcast_entry, MQ_Bcast_entry);

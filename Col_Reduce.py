@@ -16,7 +16,7 @@ class MQ_Reduce:
         self.root = root;
         self.size = size;
         self.baseCycle = 0;
-        self.op_name = "bcast"
+        self.op_name = "bcast";
     
     def incEntry(self, reduce_entry: MQ_Reduce_entry):
         assert isinstance(reduce_entry, MQ_Reduce_entry);

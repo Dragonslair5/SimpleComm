@@ -14,7 +14,7 @@ class MQ_Allreduce:
         self.entries = [];
         self.size = size;
         self.baseCycle = 0;
-        self.op_name = "allreduce"
+        self.op_name = "allreduce";
     
     def incEntry(self, allreduce_entry: MQ_Allreduce_entry):
         assert isinstance(allreduce_entry, MQ_Allreduce_entry);
