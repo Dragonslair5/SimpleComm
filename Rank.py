@@ -1,7 +1,6 @@
 
 import sys
-from Col_Allreduce import MQ_Allreduce_entry
-from Col_Alltoall import MQ_Alltoall_entry
+from Col_Alltoallv import MQ_Alltoallv_entry
 
 from tp_utils import *
 from MPI_Constants import *
@@ -10,6 +9,8 @@ from Col_Bcast import *
 from Col_Barrier import *
 from Col_Reduce import *
 from Col_Allreduce import *
+from Col_Alltoall import *
+#from Col_Alltoallv import *
 
 class Rank:
 
@@ -27,7 +28,7 @@ class Rank:
         self.cycle = 0; # CurrentCycle
         self.current_operation = ""
     
-    def step(self):
+    def step(self, num_ranks):
         if self.state == Rank.S_ENDED or self.state == Rank.S_COMMUNICATING:
             return None;
         # Grab workload and increment index
@@ -96,6 +97,18 @@ class Rank:
             recv_size = int(workload[3]) * recv_datatype;
             alltoall = MQ_Alltoall_entry(self.rank, send_size, recv_size, self.cycle);
             return alltoall;
+        if(operation == "alltoallv"): # alltoallv <send count> [send vector] <recv count> [recv vector] <recv datatype> <send datatype>
+            self.current_operation = "alltoallv-" + str(self.index);
+            self.state = Rank.S_COMMUNICATING;
+            send_datatype = getDataTypeSize(int(workload[4+2*num_ranks]));
+            recv_datatype = getDataTypeSize(int(workload[5+2*num_ranks]));
+            send_count = [];
+            recv_count = [];
+            for i in range(num_ranks):
+                send_count.append(int(workload[3 + i]));
+                recv_count.append(int(workload[4 + num_ranks + i]));
+            alltoallv = MQ_Alltoallv_entry(self.rank, send_datatype, recv_datatype, send_count, recv_count, self.cycle);
+            return alltoallv;
         if(operation == "finalize"):
             self.current_operation = "finalize-" + str(self.index);
             self.state = Rank.S_ENDED;

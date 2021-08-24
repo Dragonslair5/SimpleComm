@@ -1,5 +1,6 @@
 
 from Col_Alltoall import MQ_Alltoall
+from Col_Alltoallv import MQ_Alltoallv
 from Rank import *
 
 
@@ -32,6 +33,7 @@ class MessageQueue:
         self.reduceQ = [];
         self.allreduceQ = [];
         self.alltoallQ = [];
+        self.alltoallvQ = [];
 
         self.blockablePendingMessage = [0] * numRanks;
         
@@ -51,7 +53,7 @@ class MessageQueue:
             print( bcolors.FAIL + "ERROR: Unknown SendRecv of kind" + str(sendrecv.kind) + bcolors.ENDC);
             sys.exit(1);
 
-    def include_Bcast(self, bcast_entry, numRanks):
+    def include_Bcast(self, bcast_entry, numRanks) -> None:
         
         #bcast_index = 0;
         # Check if entry for this bcast is already created
@@ -68,7 +70,7 @@ class MessageQueue:
         self.bcastQ.append(mqBcast);
         return None;
 
-    def include_Barrier(self, barrier_entry, numRanks):
+    def include_Barrier(self, barrier_entry, numRanks) -> None:
 
         # TODO: Expand to multiple communicators
         # Considering only 1 for now
@@ -80,7 +82,7 @@ class MessageQueue:
         return None;
     
     
-    def include_Reduce(self, reduce_entry, numRanks):
+    def include_Reduce(self, reduce_entry, numRanks) -> None:
         
         root = reduce_entry.root;
         size = reduce_entry.size;
@@ -95,7 +97,7 @@ class MessageQueue:
         return None;
 
 
-    def include_Allreduce(self, allreduce_entry, numRanks):
+    def include_Allreduce(self, allreduce_entry, numRanks) -> None:
         size = allreduce_entry.size;
 
         # TODO: Expand to multiple communicators
@@ -107,7 +109,7 @@ class MessageQueue:
         self.allreduceQ[0].incEntry(allreduce_entry);
         return None;
 
-    def include_Alltoall(self, alltoall_entry: MQ_Alltoall_entry, numRanks):
+    def include_Alltoall(self, alltoall_entry: MQ_Alltoall_entry, numRanks) -> None:
         sendsize = alltoall_entry.sendsize;
         recvsize = alltoall_entry.recvsize;
         
@@ -120,6 +122,16 @@ class MessageQueue:
         self.alltoallQ[0].incEntry(alltoall_entry);
         return None;
 
+    def include_Alltoallv(self, alltoallv_entry: MQ_Alltoallv_entry, numRanks) -> None:
+
+        # TODO: Expand to multiple communicators
+        # Considering only 1 for now
+        if len(self.alltoallvQ) == 0:
+            alltoallv = MQ_Alltoallv(numRanks);
+            self.alltoallvQ.append(alltoallv);
+
+        self.alltoallvQ[0].incEntry(alltoallv_entry);
+        return None;
 
 
 
@@ -250,6 +262,23 @@ class MessageQueue:
             #print("Removing " + str(removal_indexes[i]) )
             del self.alltoallQ[removal_indexes[i]]
 
+        # ******************************************************************
+        # alltoallv (alltoallv)
+        removal_indexes = []
+        for ai in range(len(self.alltoallvQ)):
+            if self.alltoallvQ[ai].isReady():
+                sr_list = self.alltoallvQ[ai].process();
+                self.op_message = self.op_message + " alltoallv";
+                while len(sr_list) > 0:
+                    sr = sr_list.pop(0);
+                    #print(sr)
+                    self.includeSendRecv(sr);
+                removal_indexes.append(ai);
+        
+        for i in range(len(removal_indexes)-1, -1, -1):
+            #print("Removing " + str(removal_indexes[i]) )
+            del self.alltoallvQ[removal_indexes[i]]
+
 
 
     def processMatchQueue(self, list_ranks):
@@ -287,6 +316,8 @@ class MessageQueue:
 
         self.blockablePendingMessage[earliest_match.rankS] = self.blockablePendingMessage[earliest_match.rankS] - 1;
         self.blockablePendingMessage[earliest_match.rankR] = self.blockablePendingMessage[earliest_match.rankR] - 1;
+
+        self.op_message = self.op_message + " S:(" + str(earliest_match.rankS) + ") R:(" + str(earliest_match.rankR) + ") size: " + str(earliest_match.size) + " Bytes"
 
         return earliest_match;
 

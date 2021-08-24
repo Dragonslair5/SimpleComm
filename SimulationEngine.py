@@ -44,7 +44,7 @@ class SimpleCommEngine:
         # Step forward
         for ri in range(len(self.list_ranks)):
             # Try to progress on simulation (step)
-            operation = self.list_ranks[ri].step();
+            operation = self.list_ranks[ri].step(len(self.list_ranks));
             if operation is not None:
                 if isinstance(operation, SendRecv):
                     self.MQ.includeSendRecv(operation);
@@ -58,6 +58,8 @@ class SimpleCommEngine:
                     self.MQ.include_Allreduce(operation, len(self.list_ranks));
                 elif isinstance(operation, MQ_Alltoall_entry):
                     self.MQ.include_Alltoall(operation, len(self.list_ranks));
+                elif isinstance(operation, MQ_Alltoallv_entry):
+                    self.MQ.include_Alltoallv(operation, len(self.list_ranks));
             if self.list_ranks[ri].state == Rank.S_ENDED:
                 END = END + 1
 
