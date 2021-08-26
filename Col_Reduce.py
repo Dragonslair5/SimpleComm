@@ -16,7 +16,7 @@ class MQ_Reduce:
         self.root = root;
         self.size = size;
         self.baseCycle = 0;
-        self.op_name = "bcast";
+        self.op_name = "reduce";
     
     def incEntry(self, reduce_entry: MQ_Reduce_entry):
         assert isinstance(reduce_entry, MQ_Reduce_entry);
@@ -37,10 +37,10 @@ class MQ_Reduce:
         for rank in range(1, self.num_ranks):
             if rank != self.root:
                 # Send rank -> root
-                sr = SendRecv(MPIC_SEND, rank, self.root, self.size, self.baseCycle);
+                sr = SendRecv(MPIC_SEND, rank, self.root, self.size, self.baseCycle, operation_origin=self.op_name);
                 sr_list.append(sr);
                 # Recv rank-> root
-                sr = SendRecv(MPIC_RECV, self.root, rank, self.size, self.baseCycle);
+                sr = SendRecv(MPIC_RECV, self.root, rank, self.size, self.baseCycle, operation_origin=self.op_name);
                 sr_list.append(sr);
 
         return sr_list;

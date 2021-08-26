@@ -87,12 +87,17 @@ class SendRecv:
 
 
 class MQ_Match:
-    def __init__(self, rankS, rankR, size, baseCycle, endCycle):
+    def __init__(self, rankS, rankR, size, baseCycle, endCycle, tag = None, blocking_send = True, blocking_recv = True, send_origin = "", recv_origin = ""):
         self.rankS = rankS;
         self.rankR = rankR;
         self.size = size;
         self.baseCycle = baseCycle;
         self.endCycle = endCycle;
+        self.tag = tag;
+        self.blocking_send = blocking_send;
+        self.blocking_recv = blocking_recv;
+        self.send_origin = send_origin;
+        self.recv_origin = recv_origin;
 
         #print(str(self.rankS) + " -> " + str(self.rankR))
 

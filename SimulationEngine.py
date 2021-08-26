@@ -70,23 +70,39 @@ class SimpleCommEngine:
         self.MQ.processCollectiveOperations();
 
         # Process MatchQueue
+        match: MQ_Match;
         match = self.MQ.processMatchQueue(self.list_ranks);
         if match is not None:
             #print(" SR " + str(match.rankS) + " --> " + str(match.rankR))
-            assert self.list_ranks[match.rankS].cycle < match.endCycle;
-            self.list_ranks[match.rankS].cycle = match.endCycle;
-            if self.MQ.blockablePendingMessage[match.rankS] == 0:
-                self.list_ranks[match.rankS].state = Rank.S_NORMAL;
-            assert self.list_ranks[match.rankR].cycle < match.endCycle, "cycle " + str(self.list_ranks[match.rankR].cycle) + " cycle " + str(match.endCycle);
-            self.list_ranks[match.rankR].cycle = match.endCycle;
-            if self.MQ.blockablePendingMessage[match.rankR] == 0:
-                self.list_ranks[match.rankR].state = Rank.S_NORMAL;
+            # ********* SEND
+            if match.blocking_send:
+                assert self.list_ranks[match.rankS].cycle < match.endCycle, str(match.rankS) + " - cycle " + str(self.list_ranks[match.rankS].cycle) + " cycle " + str(match.endCycle);
+                self.list_ranks[match.rankS].cycle = match.endCycle;
+                if self.MQ.blockablePendingMessage[match.rankS] == 0:
+                    self.list_ranks[match.rankS].state = Rank.S_NORMAL;
+            else:
+                self.list_ranks[match.rankS].include_iSendRecvConclusion(match.tag, match.endCycle);
+            # ********* RECV
+            if match.blocking_recv:
+                assert self.list_ranks[match.rankR].cycle < match.endCycle, str(match.rankR) + " - cycle " + str(self.list_ranks[match.rankR].cycle) + " cycle " + str(match.endCycle);
+                self.list_ranks[match.rankR].cycle = match.endCycle;
+                if self.MQ.blockablePendingMessage[match.rankR] == 0:
+                    self.list_ranks[match.rankR].state = Rank.S_NORMAL;
+            else:
+                self.list_ranks[match.rankR].include_iSendRecvConclusion(match.tag, match.endCycle);
 
         return END;
 
 
     def showResults(self):
         print(bcolors.OKGREEN + "Result - step " + str(self.nSteps) + bcolors.OKPURPLE + self.MQ.op_message + bcolors.ENDC)
+        for ri in range(len(self.list_ranks)):
+            rank = self.list_ranks[ri];
+            if self.saveState[ri] != rank.cycle:
+                print(bcolors.OKCYAN, end='');
+            print("{: <15}".format(rank.getCurrentStateName()), end='');
+            print(bcolors.ENDC, end='');
+        print("");
         for ri in range(len(self.list_ranks)):
             rank = self.list_ranks[ri];
             if self.saveState[ri] != rank.cycle:
@@ -102,5 +118,4 @@ class SimpleCommEngine:
             print("{: <15}".format(rank.cycle), end='');
             print(bcolors.ENDC, end='');
         print("");
-        op_message = ""
 

@@ -32,15 +32,15 @@ class MQ_Barrier:
 
         for rank in range(1, self.num_ranks):
             # Current rank to rank 0
-            sr = SendRecv(MPIC_SEND, rank, 0, 1, self.baseCycle);
+            sr = SendRecv(MPIC_SEND, rank, 0, 1, self.baseCycle, operation_origin=self.op_name);
             sr_list.append(sr);
-            sr = SendRecv(MPIC_RECV, 0, rank, 1, self.baseCycle);
+            sr = SendRecv(MPIC_RECV, 0, rank, 1, self.baseCycle, operation_origin=self.op_name);
             sr_list.append(sr);
 
         for rank in range(1, self.num_ranks):
             # Rank 0 to current rank
-            sr = SendRecv(MPIC_SEND, 0, rank, 1, self.baseCycle);
+            sr = SendRecv(MPIC_SEND, 0, rank, 1, self.baseCycle, operation_origin=self.op_name);
             sr_list.append(sr);
-            sr = SendRecv(MPIC_RECV, rank, 0, 1, self.baseCycle);
+            sr = SendRecv(MPIC_RECV, rank, 0, 1, self.baseCycle, operation_origin=self.op_name);
             sr_list.append(sr);
         return sr_list;

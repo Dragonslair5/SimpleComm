@@ -68,7 +68,7 @@ class MQ_Allreduce:
                     src = rank - mask;
                     if src < 0:
                         src = src + self.num_ranks;
-                    sr = SendRecv(MPIC_RECV, rank, src, self.size, self.baseCycle, "allreduce");
+                    sr = SendRecv(MPIC_RECV, rank, src, self.size, self.baseCycle, operation_origin=self.op_name);
                     sr_list.append(sr);
                     break;
                 mask = mask << 1;
@@ -79,7 +79,7 @@ class MQ_Allreduce:
                     dst = rank + mask;
                     if dst >= self.num_ranks:
                         dst = dst - self.num_ranks;
-                    sr = SendRecv(MPIC_SEND, rank, dst, self.size, self.baseCycle, "allreduce");
+                    sr = SendRecv(MPIC_SEND, rank, dst, self.size, self.baseCycle, operation_origin=self.op_name);
                     sr_list.append(sr);
                 mask = mask >> 1;
         

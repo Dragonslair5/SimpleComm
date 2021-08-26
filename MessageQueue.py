@@ -41,7 +41,8 @@ class MessageQueue:
     
     def includeSendRecv(self, sendrecv: SendRecv):
         
-        self.blockablePendingMessage[sendrecv.rank] = self.blockablePendingMessage[sendrecv.rank] + 1;
+        if sendrecv.blocking:
+            self.blockablePendingMessage[sendrecv.rank] = self.blockablePendingMessage[sendrecv.rank] + 1;
 
         if sendrecv.kind == MPIC_SEND:
             if not self.checkMatch(sendrecv):
@@ -151,7 +152,9 @@ class MessageQueue:
                 sendrecv.partner == partner_queue[i].rank and
                 sendrecv.size == partner_queue[i].size ):
                 # Grab the matched SendRecv and remove from the queue
+                partner: SendRecv;
                 partner = partner_queue.pop(i);
+                assert sendrecv.tag == partner.tag
 
                 # Set the baseCycle (the highest between them)
                 if sendrecv.baseCycle > partner.baseCycle:
@@ -159,16 +162,15 @@ class MessageQueue:
                 else:
                     baseCycle = partner.baseCycle;
 
-                
                 # Calculate endCycle
                 endCycle = baseCycle + SimpleCommunicationCalculus(partner.size);
 
                 # Create the match and put it on the Matching Queue
                 #print("Match " + str())
                 if sendrecv.kind == MPIC_SEND:
-                    match = MQ_Match(sendrecv.rank, partner.rank, partner.size, baseCycle, endCycle);
+                    match = MQ_Match(sendrecv.rank, partner.rank, partner.size, baseCycle, endCycle, tag = partner.tag, blocking_send=sendrecv.blocking, blocking_recv=partner.blocking, send_origin=sendrecv.operation_origin, recv_origin=partner.operation_origin);
                 else:
-                    match = MQ_Match(partner.rank, sendrecv.rank, partner.size, baseCycle, endCycle);
+                    match = MQ_Match(partner.rank, sendrecv.rank, partner.size, baseCycle, endCycle, tag = partner.tag, blocking_send=partner.blocking, blocking_recv=sendrecv.blocking, send_origin=partner.operation_origin , recv_origin=sendrecv.operation_origin);
                 
                 self.matchQ.append(match);
                 
@@ -291,6 +293,9 @@ class MessageQueue:
         # Single channel Circuit Switching
         # ********************************
 
+        #if len(self.matchQ) == 0:
+        #    return None;
+
         # Find the earliest request
         # If it is zero, we might be on a deadlock
         assert len(self.matchQ) > 0, "matchQ is empty on a process queue request"
@@ -302,6 +307,7 @@ class MessageQueue:
                 lowest_baseCycle = self.matchQ[mi].baseCycle;
 
         # Pop the earliest match from the queue
+        earliest_match : MQ_Match;
         earliest_match = self.matchQ.pop(index_earliest_request);
 
         
@@ -313,11 +319,16 @@ class MessageQueue:
                 self.matchQ[mi].baseCycle = self.matchQ[mi].baseCycle + inc;
                 self.matchQ[mi].endCycle = self.matchQ[mi].endCycle + inc;
 
+        if earliest_match.blocking_send:
+            self.blockablePendingMessage[earliest_match.rankS] = self.blockablePendingMessage[earliest_match.rankS] - 1;
+        if earliest_match.blocking_recv:
+            self.blockablePendingMessage[earliest_match.rankR] = self.blockablePendingMessage[earliest_match.rankR] - 1;
 
-        self.blockablePendingMessage[earliest_match.rankS] = self.blockablePendingMessage[earliest_match.rankS] - 1;
-        self.blockablePendingMessage[earliest_match.rankR] = self.blockablePendingMessage[earliest_match.rankR] - 1;
 
-        self.op_message = self.op_message + " S:(" + str(earliest_match.rankS) + ") R:(" + str(earliest_match.rankR) + ") size: " + str(earliest_match.size) + " Bytes"
+        sending_message = " [" + earliest_match.send_origin + "] S:(";
+        receiving_message = ") [" + earliest_match.recv_origin + "] R:(";
+
+        self.op_message = self.op_message + sending_message + str(earliest_match.rankS) + receiving_message + str(earliest_match.rankR) + ") size: " + str(earliest_match.size) + " Bytes"
 
         return earliest_match;
 
