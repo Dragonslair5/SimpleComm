@@ -107,6 +107,13 @@ class SimpleCommEngine:
             rank = self.list_ranks[ri];
             if self.saveState[ri] != rank.cycle:
                 print(bcolors.OKCYAN, end='');
+            print("{: <15}".format(str(self.MQ.currentPosition[ri])), end='');
+            print(bcolors.ENDC, end='');
+        print("");
+        for ri in range(len(self.list_ranks)):
+            rank = self.list_ranks[ri];
+            if self.saveState[ri] != rank.cycle:
+                print(bcolors.OKCYAN, end='');
             print("{: <15}".format(rank.current_operation), end='');
             print(bcolors.ENDC, end='');
         print("");

@@ -68,6 +68,7 @@ class MQ_Bcast:
                     if dst >= self.num_ranks:
                         dst = dst - self.num_ranks;
                     sr = SendRecv(MPIC_SEND, rank, dst, self.size, self.baseCycle, "bcast");
+                    #print("R" + str(rank) + " -> " + "R" + str(dst));
                     sr_list.append(sr);
                     #print("Rank " + str(rank) + " sends to " + str(dst));
                 mask = mask >> 1;

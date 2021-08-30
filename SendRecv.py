@@ -13,6 +13,7 @@ class SendRecv:
         # Using on non-blocking operations
         self.blocking = blocking;
         self.tag = tag;
+        self.queue_position = 0; # To be used by the MessageQueue for ordering
 
     def __str__(self):
         if self.kind == MPIC_SEND:
