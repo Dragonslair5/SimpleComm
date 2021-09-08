@@ -37,10 +37,10 @@ class MQ_Reduce:
         for rank in range(1, self.num_ranks):
             if rank != self.root:
                 # Send rank -> root
-                sr = SendRecv(MPIC_SEND, rank, self.root, self.size, self.baseCycle, operation_origin=self.op_name);
+                sr = SendRecv(MPIC_SEND, rank, self.root, self.size, self.baseCycle, operation_origin=self.op_name, tag=MPIC_COLL_TAG_REDUCE);
                 sr_list.append(sr);
                 # Recv rank-> root
-                sr = SendRecv(MPIC_RECV, self.root, rank, self.size, self.baseCycle, operation_origin=self.op_name);
+                sr = SendRecv(MPIC_RECV, self.root, rank, self.size, self.baseCycle, operation_origin=self.op_name, tag=MPIC_COLL_TAG_REDUCE);
                 sr_list.append(sr);
 
         return sr_list;

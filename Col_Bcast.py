@@ -54,7 +54,7 @@ class MQ_Bcast:
                     if src < 0:
                         src = src + self.num_ranks;
                     #print("Rank " + str(rank) + " received from " + str(src));
-                    sr = SendRecv(MPIC_RECV, rank, src, self.size, self.baseCycle, "bcast");
+                    sr = SendRecv(MPIC_RECV, rank, src, self.size, self.baseCycle, "bcast", tag=MPIC_COLL_TAG_BCAST);
                     sr_list.append(sr);
                     break;
                 mask = mask << 1;
@@ -67,7 +67,7 @@ class MQ_Bcast:
                     dst = rank + mask;
                     if dst >= self.num_ranks:
                         dst = dst - self.num_ranks;
-                    sr = SendRecv(MPIC_SEND, rank, dst, self.size, self.baseCycle, "bcast");
+                    sr = SendRecv(MPIC_SEND, rank, dst, self.size, self.baseCycle, "bcast", tag=MPIC_COLL_TAG_BCAST);
                     #print("R" + str(rank) + " -> " + "R" + str(dst));
                     sr_list.append(sr);
                     #print("Rank " + str(rank) + " sends to " + str(dst));

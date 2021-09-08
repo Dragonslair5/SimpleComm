@@ -35,9 +35,9 @@ class MQ_Allreduce:
         # [1] Reduce
         for rank in range(1, self.num_ranks):
             # Current rank to rank 0 (reduce)
-            sr = SendRecv(MPIC_SEND, rank, 0, self.size, self.baseCycle, "allreduce");
+            sr = SendRecv(MPIC_SEND, rank, 0, self.size, self.baseCycle, "allreduce", tag=MPIC_COLL_TAG_ALLREDUCE);
             sr_list.append(sr)
-            sr = SendRecv(MPIC_RECV, 0, rank, self.size, self.baseCycle, "allreduce");
+            sr = SendRecv(MPIC_RECV, 0, rank, self.size, self.baseCycle, "allreduce", tag=MPIC_COLL_TAG_ALLREDUCE);
             sr_list.append(sr)
             # Rank 0 to current rank (+1? on baseCycle to postpond the bcast from the reduce)
             #                        (Or the order is enough?)
@@ -68,7 +68,7 @@ class MQ_Allreduce:
                     src = rank - mask;
                     if src < 0:
                         src = src + self.num_ranks;
-                    sr = SendRecv(MPIC_RECV, rank, src, self.size, self.baseCycle, operation_origin=self.op_name);
+                    sr = SendRecv(MPIC_RECV, rank, src, self.size, self.baseCycle, operation_origin=self.op_name, tag=MPIC_COLL_TAG_ALLREDUCE);
                     sr_list.append(sr);
                     break;
                 mask = mask << 1;
@@ -79,7 +79,7 @@ class MQ_Allreduce:
                     dst = rank + mask;
                     if dst >= self.num_ranks:
                         dst = dst - self.num_ranks;
-                    sr = SendRecv(MPIC_SEND, rank, dst, self.size, self.baseCycle, operation_origin=self.op_name);
+                    sr = SendRecv(MPIC_SEND, rank, dst, self.size, self.baseCycle, operation_origin=self.op_name, tag=MPIC_COLL_TAG_ALLREDUCE);
                     sr_list.append(sr);
                 mask = mask >> 1;
         

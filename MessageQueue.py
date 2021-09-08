@@ -10,7 +10,7 @@ def SimpleCommunicationCalculus(workload):
     workload = int(workload) + 16
     latency=1;
     bandwidth=1;
-    return 10
+    #return 10
     return latency + workload/bandwidth;
 
 
@@ -47,9 +47,10 @@ class MessageQueue:
         
         if sendrecv.blocking:
             self.blockablePendingMessage[sendrecv.rank] = self.blockablePendingMessage[sendrecv.rank] + 1;
-
-        sendrecv.queue_position = self.indexAcumulator[sendrecv.rank]; # Include position of this SendRecv on the MessageQueue
-        self.indexAcumulator[sendrecv.rank] = self.indexAcumulator[sendrecv.rank] + 1; # Increment position counter for the next SendRecv of this given rank
+            sendrecv.queue_position = self.indexAcumulator[sendrecv.rank]; # Include position of this SendRecv on the MessageQueue
+            self.indexAcumulator[sendrecv.rank] = self.indexAcumulator[sendrecv.rank] + 1; # Increment position counter for the next SendRecv of this given rank
+        else:
+            sendrecv.queue_position = -1;
 
         if sendrecv.kind == MPIC_SEND:
             if not self.checkMatch(sendrecv):
@@ -157,6 +158,7 @@ class MessageQueue:
         for i in range(len(partner_queue)):
             if ( partner_queue[i].partner == sendrecv.rank and 
                 sendrecv.partner == partner_queue[i].rank and
+                sendrecv.tag == partner_queue[i].tag and
                 sendrecv.size == partner_queue[i].size ):
                 # Grab the matched SendRecv and remove from the queue
                 partner: SendRecv;
@@ -310,8 +312,9 @@ class MessageQueue:
             for mi in range( len(matchQ) ):
                 if ( (matchQ[mi].rankS - rank_send) * (matchQ[mi].rankS - rank_recv) * (matchQ[mi].rankR - rank_send) * (matchQ[mi].rankR - rank_recv) ) == 0:
                     inc = earliest_match.endCycle - matchQ[mi].baseCycle;
-                    matchQ[mi].baseCycle = matchQ[mi].baseCycle + inc;
-                    matchQ[mi].endCycle = matchQ[mi].endCycle + inc;
+                    if inc > 0:
+                        matchQ[mi].baseCycle = matchQ[mi].baseCycle + inc;
+                        matchQ[mi].endCycle = matchQ[mi].endCycle + inc;
             return None;
             
         print( bcolors.FAIL + "ERROR: Unknown topology " + topology + bcolors.ENDC);
@@ -326,12 +329,6 @@ class MessageQueue:
         for ri in range(len(list_ranks)):
             if list_ranks[ri].state == Rank.S_NORMAL:
                 return None;
-        
-        # Single channel Circuit Switching
-        # ********************************
-
-        #if len(self.matchQ) == 0:
-        #    return None;
 
         # Find the earliest request
         # If this is zero, we might be on a deadlock
@@ -343,13 +340,23 @@ class MessageQueue:
         for i in range(0, len(self.matchQ)):
             thisMatch : MQ_Match = self.matchQ[i];
             #print(str(thisMatch.positionS) + " " + str(self.currentPosition[thisMatch.rankS]) + " | " + str(thisMatch.positionR) + " " + str(self.currentPosition[thisMatch.rankR]));
-            if thisMatch.positionS == self.currentPosition[thisMatch.rankS] and thisMatch.positionR == self.currentPosition[thisMatch.rankR]:
+            if (
+                (    
+                    (thisMatch.positionS == self.currentPosition[thisMatch.rankS] or thisMatch.positionS < 0) and 
+                    (thisMatch.positionR == self.currentPosition[thisMatch.rankR] or thisMatch.positionR < 0)
+                ) or
+                (thisMatch.tag < 0)
+               ):
                 index_earliest_request = i;
                 lowest_baseCycle = thisMatch.baseCycle;
                 break;
 
         # We might be on a deadlock if there is no valid match on this point
         #print(*self.matchQ, sep='\n')
+        #if index_earliest_request == None:
+        #    print(self.currentPosition);
+        #    print(*self.matchQ, sep='\n');
+
         assert index_earliest_request != None, "No valid Match was found"
 
         # Find the earliest among the valid ones
@@ -357,7 +364,15 @@ class MessageQueue:
         #lowest_baseCycle = self.matchQ[0].baseCycle;
         for mi in range(0, len(self.matchQ)):
             thisMatch : MQ_Match = self.matchQ[i];
-            if thisMatch.baseCycle < lowest_baseCycle and thisMatch.positionS == self.currentPosition[thisMatch.rankS] and thisMatch.positionR == self.currentPosition[thisMatch.rankR]:
+            if (thisMatch.baseCycle < lowest_baseCycle and 
+                 (
+                    (    
+                        (thisMatch.positionS == self.currentPosition[thisMatch.rankS] or thisMatch.positionS < 0) and 
+                        (thisMatch.positionR == self.currentPosition[thisMatch.rankR] or thisMatch.positionR < 0)
+                    ) or
+                    (thisMatch.tag < 0)
+                 )
+               ):
                 index_earliest_request = mi;
                 lowest_baseCycle = self.matchQ[mi].baseCycle;
 
@@ -366,22 +381,14 @@ class MessageQueue:
         earliest_match = self.matchQ.pop(index_earliest_request);
 
         # Increment position on the queue
-        self.currentPosition[earliest_match.rankS] = self.currentPosition[earliest_match.rankS] + 1;
-        self.currentPosition[earliest_match.rankR] = self.currentPosition[earliest_match.rankR] + 1;
+        if earliest_match.blocking_send:
+            self.currentPosition[earliest_match.rankS] = self.currentPosition[earliest_match.rankS] + 1;
+        if earliest_match.blocking_recv:
+            self.currentPosition[earliest_match.rankR] = self.currentPosition[earliest_match.rankR] + 1;
 
 
         #self.processContention(self.matchQ, earliest_match, "SC_CC");
         self.processContention(self.matchQ, earliest_match, "SC_FATPIPE");
-
-        '''
-        # This is the actual SINGLE CHANNEL CIRCUIT SWITCHING
-        # Push forward everyone that shares communication with the earliest
-        for mi in range( len(self.matchQ) ):
-            inc = earliest_match.endCycle - self.matchQ[mi].baseCycle
-            if inc > 0:
-                self.matchQ[mi].baseCycle = self.matchQ[mi].baseCycle + inc;
-                self.matchQ[mi].endCycle = self.matchQ[mi].endCycle + inc;
-        '''
 
         if earliest_match.blocking_send:
             self.blockablePendingMessage[earliest_match.rankS] = self.blockablePendingMessage[earliest_match.rankS] - 1;
@@ -393,6 +400,9 @@ class MessageQueue:
         receiving_message = ") [" + earliest_match.recv_origin + "] R:(";
 
         self.op_message = self.op_message + sending_message + str(earliest_match.rankS) + receiving_message + str(earliest_match.rankR) + ") size: " + str(earliest_match.size) + " Bytes"
+
+        #print("earliest: ", end='')
+        #print(earliest_match)
 
         return earliest_match;
 

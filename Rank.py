@@ -116,8 +116,8 @@ class Rank:
         if(operation == "bcast"):
             self.current_operation = "bcast-" + str(self.index);
             self.state = Rank.S_COMMUNICATING;
-            root = int(workload[3])
-            datatype = getDataTypeSize(int(workload[4]))
+            root = int(workload[3]);
+            datatype = getDataTypeSize(int(workload[4]));
             size = int(workload[2]) * datatype;
             bc = MQ_Bcast_entry(self.rank, root, size, self.cycle);
             return bc;
@@ -194,6 +194,8 @@ class Rank:
             self.state = Rank.S_WAITING;
             self.waitingTag = tag;
             return None;
+        #if(operation == "waitall"):
+        #    self.current_operation = 
 
         print( bcolors.FAIL + "ERROR: Unknown operation " + str(operation) + bcolors.ENDC);
         sys.exit(1);

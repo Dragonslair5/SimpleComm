@@ -9,11 +9,13 @@ from MessageQueue import *
 
 class SimpleCommEngine:
 
-    def __init__(self, nRanks):
+    def __init__(self, nRanks, verbose = True):
         self.list_ranks = []
         self.MQ = MessageQueue(nRanks)
         self.saveState = [0] * nRanks;
         self.nSteps = 0;
+        self.verbose = verbose;
+        self.ended = False;
 
     def read_traces(self, nRanks, traces_path):
 
@@ -26,8 +28,9 @@ class SimpleCommEngine:
                 trace.append(line_list);
             rankFile.close();
 
-            print( bcolors.OKBLUE + "Rank-" + str(rank) + bcolors.ENDC);
-            print(trace);
+            #if self.verbose:
+            #    print( bcolors.OKBLUE + "Rank-" + str(rank) + bcolors.ENDC);
+            #    print(trace);
 
             aux_rank = Rank(rank-1, trace);
 
@@ -64,6 +67,7 @@ class SimpleCommEngine:
                 END = END + 1
 
         if END == len(self.list_ranks):
+            self.ended = True;
             return END;
 
         # Process Collective Operations
@@ -95,34 +99,42 @@ class SimpleCommEngine:
 
 
     def showResults(self):
-        print(bcolors.OKGREEN + "Result - step " + str(self.nSteps) + bcolors.OKPURPLE + self.MQ.op_message + bcolors.ENDC)
-        for ri in range(len(self.list_ranks)):
-            rank = self.list_ranks[ri];
-            if self.saveState[ri] != rank.cycle:
-                print(bcolors.OKCYAN, end='');
-            print("{: <15}".format(rank.getCurrentStateName()), end='');
-            print(bcolors.ENDC, end='');
-        print("");
-        for ri in range(len(self.list_ranks)):
-            rank = self.list_ranks[ri];
-            if self.saveState[ri] != rank.cycle:
-                print(bcolors.OKCYAN, end='');
-            print("{: <15}".format(str(self.MQ.currentPosition[ri])), end='');
-            print(bcolors.ENDC, end='');
-        print("");
-        for ri in range(len(self.list_ranks)):
-            rank = self.list_ranks[ri];
-            if self.saveState[ri] != rank.cycle:
-                print(bcolors.OKCYAN, end='');
-            print("{: <15}".format(rank.current_operation), end='');
-            print(bcolors.ENDC, end='');
-        print("");
-        for ri in range(len(self.list_ranks)):
-            rank = self.list_ranks[ri];
-            if self.saveState[ri] != rank.cycle:
-                self.saveState[ri] = rank.cycle;
-                print(bcolors.OKCYAN, end='');
-            print("{: <15}".format(rank.cycle), end='');
-            print(bcolors.ENDC, end='');
-        print("");
+        if self.verbose:
+            print(bcolors.OKGREEN + "Result - step " + str(self.nSteps) + bcolors.OKPURPLE + self.MQ.op_message + bcolors.ENDC)
+            for ri in range(len(self.list_ranks)):
+                rank = self.list_ranks[ri];
+                if self.saveState[ri] != rank.cycle:
+                    print(bcolors.OKCYAN, end='');
+                print("{: <15}".format(rank.getCurrentStateName()), end='');
+                print(bcolors.ENDC, end='');
+            print("");
+            for ri in range(len(self.list_ranks)):
+                rank = self.list_ranks[ri];
+                if self.saveState[ri] != rank.cycle:
+                    print(bcolors.OKCYAN, end='');
+                print("{: <15}".format(str(self.MQ.currentPosition[ri])), end='');
+                print(bcolors.ENDC, end='');
+            print("");
+            for ri in range(len(self.list_ranks)):
+                rank = self.list_ranks[ri];
+                if self.saveState[ri] != rank.cycle:
+                    print(bcolors.OKCYAN, end='');
+                print("{: <15}".format(rank.current_operation), end='');
+                print(bcolors.ENDC, end='');
+            print("");
+            for ri in range(len(self.list_ranks)):
+                rank = self.list_ranks[ri];
+                if self.saveState[ri] != rank.cycle:
+                    self.saveState[ri] = rank.cycle;
+                    print(bcolors.OKCYAN, end='');
+                print("{: <15}".format(rank.cycle), end='');
+                print(bcolors.ENDC, end='');
+            print("");
+        elif self.ended:
+            biggestCycle = self.list_ranks[0].cycle;
+            for ri in range(1, len(self.list_ranks)):
+                if self.list_ranks[ri].cycle > biggestCycle:
+                    biggestCycle =  self.list_ranks[ri].cycle;
+            print(biggestCycle);
+
 

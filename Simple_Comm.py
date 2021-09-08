@@ -8,16 +8,19 @@ from SimulationEngine import *
 def main():
 
     if len (sys.argv) < 3:
-        print("Usage: python3 simple_comm.py <#ranks> <path for traces>");
+        print("Usage: python3 simple_comm.py <#ranks> <path for traces> <? verbose ?>");
         sys.exit(1);
 
+    verbose = False;
+    if len (sys.argv) > 3:
+        verbose = True;
 
     nRanks=int(sys.argv[1]);
     files_path=sys.argv[2];
 
 
     # StartUp the simulation engine
-    simEngine = SimpleCommEngine(nRanks);
+    simEngine = SimpleCommEngine(nRanks, verbose);
 
     # Read up the traces
     simEngine.read_traces(nRanks, files_path);

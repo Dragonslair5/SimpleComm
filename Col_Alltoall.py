@@ -40,7 +40,7 @@ class MQ_Alltoall:
             baseCycle = self.entries[ri].baseCycle;
             i = (rank + 1) % self.num_ranks;
             while i != rank:
-                sr = SendRecv(MPIC_RECV, rank, i, recvsize , baseCycle, operation_origin=self.op_name);
+                sr = SendRecv(MPIC_RECV, rank, i, recvsize , baseCycle, operation_origin=self.op_name, tag=MPIC_COLL_TAG_ALLTOALL);
                 #print("alltoall " + str(rank) + " --> " + str(i));
                 sr_list.append(sr);
                 i = (i+1) % self.num_ranks;
@@ -52,7 +52,7 @@ class MQ_Alltoall:
             baseCycle = self.entries[ri].baseCycle;
             i = (rank + self.num_ranks - 1) % self.num_ranks;
             while i != rank:
-                sr = SendRecv(MPIC_SEND, rank, i, sendsize, baseCycle, operation_origin=self.op_name);
+                sr = SendRecv(MPIC_SEND, rank, i, sendsize, baseCycle, operation_origin=self.op_name, tag=MPIC_COLL_TAG_ALLTOALL);
                 #print("alltoall " + str(rank) + " <-- " + str(i));
                 sr_list.append(sr);
                 i = (i + self.num_ranks - 1) % self.num_ranks;
