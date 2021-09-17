@@ -1,3 +1,23 @@
+import configparser
+
+
+
+class SimpleCommConfiguration:
+    def __init__(self, configfile: str) -> None:
+        
+        config = configparser.ConfigParser();
+        config.read(configfile);
+        self.topology = config["TOPOLOGY"].get("topology", "default");
+        
+        self.CA_Allreduce = config["CollectiveAlgorithm"].get("CA_Allreduce", "reduce_bcast");
+        self.CA_Alltoall = config["CollectiveAlgorithm"].get("CA_Alltoall", "basic_linear");
+        self.CA_Alltoallv = config["CollectiveAlgorithm"].get("CA_Alltoallv", "nbc_like_simgrid");
+        self.CA_Barrier = config["CollectiveAlgorithm"].get("CA_Barrier", "basic_linear");
+        self.CA_Bcast = config["CollectiveAlgorithm"].get("CA_Bcast", "binomial_tree");
+        self.CA_Reduce = config["CollectiveAlgorithm"].get("CA_reduce", "alltoroot");
+
+
+
 
 
 
@@ -85,6 +105,7 @@ class MQ_Match:
         self.recv_origin = recv_origin;
         self.positionS = positionS; # Ordering
         self.positionR = positionR; # Ordering
+        self.removelat = True;
 
 
     def __str__ (self):

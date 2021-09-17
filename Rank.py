@@ -39,6 +39,7 @@ class Rank:
         # Non-blocking operation
         self.iSendRecvQ = [];
         self.waitingTag = None;
+        self.shallEnd = False;
 
     #def changeState(self, newState):
     #    self.state = newState;
@@ -82,6 +83,9 @@ class Rank:
             if(self.check_iSendRecvConclusion(self.waitingTag)):
                 self.state = Rank.S_NORMAL;
             return None;
+        if self.shallEnd:
+            self.state = Rank.S_ENDED;
+            return None;
         # Grab workload and increment index
         workload = self.trace[self.index];
         operation = workload[1];
@@ -93,7 +97,7 @@ class Rank:
             return None;
         if operation == "compute":
             self.current_operation = "compute-" + str(self.index);
-            self.cycle = self.cycle + int(float(workload[2])); # need to float->int cause of scientific notation
+            #self.cycle = self.cycle + int(float(workload[2])); # need to float->int cause of scientific notation
             return None;
         if(operation == "send"):
             self.state = Rank.S_COMMUNICATING;
@@ -164,7 +168,11 @@ class Rank:
             return alltoallv;
         if(operation == "finalize"):
             self.current_operation = "finalize-" + str(self.index);
-            self.state = Rank.S_ENDED;
+            #self.state = Rank.S_ENDED;
+            self.shallEnd = True;
+            self.state = Rank.S_COMMUNICATING;
+            barrier = MQ_Barrier_entry(self.rank, self.cycle);
+            return barrier;
             return None;
 
         # No blocking operations

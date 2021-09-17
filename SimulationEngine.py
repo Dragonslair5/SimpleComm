@@ -11,11 +11,21 @@ class SimpleCommEngine:
 
     def __init__(self, nRanks, verbose = True):
         self.list_ranks = []
+        self.MQ : MessageQueue;
         self.MQ = MessageQueue(nRanks)
         self.saveState = [0] * nRanks;
         self.nSteps = 0;
         self.verbose = verbose;
         self.ended = False;
+        self.config : SimpleCommConfiguration;
+        self.config = None;
+
+
+    def configure(self, configfile: str):
+        self.config = SimpleCommConfiguration(configfile);
+        #print("hehe")
+
+
 
     def read_traces(self, nRanks, traces_path):
 
@@ -71,7 +81,7 @@ class SimpleCommEngine:
             return END;
 
         # Process Collective Operations
-        self.MQ.processCollectiveOperations();
+        self.MQ.processCollectiveOperations(self.config);
 
         # Process MatchQueue
         match: MQ_Match;
@@ -80,7 +90,7 @@ class SimpleCommEngine:
             #print(" SR " + str(match.rankS) + " --> " + str(match.rankR))
             # ********* SEND
             if match.blocking_send:
-                assert self.list_ranks[match.rankS].cycle < match.endCycle, str(match.rankS) + " - cycle " + str(self.list_ranks[match.rankS].cycle) + " cycle " + str(match.endCycle);
+                #assert self.list_ranks[match.rankS].cycle < match.endCycle, str(match.rankS) + " - cycle " + str(self.list_ranks[match.rankS].cycle) + " cycle " + str(match.endCycle);
                 self.list_ranks[match.rankS].cycle = match.endCycle;
                 if self.MQ.blockablePendingMessage[match.rankS] == 0:
                     self.list_ranks[match.rankS].state = Rank.S_NORMAL;
@@ -88,7 +98,7 @@ class SimpleCommEngine:
                 self.list_ranks[match.rankS].include_iSendRecvConclusion(match.tag, match.endCycle);
             # ********* RECV
             if match.blocking_recv:
-                assert self.list_ranks[match.rankR].cycle < match.endCycle, str(match.rankR) + " - cycle " + str(self.list_ranks[match.rankR].cycle) + " cycle " + str(match.endCycle);
+                #assert self.list_ranks[match.rankR].cycle < match.endCycle, str(match.rankR) + " - cycle " + str(self.list_ranks[match.rankR].cycle) + " cycle " + str(match.endCycle);
                 self.list_ranks[match.rankR].cycle = match.endCycle;
                 if self.MQ.blockablePendingMessage[match.rankR] == 0:
                     self.list_ranks[match.rankR].state = Rank.S_NORMAL;

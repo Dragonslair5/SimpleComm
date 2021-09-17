@@ -8,7 +8,7 @@ from Rank import *
 # TODO: expand this
 def SimpleCommunicationCalculus(workload):
     workload = int(workload) + 16
-    latency=1;
+    latency=0;
     bandwidth=1;
     #return 10
     return latency + workload/bandwidth;
@@ -187,14 +187,14 @@ class MessageQueue:
         return False; # Not a Match!
 
 
-    def processCollectiveOperations(self):
+    def processCollectiveOperations(self, config: SimpleCommConfiguration) -> None:
 
         # ******************************************************************
         # bcast (broadcast)
         removal_indexes = []
         for bi in range(len(self.bcastQ)):
             if self.bcastQ[bi].isReady():
-                sr_list = self.bcastQ[bi].process();
+                sr_list = self.bcastQ[bi].process(config.CA_Bcast);
                 self.op_message = self.op_message + " bcast";
                 #print(sr_list)
                 while len(sr_list) > 0:
@@ -212,7 +212,7 @@ class MessageQueue:
         removal_indexes = []
         for bi in range(len(self.barrierQ)):
             if self.barrierQ[bi].isReady():
-                sr_list = self.barrierQ[bi].process();
+                sr_list = self.barrierQ[bi].process(config.CA_Barrier);
                 self.op_message = self.op_message + " barrier";
                 while len(sr_list) > 0:
                     sr = sr_list.pop(0);
@@ -228,7 +228,7 @@ class MessageQueue:
         removal_indexes = []
         for ri in range(len(self.reduceQ)):
             if self.reduceQ[ri].isReady():
-                sr_list = self.reduceQ[ri].process();
+                sr_list = self.reduceQ[ri].process(config.CA_Reduce);
                 self.op_message = self.op_message + " reduce";
                 while len(sr_list) > 0:
                     sr = sr_list.pop(0);
@@ -244,7 +244,7 @@ class MessageQueue:
         removal_indexes = []
         for ri in range(len(self.allreduceQ)):
             if self.allreduceQ[ri].isReady():
-                sr_list = self.allreduceQ[ri].process();
+                sr_list = self.allreduceQ[ri].process(config.CA_Allreduce);
                 self.op_message = self.op_message + " allreduce";
                 while len(sr_list) > 0:
                     sr = sr_list.pop(0);
@@ -261,7 +261,7 @@ class MessageQueue:
         removal_indexes = []
         for ai in range(len(self.alltoallQ)):
             if self.alltoallQ[ai].isReady():
-                sr_list = self.alltoallQ[ai].process();
+                sr_list = self.alltoallQ[ai].process(config.CA_Alltoall);
                 self.op_message = self.op_message + " alltoall";
                 while len(sr_list) > 0:
                     sr = sr_list.pop(0);
@@ -278,7 +278,7 @@ class MessageQueue:
         removal_indexes = []
         for ai in range(len(self.alltoallvQ)):
             if self.alltoallvQ[ai].isReady():
-                sr_list = self.alltoallvQ[ai].process();
+                sr_list = self.alltoallvQ[ai].process(config.CA_Alltoallv);
                 self.op_message = self.op_message + " alltoallv";
                 while len(sr_list) > 0:
                     sr = sr_list.pop(0);
@@ -305,16 +305,26 @@ class MessageQueue:
                     matchQ[mi].endCycle = matchQ[mi].endCycle + inc;
             return None;
         
+
+        #if (topology == "SC_FATPIPE"):
+        #    return None;
+
+
         if (topology == "SC_FATPIPE"):
             # Alltoall FATPIPE here
             rank_send = earliest_match.rankS;
             rank_recv = earliest_match.rankR;
             for mi in range( len(matchQ) ):
                 if ( (matchQ[mi].rankS - rank_send) * (matchQ[mi].rankS - rank_recv) * (matchQ[mi].rankR - rank_send) * (matchQ[mi].rankR - rank_recv) ) == 0:
+                #if (  (matchQ[mi].rankS - rank_recv) * (matchQ[mi].rankR - rank_send) ) == 0:
+                #if (  (matchQ[mi].rankS - rank_send) ) == 0:
                     inc = earliest_match.endCycle - matchQ[mi].baseCycle;
                     if inc > 0:
                         matchQ[mi].baseCycle = matchQ[mi].baseCycle + inc;
                         matchQ[mi].endCycle = matchQ[mi].endCycle + inc;
+                        #if matchQ[mi].removelat:
+                        #    matchQ[mi].endCycle = matchQ[mi].endCycle - 1;
+                        #    matchQ[mi].removelat = False;
             return None;
             
         print( bcolors.FAIL + "ERROR: Unknown topology " + topology + bcolors.ENDC);
@@ -387,8 +397,8 @@ class MessageQueue:
             self.currentPosition[earliest_match.rankR] = self.currentPosition[earliest_match.rankR] + 1;
 
 
-        #self.processContention(self.matchQ, earliest_match, "SC_CC");
-        self.processContention(self.matchQ, earliest_match, "SC_FATPIPE");
+        self.processContention(self.matchQ, earliest_match, "SC_CC");
+        #self.processContention(self.matchQ, earliest_match, "SC_FATPIPE");
 
         if earliest_match.blocking_send:
             self.blockablePendingMessage[earliest_match.rankS] = self.blockablePendingMessage[earliest_match.rankS] - 1;

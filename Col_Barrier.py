@@ -1,3 +1,4 @@
+import sys
 from tp_utils import *
 from MPI_Constants import *
 from SendRecv import *
@@ -26,21 +27,34 @@ class MQ_Barrier:
 
     # Based on SimGrid
     # barrier__ompi_basic_linear (barrier-ompi.cpp)
-    def process(self):
+    def process(self, algorithm: str) -> list:
         assert self.isReady();
+
+        if (algorithm == "basic_linear"):
+            return self.algorithm_basic_linear();
+        
+        print( bcolors.FAIL + "ERROR: Unknown Barrier algorithm " + algorithm + bcolors.ENDC);
+        sys.exit(1);
+        
+
+    def algorithm_basic_linear(self)->list:
         sr_list = []
 
         for rank in range(1, self.num_ranks):
             # Current rank to rank 0
-            sr = SendRecv(MPIC_SEND, rank, 0, 1, self.baseCycle, operation_origin=self.op_name, tag=MPIC_COLL_TAG_BARRIER);
+            # (simgrid) send
+            sr = SendRecv(MPIC_SEND, rank, 0, 0, self.baseCycle, operation_origin=self.op_name, tag=MPIC_COLL_TAG_BARRIER);
             sr_list.append(sr);
-            sr = SendRecv(MPIC_RECV, 0, rank, 1, self.baseCycle, operation_origin=self.op_name, tag=MPIC_COLL_TAG_BARRIER);
+            # (simgrid) irecv
+            sr = SendRecv(MPIC_RECV, 0, rank, 0, self.baseCycle, operation_origin=self.op_name, tag=MPIC_COLL_TAG_BARRIER);
             sr_list.append(sr);
 
         for rank in range(1, self.num_ranks):
             # Rank 0 to current rank
-            sr = SendRecv(MPIC_SEND, 0, rank, 1, self.baseCycle, operation_origin=self.op_name, tag=MPIC_COLL_TAG_BARRIER);
+            # (simgrid) isend
+            sr = SendRecv(MPIC_SEND, 0, rank, 0, self.baseCycle, operation_origin=self.op_name, tag=MPIC_COLL_TAG_BARRIER);
             sr_list.append(sr);
-            sr = SendRecv(MPIC_RECV, rank, 0, 1, self.baseCycle, operation_origin=self.op_name, tag=MPIC_COLL_TAG_BARRIER);
+            # (simgrid) recv
+            sr = SendRecv(MPIC_RECV, rank, 0, 0, self.baseCycle, operation_origin=self.op_name, tag=MPIC_COLL_TAG_BARRIER);
             sr_list.append(sr);
         return sr_list;

@@ -1,3 +1,4 @@
+import sys
 from tp_utils import *
 from MPI_Constants import *
 from SendRecv import *
@@ -30,8 +31,20 @@ class MQ_Reduce:
 
     # Based on SimGrid
     # colls::ireduce (smpi_nbc_impl.cpp)
-    def process(self):
+    def process(self, algorithm: str) -> list:
         assert self.isReady();
+
+        if(algorithm == "alltoroot"):
+            return self.algorithm_allToRoot();
+
+        print( bcolors.FAIL + "ERROR: Unknown reduce algorithm " + algorithm + bcolors.ENDC);
+        sys.exit(1);
+
+
+
+    # Based on SimGrid
+    # colls::ireduce (smpi_nbc_impl.cpp)
+    def algorithm_allToRoot(self) -> list:
         sr_list = [];
 
         for rank in range(1, self.num_ranks):

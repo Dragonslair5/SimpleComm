@@ -1,3 +1,4 @@
+import sys
 from tp_utils import *
 from MPI_Constants import *
 from SendRecv import *
@@ -25,11 +26,21 @@ class MQ_Allreduce:
     def isReady(self):
         return self.num_ranks == len(self.entries);
 
+    
+    def process(self, algorithm: str) -> list:
+        assert self.isReady();
+
+        if (algorithm == "reduce_bcast"):
+            return self.algorithm_reduce_bcast();
+
+        print( bcolors.FAIL + "ERROR: Unknown Allreduce algorithm " + algorithm + bcolors.ENDC);
+        sys.exit(1);
+
+        
     # Based on SimGrid
     # allreduce__default (smpi_default_selector.cpp)
     # [1](reduce->0)   [2](0->bcast)
-    def process(self):
-        assert self.isReady();
+    def algorithm_reduce_bcast(self)-> list:
         sr_list = []
 
         # [1] Reduce
@@ -39,21 +50,8 @@ class MQ_Allreduce:
             sr_list.append(sr)
             sr = SendRecv(MPIC_RECV, 0, rank, self.size, self.baseCycle, "allreduce", tag=MPIC_COLL_TAG_ALLREDUCE);
             sr_list.append(sr)
-            # Rank 0 to current rank (+1? on baseCycle to postpond the bcast from the reduce)
-            #                        (Or the order is enough?)
-        '''
-        # [2] Naive bcast
-        for rank in range(1, self.num_ranks):    
-            sr = SendRecv(MPIC_SEND, 0, rank, self.size, self.baseCycle);
-            sr_list.append(sr)
-            sr = SendRecv(MPIC_RECV, rank, 0, self.size, self.baseCycle);
-            sr_list.append(sr)
-            
-
-        print(sr_list)
-        print("size of list -> " + str(len(sr_list)))
-        return sr_list;
-        '''
+            # NOTE Rank 0 to current rank (+1? on baseCycle to postpond the bcast from the reduce)
+            #                             (Or the order is enough?)
 
         # [2] Binomial tree bcast
         root = 0;
@@ -83,7 +81,4 @@ class MQ_Allreduce:
                     sr_list.append(sr);
                 mask = mask >> 1;
         
-
-        #print(sr_list)
-        #print("size of list -> " + str(len(sr_list)))
         return sr_list;

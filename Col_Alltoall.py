@@ -1,3 +1,4 @@
+import sys
 from tp_utils import *
 from MPI_Constants import *
 from SendRecv import *
@@ -29,8 +30,18 @@ class MQ_Alltoall:
 
     # Based on SimGrid
     # alltoall__basic_linear (alltoall-basic-linear.cpp)
-    def process(self):
+    def process(self, algorithm: str) -> list:
         assert self.isReady();
+
+        if (algorithm == "basic_linear"):
+            return self.algorithm_basic_linear();
+
+        print( bcolors.FAIL + "ERROR: Unknown Alltoall algorithm " + algorithm + bcolors.ENDC);
+        sys.exit(1);
+        
+
+
+    def algorithm_basic_linear(self)->list:
         sr_list = []
 
         # Post all receives first
@@ -58,4 +69,3 @@ class MQ_Alltoall:
                 i = (i + self.num_ranks - 1) % self.num_ranks;
 
         return sr_list;
-

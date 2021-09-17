@@ -1,3 +1,4 @@
+import sys
 from tp_utils import *
 from MPI_Constants import *
 from SendRecv import *
@@ -34,8 +35,17 @@ class MQ_Bcast:
 
     # Based on SimGrid
     # bcast__binomial_tree (bcast-binomial-tree.cpp)
-    def process(self):
+    def process(self, algorithm: str) -> list:
         assert self.num_ranks == len(self.entries)
+
+        if (algorithm == "binomial_tree"):
+            return self.algorithm_binomial_tree()
+
+        print( bcolors.FAIL + "ERROR: Unknown Bcast algorithm " + algorithm + bcolors.ENDC);
+        sys.exit(1);
+        
+
+    def algorithm_binomial_tree(self)->list:
         sr_list = [];
 
         for rank in range(self.num_ranks):
@@ -54,6 +64,7 @@ class MQ_Bcast:
                     if src < 0:
                         src = src + self.num_ranks;
                     #print("Rank " + str(rank) + " received from " + str(src));
+                    # (simgrid) recv
                     sr = SendRecv(MPIC_RECV, rank, src, self.size, self.baseCycle, "bcast", tag=MPIC_COLL_TAG_BCAST);
                     sr_list.append(sr);
                     break;
@@ -67,6 +78,7 @@ class MQ_Bcast:
                     dst = rank + mask;
                     if dst >= self.num_ranks:
                         dst = dst - self.num_ranks;
+                    # (simgrid) send
                     sr = SendRecv(MPIC_SEND, rank, dst, self.size, self.baseCycle, "bcast", tag=MPIC_COLL_TAG_BCAST);
                     #print("R" + str(rank) + " -> " + "R" + str(dst));
                     sr_list.append(sr);

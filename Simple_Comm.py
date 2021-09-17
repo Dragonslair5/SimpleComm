@@ -7,20 +7,24 @@ from SimulationEngine import *
 
 def main():
 
-    if len (sys.argv) < 3:
-        print("Usage: python3 simple_comm.py <#ranks> <path for traces> <? verbose ?>");
+    if len (sys.argv) < 4:
+        print("Usage: python3 simple_comm.py <#ranks> <path for traces> <config file> <? verbose ?>");
         sys.exit(1);
 
     verbose = False;
-    if len (sys.argv) > 3:
+    if len (sys.argv) > 4:
         verbose = True;
 
     nRanks=int(sys.argv[1]);
     files_path=sys.argv[2];
+    configFile = sys.argv[3];
 
 
     # StartUp the simulation engine
     simEngine = SimpleCommEngine(nRanks, verbose);
+
+    # Read configurations
+    simEngine.configure(configFile)
 
     # Read up the traces
     simEngine.read_traces(nRanks, files_path);
