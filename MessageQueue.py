@@ -292,7 +292,7 @@ class MessageQueue:
 
 
 
-    def processContention(self, matchQ, earliest_match: MQ_Match, topology = "SC_CC"):
+    def processContention(self, matchQ, earliest_match: MQ_Match, topology):
         
 
         if (topology == "SC_CC"):    
@@ -333,7 +333,7 @@ class MessageQueue:
 
 
 
-    def processMatchQueue(self, list_ranks):
+    def processMatchQueue(self, list_ranks, topology):
         
         # Check if anyone is on NORMAL (only process MQ when noone is on NORMAL state)
         for ri in range(len(list_ranks)):
@@ -397,8 +397,9 @@ class MessageQueue:
             self.currentPosition[earliest_match.rankR] = self.currentPosition[earliest_match.rankR] + 1;
 
 
-        self.processContention(self.matchQ, earliest_match, "SC_CC");
+        #self.processContention(self.matchQ, earliest_match, "SC_CC");
         #self.processContention(self.matchQ, earliest_match, "SC_FATPIPE");
+        self.processContention(self.matchQ, earliest_match, topology);
 
         if earliest_match.blocking_send:
             self.blockablePendingMessage[earliest_match.rankS] = self.blockablePendingMessage[earliest_match.rankS] - 1;

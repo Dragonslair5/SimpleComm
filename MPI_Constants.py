@@ -7,7 +7,7 @@ class SimpleCommConfiguration:
         
         config = configparser.ConfigParser();
         config.read(configfile);
-        self.topology = config["TOPOLOGY"].get("topology", "default");
+        self.topology = config["TOPOLOGY"].get("topology", "SC_CC");
         
         self.CA_Allreduce = config["CollectiveAlgorithm"].get("CA_Allreduce", "reduce_bcast");
         self.CA_Alltoall = config["CollectiveAlgorithm"].get("CA_Alltoall", "basic_linear");

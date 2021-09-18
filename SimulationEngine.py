@@ -85,7 +85,7 @@ class SimpleCommEngine:
 
         # Process MatchQueue
         match: MQ_Match;
-        match = self.MQ.processMatchQueue(self.list_ranks);
+        match = self.MQ.processMatchQueue(self.list_ranks, self.config.topology);
         if match is not None:
             #print(" SR " + str(match.rankS) + " --> " + str(match.rankR))
             # ********* SEND
