@@ -9,6 +9,17 @@ class SimpleCommConfiguration:
         config.read(configfile);
         self.topology = config["TOPOLOGY"].get("topology", "SC_CC");
         
+        # NOTE There might be a better way to grab a boolean
+        self.computation : bool
+        self.computation = config["TOPOLOGY"].get("computation", "True");
+        #print(self.computation)
+        if self.computation == "True":
+            #print("GOT TRUE")
+            self.computation = True;
+        else:
+            #print("GOT FALSE")
+            self.computation = False;
+        
         self.CA_Allreduce = config["CollectiveAlgorithm"].get("CA_Allreduce", "reduce_bcast");
         self.CA_Alltoall = config["CollectiveAlgorithm"].get("CA_Alltoall", "basic_linear");
         self.CA_Alltoallv = config["CollectiveAlgorithm"].get("CA_Alltoallv", "nbc_like_simgrid");
@@ -28,8 +39,10 @@ def getDataTypeSize(datatype: int) -> int:
         return 4;
     if datatype == 2: # MPI_CHAR
         return 1;
-    if datatype == 23: # MPI_INTEGER32
+    if datatype == 23: # MPI_INTEGER32 
         return 4;
+    if datatype == 43: # MPI_DOUBLE_PRECISION (DOUBLE PRECISION Fortran)
+        return 8;
     assert datatype == 0, "Unknown datatype " + str(datatype)
 
 
