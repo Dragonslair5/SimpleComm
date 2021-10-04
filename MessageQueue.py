@@ -1,17 +1,6 @@
-
-from Col_Alltoall import MQ_Alltoall
-from Col_Alltoallv import MQ_Alltoallv
+from Topology import *
 from Rank import *
 
-
-# This function is like a placeholder
-# TODO: expand this
-def SimpleCommunicationCalculus(workload):
-    workload = int(workload) + 16
-    latency=0;
-    bandwidth=1;
-    #return 10
-    return latency + workload/bandwidth;
 
 
 class MessageQueue:
@@ -292,53 +281,34 @@ class MessageQueue:
 
 
 
-    def processContention(self, matchQ, earliest_match: MQ_Match, topology):
-        
-
-        if (topology == "SC_CC"):    
-            # This is the actual SINGLE CHANNEL CIRCUIT SWITCHING
-            # Push forward everyone that shares communication with the earliest
-            for mi in range( len(matchQ) ):
-                inc = earliest_match.endCycle - matchQ[mi].baseCycle
-                if inc > 0:
-                    matchQ[mi].baseCycle = matchQ[mi].baseCycle + inc;
-                    matchQ[mi].endCycle = matchQ[mi].endCycle + inc;
-            return None;
-        
-
-        #if (topology == "SC_FATPIPE"):
-        #    return None;
-
-
-        if (topology == "SC_FATPIPE"):
-            # Alltoall FATPIPE here
-            rank_send = earliest_match.rankS;
-            rank_recv = earliest_match.rankR;
-            for mi in range( len(matchQ) ):
-                if ( (matchQ[mi].rankS - rank_send) * (matchQ[mi].rankS - rank_recv) * (matchQ[mi].rankR - rank_send) * (matchQ[mi].rankR - rank_recv) ) == 0:
-                #if (  (matchQ[mi].rankS - rank_recv) * (matchQ[mi].rankR - rank_send) ) == 0:
-                #if (  (matchQ[mi].rankS - rank_send) ) == 0:
-                    inc = earliest_match.endCycle - matchQ[mi].baseCycle;
-                    if inc > 0:
-                        matchQ[mi].baseCycle = matchQ[mi].baseCycle + inc;
-                        matchQ[mi].endCycle = matchQ[mi].endCycle + inc;
-                        #if matchQ[mi].removelat:
-                        #    matchQ[mi].endCycle = matchQ[mi].endCycle - 1;
-                        #    matchQ[mi].removelat = False;
-            return None;
-            
-        print( bcolors.FAIL + "ERROR: Unknown topology " + topology + bcolors.ENDC);
-        sys.exit(1);
-
+    
 
 
 
     def processMatchQueue(self, list_ranks, topology):
         
+        '''
+        if len(self.matchQ) == 0 or True:
+            for i in range(len(list_ranks)):
+                print(list_ranks[i].getCurrentStateName() + " --- " + list_ranks[i].current_operation + " --- Waiting Tag: " + str(list_ranks[i].waitingTag) )
+                print("iSendRecv -- ", end= '')
+                for l in range(len(list_ranks[i].iSendRecvQ)):
+                    print(list_ranks[i].iSendRecvQ[l].tag, end = '');
+                    print(" ", end='')
+                print("")
+        '''
         # Check if anyone is on NORMAL (only process MQ when noone is on NORMAL state)
         for ri in range(len(list_ranks)):
             if list_ranks[ri].state == Rank.S_NORMAL:
                 return None;
+        
+        if len(self.matchQ) == 0:
+            for ri in range(len(list_ranks)):
+                if list_ranks[ri].state == Rank.S_WAITING:
+                    mahTempt = list_ranks[ri].check_iSendRecvConclusion(list_ranks[ri].waitingTag)
+                    if mahTempt:
+                        print("wtf dude")
+        
 
         # Find the earliest request
         # If this is zero, we might be on a deadlock
@@ -399,7 +369,7 @@ class MessageQueue:
 
         #self.processContention(self.matchQ, earliest_match, "SC_CC");
         #self.processContention(self.matchQ, earliest_match, "SC_FATPIPE");
-        self.processContention(self.matchQ, earliest_match, topology);
+        processContention(self.matchQ, earliest_match, topology);
 
         if earliest_match.blocking_send:
             self.blockablePendingMessage[earliest_match.rankS] = self.blockablePendingMessage[earliest_match.rankS] - 1;

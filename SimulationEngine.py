@@ -42,7 +42,7 @@ class SimpleCommEngine:
             #    print( bcolors.OKBLUE + "Rank-" + str(rank) + bcolors.ENDC);
             #    print(trace);
 
-            aux_rank = Rank(rank-1, trace);
+            aux_rank = Rank(rank-1, trace, self.config);
 
             self.list_ranks.append(aux_rank);
 

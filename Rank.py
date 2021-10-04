@@ -28,16 +28,18 @@ class Rank:
     S_M=4 # has a Match, waiting for result (unused)
     S_WAITING=5; # Using WAIT or WAITALL for unblocking operations
 
-    def __init__(self, rank, trace):
+    def __init__(self, rank: int, trace: list, configfile: SimpleCommConfiguration):
         self.rank = rank;
         self.trace = trace;
         self.index = 0;
         self.state = Rank.S_NORMAL; # start at normal
         self.cycle = 0; # CurrentCycle
         self.current_operation = "";
+        self.simulateComputation = configfile.computation;
         
         # Non-blocking operation
         self.iSendRecvQ = [];
+        self.waitall = 0;
         self.waitingTag = None;
         self.shallEnd = False;
 
@@ -62,18 +64,32 @@ class Rank:
     def include_iSendRecvConclusion(self, tag, endcycle):
         isendrecv = iSendRecv(tag, endcycle);
         self.iSendRecvQ.append(isendrecv);
+        self.waitall = self.waitall + 1;
 
     def check_iSendRecvConclusion(self, tag):
         assert self.state == Rank.S_WAITING;
-        assert self.waitingTag != None;
-        for i in range(len(self.iSendRecvQ)):
-            if tag == self.iSendRecvQ[i].tag:
-                if self.cycle < self.iSendRecvQ[i].endCycle:
-                    self.cycle = self.iSendRecvQ[i].endCycle;
-                del self.iSendRecvQ[i];
-                self.current_operation = self.current_operation + " (iM)"
-                return True; # Found completed iSendRecv
+        #assert self.waitingTag != None;
+        if self.waitingTag == None: # Waitall
+            if self.waitall == 0:
+                lenght = len(self.iSendRecvQ)
+                for i in range(lenght):
+                    if self.cycle < self.iSendRecvQ[0].endCycle:
+                        self.cycle = self.iSendRecvQ[0].endCycle;
+                    del self.iSendRecvQ[0];
+                return True;
+        else: # Wait
+            for i in range(len(self.iSendRecvQ)):
+                if tag == self.iSendRecvQ[i].tag:
+                    if self.cycle < self.iSendRecvQ[i].endCycle:
+                        self.cycle = self.iSendRecvQ[i].endCycle;
+                    del self.iSendRecvQ[i];
+                    self.waitall = self.waitall - 1;
+                    self.current_operation = self.current_operation + " (iM)";
+                    self.waitingTag = None;
+                    return True; # Found completed iSendRecv
+        
         return False; # No completed operation found with current waiting tag
+                      # Nor all isend/irecv arrived for waitall
 
 
     def step(self, num_ranks):
@@ -97,7 +113,8 @@ class Rank:
             return None;
         if operation == "compute":
             self.current_operation = "compute-" + str(self.index);
-            #self.cycle = self.cycle + int(float(workload[2])); # need to float->int cause of scientific notation
+            if self.simulateComputation:
+                self.cycle = self.cycle + int(float(workload[2])); # need to float->int cause of scientific notation
             return None;
         if(operation == "send"):
             self.state = Rank.S_COMMUNICATING;
@@ -201,9 +218,15 @@ class Rank:
             tag = int(workload[4]);
             self.state = Rank.S_WAITING;
             self.waitingTag = tag;
+            if(self.check_iSendRecvConclusion(self.waitingTag)):
+                self.state = Rank.S_NORMAL;
             return None;
-        #if(operation == "waitall"):
-        #    self.current_operation = 
+        if(operation == "waitall"):
+            self.current_operation = "waitall-" + str(self.index);
+            amount = int(workload[2]);
+            self.waitall = self.waitall - amount;
+            self.state = Rank.S_WAITING;
+            return None;
 
         print( bcolors.FAIL + "ERROR: Unknown operation " + str(operation) + bcolors.ENDC);
         sys.exit(1);
