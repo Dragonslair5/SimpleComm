@@ -143,16 +143,16 @@ class MessageQueue:
             print( bcolors.FAIL + "ERROR: Unknown SendRecv of kind" + str(sendrecv.kind) + bcolors.ENDC);
             sys.exit(1);
 
+        # TODO Check this difference on the size of the SEND and RECV size
         # Try to make a match
         for i in range(len(partner_queue)):
             if ( partner_queue[i].partner == sendrecv.rank and 
                 sendrecv.partner == partner_queue[i].rank and
-                sendrecv.tag == partner_queue[i].tag and
-                sendrecv.size == partner_queue[i].size ):
+                sendrecv.tag == partner_queue[i].tag ):
                 # Grab the matched SendRecv and remove from the queue
                 partner: SendRecv;
                 partner = partner_queue.pop(i);
-                assert sendrecv.tag == partner.tag
+                assert sendrecv.tag == partner.tag;
 
                 # Set the baseCycle (the highest between them)
                 if sendrecv.baseCycle > partner.baseCycle:
@@ -161,7 +161,14 @@ class MessageQueue:
                     baseCycle = partner.baseCycle;
 
                 # Calculate endCycle
-                endCycle = baseCycle + SimpleCommunicationCalculus(partner.size);
+                # SEND size must be less or equal to RECV size
+                if sendrecv.kind == MPIC_SEND:
+                    assert sendrecv.size <= partner.size;
+                    endCycle = baseCycle + SimpleCommunicationCalculus(sendrecv.size);
+                else:
+                    assert sendrecv.size >= partner.size;
+                    endCycle = baseCycle + SimpleCommunicationCalculus(partner.size);
+                
 
                 # Create the match and put it on the Matching Queue
                 #print("Match " + str())
