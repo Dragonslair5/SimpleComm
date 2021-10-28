@@ -6,18 +6,22 @@ from Rank import *
 class MessageQueue:
 
 
-    def __init__(self, numRanks):
+    def __init__(self, numRanks, configfile: SimpleCommConfiguration):
         
         # For debugging purpose
         self.op_message = ""
 
+        # Communication/Contention Topology
+        self.topology = Topology(numRanks, configfile.topology, configfile.internode_latency, configfile.internode_bandwidth);
+        
         # General SendRecv/Match queue
         self.sendQ = [];
         self.recvQ = [];
         self.matchQ = [];
+        self.matchID = 0; # Counter for setting match ID when creating a MATCH
 
-        self.indexAcumulator = [0] * numRanks;
-        self.currentPosition = [0] * numRanks;
+        self.indexAcumulator = [0] * numRanks; # To increment index when including SEND/RECV
+        self.currentPosition = [0] * numRanks; # Position for consuming SEND/RECV Matches
         
         # A queue for each collective operation
         self.bcastQ = [];
@@ -28,6 +32,7 @@ class MessageQueue:
         self.alltoallvQ = [];
 
         self.blockablePendingMessage = [0] * numRanks;
+
         
         
 
@@ -164,19 +169,22 @@ class MessageQueue:
                 # SEND size must be less or equal to RECV size
                 if sendrecv.kind == MPIC_SEND:
                     assert sendrecv.size <= partner.size;
-                    endCycle = baseCycle + SimpleCommunicationCalculus(sendrecv.size);
+                    #endCycle = baseCycle + SimpleCommunicationCalculus(sendrecv.size);
+                    endCycle = baseCycle + self.topology.SimpleCommunicationCalculusInternode(sendrecv.size);
                 else:
                     assert sendrecv.size >= partner.size;
-                    endCycle = baseCycle + SimpleCommunicationCalculus(partner.size);
-                
+                    #endCycle = baseCycle + SimpleCommunicationCalculus(partner.size);
+                    endCycle = baseCycle + self.topology.SimpleCommunicationCalculusInternode(partner.size);
 
                 # Create the match and put it on the Matching Queue
                 #print("Match " + str())
                 if sendrecv.kind == MPIC_SEND:
-                    match = MQ_Match(sendrecv.rank, partner.rank, partner.size, baseCycle, endCycle, tag = partner.tag, blocking_send=sendrecv.blocking, blocking_recv=partner.blocking, send_origin=sendrecv.operation_origin, recv_origin=partner.operation_origin, positionS=sendrecv.queue_position, positionR=partner.queue_position);
+                    match = MQ_Match(self.matchID, sendrecv.rank, partner.rank, partner.size, baseCycle, endCycle, tag = partner.tag, blocking_send=sendrecv.blocking, blocking_recv=partner.blocking, send_origin=sendrecv.operation_origin, recv_origin=partner.operation_origin, positionS=sendrecv.queue_position, positionR=partner.queue_position);
                 else:
-                    match = MQ_Match(partner.rank, sendrecv.rank, partner.size, baseCycle, endCycle, tag = partner.tag, blocking_send=partner.blocking, blocking_recv=sendrecv.blocking, send_origin=partner.operation_origin , recv_origin=sendrecv.operation_origin, positionS=partner.queue_position, positionR=sendrecv.queue_position);
+                    match = MQ_Match(self.matchID, partner.rank, sendrecv.rank, partner.size, baseCycle, endCycle, tag = partner.tag, blocking_send=partner.blocking, blocking_recv=sendrecv.blocking, send_origin=partner.operation_origin , recv_origin=sendrecv.operation_origin, positionS=partner.queue_position, positionR=sendrecv.queue_position);
                 
+                self.matchID = self.matchID + 1;
+
                 self.matchQ.append(match);
                 
                 return True; # Match!
@@ -314,7 +322,7 @@ class MessageQueue:
                 if list_ranks[ri].state == Rank.S_WAITING:
                     mahTempt = list_ranks[ri].check_iSendRecvConclusion(list_ranks[ri].waitingTag)
                     if mahTempt:
-                        print("wtf dude")
+                        print("wtf dude") # This should have been served before (I believe it was already fixed)
         
 
         # Find the earliest request
@@ -367,16 +375,18 @@ class MessageQueue:
         earliest_match : MQ_Match;
         earliest_match = self.matchQ.pop(index_earliest_request);
 
+        
+
+
+        #self.processContention(len(list_ranks), self.matchQ, earliest_match, "SC_CC");
+        #self.processContention(len(list_ranks), self.matchQ, earliest_match, "SC_FATPIPE");
+        self.topology.processContention(self.matchQ, earliest_match, self.currentPosition);
+
         # Increment position on the queue
         if earliest_match.blocking_send:
             self.currentPosition[earliest_match.rankS] = self.currentPosition[earliest_match.rankS] + 1;
         if earliest_match.blocking_recv:
             self.currentPosition[earliest_match.rankR] = self.currentPosition[earliest_match.rankR] + 1;
-
-
-        #self.processContention(self.matchQ, earliest_match, "SC_CC");
-        #self.processContention(self.matchQ, earliest_match, "SC_FATPIPE");
-        processContention(self.matchQ, earliest_match, topology);
 
         if earliest_match.blocking_send:
             self.blockablePendingMessage[earliest_match.rankS] = self.blockablePendingMessage[earliest_match.rankS] - 1;

@@ -36,12 +36,13 @@ class Rank:
         self.cycle = 0; # CurrentCycle
         self.current_operation = "";
         self.simulateComputation = configfile.computation;
+        self.processing_speed = configfile.processing_speed;
         
         # Non-blocking operation
         self.iSendRecvQ = [];
         self.waitall = 0;
         self.waitingTag = None;
-        self.shallEnd = False;
+        self.shallEnd = False; # To allow a last operation to be done before finalizing (Barrier)
 
     #def changeState(self, newState):
     #    self.state = newState;
@@ -80,6 +81,7 @@ class Rank:
         else: # Wait
             for i in range(len(self.iSendRecvQ)):
                 if tag == self.iSendRecvQ[i].tag:
+                    #print(bcolors.WARNING + " Rank "+ str(self.rank) + " found tag " + str(tag) + bcolors.ENDC);
                     if self.cycle < self.iSendRecvQ[i].endCycle:
                         self.cycle = self.iSendRecvQ[i].endCycle;
                     del self.iSendRecvQ[i];
@@ -114,7 +116,9 @@ class Rank:
         if operation == "compute":
             self.current_operation = "compute-" + str(self.index);
             if self.simulateComputation:
-                self.cycle = self.cycle + int(float(workload[2])); # need to float->int cause of scientific notation
+                workload = int(float(workload[2])); # need to float->int because of scientific notation
+                processing_cycles = workload / self.processing_speed;
+                self.cycle = self.cycle + processing_cycles;
             return None;
         if(operation == "send"):
             self.state = Rank.S_COMMUNICATING;

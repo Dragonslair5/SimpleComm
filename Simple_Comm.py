@@ -21,10 +21,10 @@ def main():
 
 
     # StartUp the simulation engine
-    simEngine = SimpleCommEngine(nRanks, verbose);
+    simEngine = SimpleCommEngine(nRanks, configFile, verbose);
 
     # Read configurations
-    simEngine.configure(configFile)
+    #simEngine.configure(configFile)
 
     # Read up the traces
     simEngine.read_traces(nRanks, files_path);

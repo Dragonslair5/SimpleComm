@@ -1,6 +1,11 @@
 import configparser
 
 
+# Globals
+
+number_of_ranks=0;
+
+
 
 class SimpleCommConfiguration:
     def __init__(self, configfile: str) -> None:
@@ -8,18 +13,25 @@ class SimpleCommConfiguration:
         config = configparser.ConfigParser();
         config.read(configfile);
         self.topology = config["TOPOLOGY"].get("topology", "SC_CC");
+        self.internode_bandwidth = float(config["TOPOLOGY"].get("internode_bandwidth", "10"));
+        self.internode_latency = float(config["TOPOLOGY"].get("internode_latency", "10"));
+        self.intranode_bandwidth = float(config["TOPOLOGY"].get("intranode_bandwidth", "10"));
+        self.intranode_latency = float(config["TOPOLOGY"].get("intranode_latency", "10"));
+        
         
         # NOTE There might be a better way to grab a boolean
         self.computation : bool
         self.computation = config["TOPOLOGY"].get("computation", "True");
         #print(self.computation)
         if self.computation == "True":
-            #print("GOT TRUE")
             self.computation = True;
         else:
-            #print("GOT FALSE")
             self.computation = False;
+        self.processing_speed = config["TOPOLOGY"].getint("processing_speed", "1")
         
+
+
+        # Collective Algorithms
         self.CA_Allreduce = config["CollectiveAlgorithm"].get("CA_Allreduce", "reduce_bcast");
         self.CA_Alltoall = config["CollectiveAlgorithm"].get("CA_Alltoall", "basic_linear");
         self.CA_Alltoallv = config["CollectiveAlgorithm"].get("CA_Alltoallv", "nbc_like_simgrid");
@@ -105,20 +117,30 @@ actions = ["init",
 
 
 class MQ_Match:
-    def __init__(self, rankS, rankR, size, baseCycle, endCycle, tag = None, blocking_send = True, blocking_recv = True, send_origin = "", recv_origin = "", positionS = 0, positionR = 0):
+    def __init__(self, id, rankS, rankR, size, baseCycle, endCycle, tag = None, blocking_send = True, blocking_recv = True, send_origin = "", recv_origin = "", positionS = 0, positionR = 0):
         self.rankS = rankS;
         self.rankR = rankR;
         self.size = size;
         self.baseCycle = baseCycle;
         self.endCycle = endCycle;
         self.tag = tag;
+        self.id = id;
+
+        self.solvedCycle = baseCycle; # This goes from baseCycle to endCycle (for SHARED channel execution)
+        
         self.blocking_send = blocking_send;
         self.blocking_recv = blocking_recv;
-        self.send_origin = send_origin;
-        self.recv_origin = recv_origin;
+        
+        self.send_origin = send_origin; # The operations name
+        self.recv_origin = recv_origin; # The operations name
+
+        # Ordering for when it matters (TAG not negative)
         self.positionS = positionS; # Ordering
         self.positionR = positionR; # Ordering
+        
+        # Miscelaneous
         self.removelat = True;
+        self.fused = False;
 
 
     def __str__ (self):

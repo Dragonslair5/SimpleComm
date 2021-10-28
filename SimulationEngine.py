@@ -9,21 +9,21 @@ from MessageQueue import *
 
 class SimpleCommEngine:
 
-    def __init__(self, nRanks, verbose = True):
+    def __init__(self, nRanks, configfile: str,  verbose = True):
         self.list_ranks = []
-        self.MQ : MessageQueue;
-        self.MQ = MessageQueue(nRanks)
         self.saveState = [0] * nRanks;
         self.nSteps = 0;
         self.verbose = verbose;
         self.ended = False;
         self.config : SimpleCommConfiguration;
-        self.config = None;
-
-
-    def configure(self, configfile: str):
         self.config = SimpleCommConfiguration(configfile);
-        #print("hehe")
+        self.MQ : MessageQueue;
+        self.MQ = MessageQueue(nRanks, self.config)
+
+
+    #def configure(self, configfile: str):
+    #    self.config = SimpleCommConfiguration(configfile);
+    #    #print("hehe")
 
 
 
