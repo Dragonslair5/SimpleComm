@@ -324,63 +324,12 @@ class MessageQueue:
                     if mahTempt:
                         print("wtf dude") # This should have been served before (I believe it was already fixed)
         
-
-        # Find the earliest request
-        # If this is zero, we might be on a deadlock
-        assert len(self.matchQ) > 0, "matchQ is empty on a process queue request"
-
-        index_earliest_request = None;
-        lowest_baseCycle = None;
-        # Find a valid request for current position
-        for i in range(0, len(self.matchQ)):
-            thisMatch : MQ_Match = self.matchQ[i];
-            #print(str(thisMatch.positionS) + " " + str(self.currentPosition[thisMatch.rankS]) + " | " + str(thisMatch.positionR) + " " + str(self.currentPosition[thisMatch.rankR]));
-            if (
-                (    
-                    (thisMatch.positionS == self.currentPosition[thisMatch.rankS] or thisMatch.positionS < 0) and 
-                    (thisMatch.positionR == self.currentPosition[thisMatch.rankR] or thisMatch.positionR < 0)
-                ) or
-                (thisMatch.tag < 0)
-               ):
-                index_earliest_request = i;
-                lowest_baseCycle = thisMatch.baseCycle;
-                break;
-
-        # We might be on a deadlock if there is no valid match on this point
-        #print(*self.matchQ, sep='\n')
-        #if index_earliest_request == None:
-        #    print(self.currentPosition);
-        #    print(*self.matchQ, sep='\n');
-
-        assert index_earliest_request != None, "No valid Match was found"
-
-        # Find the earliest among the valid ones
-        #index_earliest_request = 0;
-        #lowest_baseCycle = self.matchQ[0].baseCycle;
-        for mi in range(0, len(self.matchQ)):
-            thisMatch : MQ_Match = self.matchQ[i];
-            if (thisMatch.baseCycle < lowest_baseCycle and 
-                 (
-                    (    
-                        (thisMatch.positionS == self.currentPosition[thisMatch.rankS] or thisMatch.positionS < 0) and 
-                        (thisMatch.positionR == self.currentPosition[thisMatch.rankR] or thisMatch.positionR < 0)
-                    ) or
-                    (thisMatch.tag < 0)
-                 )
-               ):
-                index_earliest_request = mi;
-                lowest_baseCycle = self.matchQ[mi].baseCycle;
-
-        # Pop the earliest (and valid) match from the queue
-        earliest_match : MQ_Match;
-        earliest_match = self.matchQ.pop(index_earliest_request);
-
         
-
 
         #self.processContention(len(list_ranks), self.matchQ, earliest_match, "SC_CC");
         #self.processContention(len(list_ranks), self.matchQ, earliest_match, "SC_FATPIPE");
-        self.topology.processContention(self.matchQ, earliest_match, self.currentPosition);
+        earliest_match : MQ_Match;
+        earliest_match = self.topology.processContention(self.matchQ, self.currentPosition);
 
         # Increment position on the queue
         if earliest_match.blocking_send:

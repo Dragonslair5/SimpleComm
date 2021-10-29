@@ -50,18 +50,58 @@ class Topology:
         return latency + workload/bandwidth;
 
 
+    def findTheEarliestRequestIndex(self, matchQ, currentPosition) -> int:
+        
+        index_earliest_request = None;
+        lowest_baseCycle = None;
+        # Find a valid request for current position
+        for i in range(0, len(matchQ)):
+            thisMatch : MQ_Match = matchQ[i];
+            if (
+                (    
+                    (thisMatch.positionS == currentPosition[thisMatch.rankS] or thisMatch.positionS < 0) and 
+                    (thisMatch.positionR == currentPosition[thisMatch.rankR] or thisMatch.positionR < 0)
+                ) or
+                (thisMatch.tag < 0)
+               ):
+                index_earliest_request = i;
+                lowest_baseCycle = thisMatch.baseCycle;
+                break;
 
-    def processContention(self, matchQ, earliest_match: MQ_Match, currentPosition):
+        assert index_earliest_request != None, "No valid Match was found"
+
+        # Find the earliest among the valid ones
+        for mi in range(0, len(matchQ)):
+            thisMatch : MQ_Match = matchQ[i];
+            if (thisMatch.baseCycle < lowest_baseCycle and 
+                 (
+                    (    
+                        (thisMatch.positionS == currentPosition[thisMatch.rankS] or thisMatch.positionS < 0) and 
+                        (thisMatch.positionR == currentPosition[thisMatch.rankR] or thisMatch.positionR < 0)
+                    ) or
+                    (thisMatch.tag < 0)
+                 )
+               ):
+                index_earliest_request = mi;
+                lowest_baseCycle = matchQ[mi].baseCycle;
+
+        return index_earliest_request;
+
+
+
+
+    def processContention(self, matchQ, currentPosition):
+
+        #print("Message Queue Size: " + str(len(matchQ)))
+        #self.findTheEarliest(matchQ);
 
         if (self.topology == "SC_SHARED"):
-
-            matchQ.append(earliest_match) # This match was popped out on the MessageQueue code. Thats why we are including it back in this point.
 
             # If this is zero, we might be on a deadlock
             assert len(matchQ) > 0, "matchQ is empty on a process contention request"
 
             if len(matchQ) == 1:
-                return None;
+                return matchQ.pop(0);
 
             valid_matchesQ : list[MQ_Match]; # For valid matches
             valid_matchesQ = []
@@ -93,6 +133,13 @@ class Topology:
 
                 for i in range(0, len(valid_matchesQ)):
                     if valid_matchesQ[i].baseCycle == valid_matchesQ[i].endCycle:
+                        ready_index = -1;
+                        for j in range(0, len(matchQ)):
+                            if valid_matchesQ[i].id == matchQ[j].id:
+                                ready_index = j;
+                                break;
+                        assert ready_index != -1, "ready match is not presentes on matches queue"
+                        return matchQ.pop(ready_index)
                         return None; # There is one ready to be returned to the rank.
                 # ------------------------------------------------------------------
 
@@ -166,7 +213,12 @@ class Topology:
             sys.exit(1);
             return None
 
-        if (self.topology == "SC_CC"):    
+        if (self.topology == "SC_CC"):
+
+            # Grab the earliest
+            earliest_match_index = self.findTheEarliestRequestIndex(matchQ, currentPosition);
+            earliest_match = matchQ.pop(earliest_match_index);
+
             # This is the actual SINGLE CHANNEL CIRCUIT SWITCHING
             # Push forward everyone that shares communication with the earliest
             for mi in range( len(matchQ) ):
@@ -174,9 +226,14 @@ class Topology:
                 if inc > 0:
                     matchQ[mi].baseCycle = matchQ[mi].baseCycle + inc;
                     matchQ[mi].endCycle = matchQ[mi].endCycle + inc;
-            return None;
+            return earliest_match;
         
         if (self.topology == "FATPIPE_CCONNODE"):
+            
+            # Grab the earliest
+            earliest_match_index = self.findTheEarliestRequestIndex(matchQ, currentPosition);
+            earliest_match = matchQ.pop(earliest_match_index);
+            
             # Alltoall FATPIPE here
             rank_send = earliest_match.rankS;
             rank_recv = earliest_match.rankR;
@@ -192,9 +249,15 @@ class Topology:
                         #if matchQ[mi].removelat:
                         #    matchQ[mi].endCycle = matchQ[mi].endCycle - 1;
                         #    matchQ[mi].removelat = False;
-            return None;
+            return earliest_match;
 
         if (self.topology == "FATPIPE_EXCLUSIVESENDRECVONNODE"):
+            
+            # Grab the earliest
+            earliest_match_index = self.findTheEarliestRequestIndex(matchQ, currentPosition);
+            earliest_match = matchQ.pop(earliest_match_index);
+
+            
             # Alltoall FATPIPE here
             rank_send = earliest_match.rankS;
             rank_recv = earliest_match.rankR;
@@ -208,9 +271,14 @@ class Topology:
                         #if matchQ[mi].removelat:
                         #    matchQ[mi].endCycle = matchQ[mi].endCycle - 1;
                         #    matchQ[mi].removelat = False;
-            return None;
+            return earliest_match;
 
         if (self.topology == "FATPIPE_FUSEDONNODE"):
+            
+            # Grab the earliest
+            earliest_match_index = self.findTheEarliestRequestIndex(matchQ, currentPosition);
+            earliest_match = matchQ.pop(earliest_match_index);
+            
             # Alltoall FATPIPE here
             rank_send = earliest_match.rankS;
             rank_recv = earliest_match.rankR;
@@ -227,10 +295,14 @@ class Topology:
                         #if matchQ[mi].removelat:
                         #    matchQ[mi].endCycle = matchQ[mi].endCycle - 1;
                         #    matchQ[mi].removelat = False;
-            return None;
+            return earliest_match;
 
 
         if (self.topology == "FATPIPE_FUSEDONNODEV2"):
+            # Grab the earliest
+            earliest_match_index = self.findTheEarliestRequestIndex(matchQ, currentPosition);
+            earliest_match = matchQ.pop(earliest_match_index);
+            
             # Alltoall FATPIPE here
             rank_send = earliest_match.rankS;
             rank_recv = earliest_match.rankR;
@@ -247,7 +319,7 @@ class Topology:
                         #if matchQ[mi].removelat:
                         #    matchQ[mi].endCycle = matchQ[mi].endCycle - 1;
                         #    matchQ[mi].removelat = False;
-            return None;
+            return earliest_match;
 
 
             
