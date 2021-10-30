@@ -128,6 +128,7 @@ class Topology:
             assert len(valid_matchesQ) > 0, "No valid Match was found"
 
             while True:
+                #print("*****************************")
                 # STEP 1 ---- Found Ready?
                 # This step is the stop condition in this never-ending loop
 
@@ -150,13 +151,15 @@ class Topology:
                 for i in range(0, len(valid_matchesQ)):
                     if valid_matchesQ[i].baseCycle < lowest_cycle:
                         lowest_cycle = valid_matchesQ[i].baseCycle;
-                second_lowest_cycle = valid_matchesQ[0].endCycle;
+                
+                second_lowest_cycle = valid_matchesQ[0].getUpperCycle();
                 for i in range(0, len(valid_matchesQ)):
                     if valid_matchesQ[i].baseCycle < second_lowest_cycle and valid_matchesQ[i].baseCycle != lowest_cycle:
                         second_lowest_cycle = valid_matchesQ[i].baseCycle;
-                    if valid_matchesQ[i].endCycle < second_lowest_cycle:
-                        second_lowest_cycle = valid_matchesQ[i].endCycle;
+                    if valid_matchesQ[i].getUpperCycle() < second_lowest_cycle:
+                        second_lowest_cycle = valid_matchesQ[i].getUpperCycle();
                 # ------------------------------------------------------------------
+                #print(str(lowest_cycle) + " ---- " + str(second_lowest_cycle))
 
                 # STEP 3 ---- How Many (share this window)
                 window_share_count = 0
@@ -175,28 +178,56 @@ class Topology:
                         indexes_to_increase.append(i)
                         continue
                 # ------------------------------------------------------------------
-
+                #print(window_share_count)
+                #print(indexes_to_increase)
                 # STEP 4 ---- Increase
                 window_size = second_lowest_cycle - lowest_cycle;
-                increment = window_size * (window_share_count - 1)
+                newFactor = window_share_count;
+                #increment = window_size * (window_share_count - 1)
+                increment_list = []
                 for i in range(0, len(indexes_to_increase)):
                     curIndex = indexes_to_increase[i];
-                    valid_matchesQ[curIndex].baseCycle = valid_matchesQ[curIndex].baseCycle + increment;
-                    valid_matchesQ[curIndex].endCycle = valid_matchesQ[curIndex].endCycle + increment;
+                    currentFactor = valid_matchesQ[curIndex].bw_factor;
+                    increment = (window_size * (newFactor / currentFactor) ) - window_size;
+                    increment_list.append(increment);
+                #increment_list.sort();
+                #print(increment_list)
+                smallest_increment = increment_list[0];
+                for i in range(1, len(increment_list)):
+                    if increment_list[i] < smallest_increment:
+                        smallest_increment = increment_list[i];
+                #assert smallest_increment > 0, "Increment cannot be zero (0)";
+                for i in range(0, len(indexes_to_increase)):
+                    curIndex = indexes_to_increase[i];
+                    increment = increment_list[i];
+                    flooded_increment = 0;
+                    if increment > smallest_increment:
+                        flooded_increment = (increment - smallest_increment) * 1 / newFactor;
+                    
+                    valid_matchesQ[curIndex].baseCycle = valid_matchesQ[curIndex].baseCycle + window_size;
+                    valid_matchesQ[curIndex].endCycle = valid_matchesQ[curIndex].endCycle + smallest_increment + flooded_increment;
+                    valid_matchesQ[curIndex].solvedCycle = valid_matchesQ[curIndex].baseCycle + smallest_increment;
+                    valid_matchesQ[curIndex].bw_factor = newFactor;
+
+                    #valid_matchesQ[curIndex].baseCycle = valid_matchesQ[curIndex].baseCycle + increment;
+                    #valid_matchesQ[curIndex].endCycle = valid_matchesQ[curIndex].endCycle + increment;
                 lowest_cycle = valid_matchesQ[indexes_to_increase[0]].baseCycle;
-                second_lowest_cycle = valid_matchesQ[indexes_to_increase[0]].endCycle;
+                second_lowest_cycle = valid_matchesQ[indexes_to_increase[0]].getUpperCycle();
                 # ------------------------------------------------------------------
 
                 # STEP 5 ---- Crop
                 for i in range(0, len(valid_matchesQ)):
                     if valid_matchesQ[i].baseCycle < second_lowest_cycle and valid_matchesQ[i].baseCycle != lowest_cycle:
                         second_lowest_cycle = valid_matchesQ[i].baseCycle;
-                    if valid_matchesQ[i].endCycle < second_lowest_cycle:
-                        second_lowest_cycle = valid_matchesQ[i].endCycle;
+                    if valid_matchesQ[i].getUpperCycle() < second_lowest_cycle:
+                        second_lowest_cycle = valid_matchesQ[i].getUpperCycle();
                 
                 for i in range(0, len(valid_matchesQ)):
                     if valid_matchesQ[i].baseCycle < second_lowest_cycle:
                         valid_matchesQ[i].baseCycle = second_lowest_cycle;
+                    if valid_matchesQ[i].solvedCycle == second_lowest_cycle:
+                        valid_matchesQ[i].solvedCycle = -1;
+                        valid_matchesQ[i].bw_factor = 1;
                 # ------------------------------------------------------------------
 
 

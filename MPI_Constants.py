@@ -126,8 +126,10 @@ class MQ_Match:
         self.tag = tag;
         self.id = id;
 
-        self.solvedCycle = baseCycle; # This goes from baseCycle to endCycle (for SHARED channel execution)
+        self.solvedCycle = -1; # This demarks a portion of the connection that has been shared (for SHARED channel execution) [-1 for unused]
+        self.bw_factor = 1; # This is the factor of the sharing portion demarked by solvedCycle (for SHARED channel execution)
         
+
         self.blocking_send = blocking_send;
         self.blocking_recv = blocking_recv;
         
@@ -141,6 +143,13 @@ class MQ_Match:
         # Miscelaneous
         self.removelat = True;
         self.fused = False;
+
+    def getUpperCycle(self) -> float:
+        assert self.solvedCycle <= self.endCycle, "solvedCycle cannot be higher than endCycle";
+        if self.solvedCycle != -1:
+            return self.solvedCycle;
+        else:
+            return self.endCycle;
 
 
     def __str__ (self):
