@@ -170,11 +170,17 @@ class MessageQueue:
                 if sendrecv.kind == MPIC_SEND:
                     assert sendrecv.size <= partner.size;
                     #endCycle = baseCycle + SimpleCommunicationCalculus(sendrecv.size);
-                    endCycle = baseCycle + self.topology.SimpleCommunicationCalculusInternode(sendrecv.size);
+                    if sendrecv.rank == sendrecv.partner:
+                        endCycle = baseCycle + self.topology.SimpleCommunicationCalculusIntranode(sendrecv.size); # inTRA
+                    else:
+                        endCycle = baseCycle + self.topology.SimpleCommunicationCalculusInternode(sendrecv.size); # inTER
                 else:
                     assert sendrecv.size >= partner.size;
                     #endCycle = baseCycle + SimpleCommunicationCalculus(partner.size);
-                    endCycle = baseCycle + self.topology.SimpleCommunicationCalculusInternode(partner.size);
+                    if sendrecv.rank == sendrecv.partner:
+                        endCycle = baseCycle + self.topology.SimpleCommunicationCalculusIntranode(partner.size); # inTRA
+                    else:
+                        endCycle = baseCycle + self.topology.SimpleCommunicationCalculusInternode(partner.size); # inTER
 
                 # Create the match and put it on the Matching Queue
                 #print("Match " + str())
@@ -346,7 +352,7 @@ class MessageQueue:
         sending_message = " [" + earliest_match.send_origin + "] S:(";
         receiving_message = ") [" + earliest_match.recv_origin + "] R:(";
 
-        self.op_message = self.op_message + sending_message + str(earliest_match.rankS) + receiving_message + str(earliest_match.rankR) + ") size: " + str(earliest_match.size) + " Bytes"
+        self.op_message = self.op_message + sending_message + str(earliest_match.rankS) + receiving_message + str(earliest_match.rankR) + ") size: " + str(earliest_match.size) + " Bytes" + " Ending in cycle: " + str(earliest_match.endCycle)
 
         #print("earliest: ", end='')
         #print(earliest_match)

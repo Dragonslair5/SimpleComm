@@ -49,6 +49,13 @@ class Topology:
         bandwidth=self.interBandwidth;
         return latency + workload/bandwidth;
 
+    def SimpleCommunicationCalculusIntranode(self, workload):
+        workload = int(workload) + 16 # 16 Bytes as MPI overhead (based on SimGrid)
+        latency=self.interLatency;
+        bandwidth=self.interBandwidth;
+        return 0;
+        return latency + workload/bandwidth;
+
 
     def findTheEarliestRequestIndex(self, matchQ, currentPosition) -> int:
         
@@ -99,12 +106,17 @@ class Topology:
 
             # If this is zero, we might be on a deadlock
             assert len(matchQ) > 0, "matchQ is empty on a process contention request"
+            #print("******")
+            #print(matchQ)
+            #print("******")
 
             if len(matchQ) == 1:
                 return matchQ.pop(0);
 
             valid_matchesQ : list[MQ_Match]; # For valid matches
             valid_matchesQ = []
+            invalid_matchesQ : list[MQ_Match]; # For invalid matches
+            invalid_matchesQ = []
 
             ###[1] Find the valid matches
             # Valid matches are the ones that match their position on the "currentPosition" tracker of the messagequeue OR
@@ -120,10 +132,15 @@ class Topology:
                     (thisMatch.tag < 0)
                 ):
                     valid_matchesQ.append(thisMatch)
+                else:
+                    invalid_matchesQ.append(thisMatch);
                     #index_earliest_request = i;
                     #lowest_baseCycle = thisMatch.baseCycle;
 
             # We might be on a deadlock if there is no valid match on this point
+            #print("-----")
+            #print(valid_matchesQ)
+            #print("-----")
             #print(len(valid_matchesQ))
             assert len(valid_matchesQ) > 0, "No valid Match was found"
 
@@ -139,7 +156,20 @@ class Topology:
                             if valid_matchesQ[i].id == matchQ[j].id:
                                 ready_index = j;
                                 break;
-                        assert ready_index != -1, "ready match is not presentes on matches queue"
+                        assert ready_index != -1, "ready match is not presented on matches queue"
+
+                        for j in range(0, len(invalid_matchesQ)):
+                            if (
+                               (valid_matchesQ[i].send_origin == invalid_matchesQ[j].send_origin) or
+                               (valid_matchesQ[i].send_origin == invalid_matchesQ[j].recv_origin) or
+                               (valid_matchesQ[i].recv_origin == invalid_matchesQ[j].send_origin) or
+                               (valid_matchesQ[i].recv_origin == invalid_matchesQ[j].recv_origin)
+                            ):
+                               inc = valid_matchesQ[i].endCycle - invalid_matchesQ[j].baseCycle;
+                               if inc > 0:
+                                   invalid_matchesQ[j].baseCycle = invalid_matchesQ[j].baseCycle + inc;
+                                   invalid_matchesQ[j].endCycle = invalid_matchesQ[j].endCycle + inc
+
                         return matchQ.pop(ready_index)
                         return None; # There is one ready to be returned to the rank.
                 # ------------------------------------------------------------------
