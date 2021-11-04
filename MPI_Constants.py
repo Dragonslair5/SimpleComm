@@ -1,10 +1,6 @@
 import configparser
 
 
-# Globals
-
-number_of_ranks=0;
-
 
 
 class SimpleCommConfiguration:
@@ -54,14 +50,9 @@ def getDataTypeSize(datatype: int) -> int:
     if datatype == 23: # MPI_INTEGER32 
         return 4;
     if datatype == 43: # MPI_DOUBLE_PRECISION (DOUBLE PRECISION Fortran)
-        return 8;
+        return 16; # MPI_COMPLEX or MPI_DOUBLE_COMPLEX? (Fortran)
+        return 8; # 8 or 16? Was not working with 8
     assert datatype == 0, "Unknown datatype " + str(datatype)
-
-
-#MPI_DATATYPE = [8, # 0 - MPI_DOUBLE
-#                4, # 1 - MPI_INT
-#                1  # 2 - MPI_CHAR
-#                ]
 
 
 # (MPIC)onstants
@@ -80,7 +71,7 @@ MPIC_COLL_TAG_REDUCE = 5;
 MPIC_COLL_TAG_ALLTOALL = -1;
 MPIC_COLL_TAG_ALLTOALLV = -2;
 
-
+# These are the possible actions from SimGrid trace, but not all of them are implemented (See on Rank.py which ones are implemented)
 actions = ["init",
 "finalize",
 "comm_size",
@@ -109,11 +100,6 @@ actions = ["init",
 "compute",
 "sleep",
 "location"]
-
-
-# send <trg> <?> <#amount> <MPI_DATATYPE>
-# recv <src> <?> <#amount> <MPI_DATATYPE>
-# bsend <#amount> <root> <MPI_DATATYPE>
 
 
 class MQ_Match:
