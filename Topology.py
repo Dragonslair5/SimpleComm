@@ -97,7 +97,7 @@ class Topology:
 
 
 
-    def processContention(self, matchQ, currentPosition):
+    def processContention(self, matchQ, col_matchQ, currentPosition):
 
         #print("Message Queue Size: " + str(len(matchQ)))
         #self.findTheEarliest(matchQ);
@@ -105,7 +105,7 @@ class Topology:
         if (self.topology == "SC_SHARED"):
 
             # If this is zero, we might be on a deadlock
-            assert len(matchQ) > 0, "matchQ is empty on a process contention request"
+            #assert len(matchQ) > 0, "matchQ is empty on a process contention request"
             #print("******")
             #print(matchQ)
             #print("******")
@@ -136,6 +136,21 @@ class Topology:
                     invalid_matchesQ.append(thisMatch);
                     #index_earliest_request = i;
                     #lowest_baseCycle = thisMatch.baseCycle;
+            # Valid among Collectives
+            for i in range(0, len(col_matchQ)):
+                tmp_valid, tmp_invalid = col_matchQ[i].getValidAndInvalidMatches();
+                valid_matchesQ = valid_matchesQ + tmp_valid;
+                invalid_matchesQ = invalid_matchesQ + tmp_invalid;
+
+            #assert len(valid_matchesQ) > 0, "matchQ is empty on a process contention request (or no valid match was found)"
+
+            #print("--- VALID MQ ---")
+            #for i in range(0, len(valid_matchesQ)):
+            #    print(valid_matchesQ[i])
+            #print("--- INVALID MQ ---")
+            #for i in range(0, len(invalid_matchesQ)):
+            #    print(invalid_matchesQ[i])
+            #print("----------------")
 
             # We might be on a deadlock if there is no valid match on this point
             #print("-----")
@@ -151,26 +166,53 @@ class Topology:
 
                 for i in range(0, len(valid_matchesQ)):
                     if valid_matchesQ[i].baseCycle == valid_matchesQ[i].endCycle:
-                        ready_index = -1;
+                        #print("READY")
+                        #print(valid_matchesQ[i])
+                        readyMatch = None;
+                        #ready_index = -1;
                         for j in range(0, len(matchQ)):
                             if valid_matchesQ[i].id == matchQ[j].id:
-                                ready_index = j;
-                                break;
-                        assert ready_index != -1, "ready match is not presented on matches queue"
+                               readyMatch = matchQ.pop(j)
+                               #ready_index = j;
+                               break;
+                        if readyMatch is None:
+                            for j in range(0, len(col_matchQ)):
+                                readyMatch = col_matchQ[j].getMatchByID(valid_matchesQ[i].id);
+                                if readyMatch is not None:
+                                    break;
+        
+                        assert readyMatch is not None, "ready match is not presented on matches queues"
+                        #assert ready_index != -1, "ready match is not presented on matches queue"
 
                         for j in range(0, len(invalid_matchesQ)):
                             if (
-                               (valid_matchesQ[i].send_origin == invalid_matchesQ[j].send_origin) or
-                               (valid_matchesQ[i].send_origin == invalid_matchesQ[j].recv_origin) or
-                               (valid_matchesQ[i].recv_origin == invalid_matchesQ[j].send_origin) or
-                               (valid_matchesQ[i].recv_origin == invalid_matchesQ[j].recv_origin)
+                               (valid_matchesQ[i].rankS == invalid_matchesQ[j].rankS) or
+                               (valid_matchesQ[i].rankS == invalid_matchesQ[j].rankR) or
+                               (valid_matchesQ[i].rankR == invalid_matchesQ[j].rankS) or
+                               (valid_matchesQ[i].rankR == invalid_matchesQ[j].rankR)
                             ):
                                inc = valid_matchesQ[i].endCycle - invalid_matchesQ[j].baseCycle;
-                               if inc > 0:
-                                   invalid_matchesQ[j].baseCycle = invalid_matchesQ[j].baseCycle + inc;
-                                   invalid_matchesQ[j].endCycle = invalid_matchesQ[j].endCycle + inc
+                               if inc >= 0:
+                                   #print(invalid_matchesQ[j])
+                                   #print("inc: " + str(inc) + " lat:" + str(invalid_matchesQ[j].latency))
+                                   #print( str(valid_matchesQ[i].rankS) + " ----- " + str(invalid_matchesQ[j].rankS))
+                                   #if valid_matchesQ[i].rankS == invalid_matchesQ[j].rankS and invalid_matchesQ[j].incLatency:
+                                       #invalid_matchesQ[j].incLatency = False;
+                                       #inc = inc + invalid_matchesQ[j].latency;
+                                       #print(invalid_matchesQ[j])
+                                    
+                                   if (valid_matchesQ[i].col_id < invalid_matchesQ[j].col_id):
+                                       inc = inc + invalid_matchesQ[j].latency;
+                                   
+                                   
+                                   invalid_matchesQ[j].baseCycle = invalid_matchesQ[j].baseCycle + inc; # + invalid_matchesQ[j].latency;
+                                   invalid_matchesQ[j].endCycle = invalid_matchesQ[j].endCycle + inc; # + invalid_matchesQ[j].latency;
+                                   #print(invalid_matchesQ[j])
+                                   #print("***")
 
-                        return matchQ.pop(ready_index)
+                        #return matchQ.pop(ready_index)
+                        return readyMatch;
+                        #return valid_matchesQ[i];
                         return None; # There is one ready to be returned to the rank.
                 # ------------------------------------------------------------------
 

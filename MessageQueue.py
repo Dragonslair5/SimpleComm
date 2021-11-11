@@ -1,3 +1,4 @@
+from CollectiveOperationsQueue import *
 from Topology import *
 from Rank import *
 
@@ -15,10 +16,15 @@ class MessageQueue:
         self.topology = Topology(numRanks, configfile.topology, configfile.internode_latency, configfile.internode_bandwidth);
         
         # General SendRecv/Match queue
+        self.sendQ: list[SendRecv];
         self.sendQ = [];
+        self.recvQ: list[SendRecv];
         self.recvQ = [];
+        self.matchQ: list[MQ_Match];
         self.matchQ = [];
         self.matchID = 0; # Counter for setting match ID when creating a MATCH
+        self.col_matchQ: list[CollectiveOperationQueueEntry];
+        self.col_matchQ = [];
 
         self.indexAcumulator = [0] * numRanks; # To increment index when including SEND/RECV
         self.currentPosition = [0] * numRanks; # Position for consuming SEND/RECV Matches
@@ -30,6 +36,7 @@ class MessageQueue:
         self.allreduceQ = [];
         self.alltoallQ = [];
         self.alltoallvQ = [];
+        
 
         self.blockablePendingMessage = [0] * numRanks;
 
@@ -148,7 +155,6 @@ class MessageQueue:
             print( bcolors.FAIL + "ERROR: Unknown SendRecv of kind" + str(sendrecv.kind) + bcolors.ENDC);
             sys.exit(1);
 
-        # TODO Check this difference on the size of the SEND and RECV size
         # Try to make a match
         for i in range(len(partner_queue)):
             if ( partner_queue[i].partner == sendrecv.rank and 
@@ -164,6 +170,13 @@ class MessageQueue:
                     baseCycle = sendrecv.baseCycle;
                 else:
                     baseCycle = partner.baseCycle;
+
+                #latency = 0;
+                latency = 1.000000
+                #latency = 0.000001
+                #latency = 10.000000
+                baseCycle = baseCycle + latency;
+
 
                 # Calculate endCycle
                 # SEND size must be less or equal to RECV size
@@ -184,10 +197,11 @@ class MessageQueue:
 
                 # Create the match and put it on the Matching Queue
                 #print("Match " + str())
+                assert sendrecv.col_id == partner.col_id, "SEND and RECV have different col_id"
                 if sendrecv.kind == MPIC_SEND:
-                    match = MQ_Match(self.matchID, sendrecv.rank, partner.rank, partner.size, baseCycle, endCycle, tag = partner.tag, blocking_send=sendrecv.blocking, blocking_recv=partner.blocking, send_origin=sendrecv.operation_origin, recv_origin=partner.operation_origin, positionS=sendrecv.queue_position, positionR=partner.queue_position);
+                    match = MQ_Match(self.matchID, sendrecv.rank, partner.rank, partner.size, baseCycle, endCycle, tag = partner.tag, blocking_send=sendrecv.blocking, blocking_recv=partner.blocking, send_origin=sendrecv.operation_origin, recv_origin=partner.operation_origin, positionS=sendrecv.queue_position, positionR=partner.queue_position, latency=latency, col_id=sendrecv.col_id);
                 else:
-                    match = MQ_Match(self.matchID, partner.rank, sendrecv.rank, partner.size, baseCycle, endCycle, tag = partner.tag, blocking_send=partner.blocking, blocking_recv=sendrecv.blocking, send_origin=partner.operation_origin , recv_origin=sendrecv.operation_origin, positionS=partner.queue_position, positionR=sendrecv.queue_position);
+                    match = MQ_Match(self.matchID, partner.rank, sendrecv.rank, partner.size, baseCycle, endCycle, tag = partner.tag, blocking_send=partner.blocking, blocking_recv=sendrecv.blocking, send_origin=partner.operation_origin , recv_origin=sendrecv.operation_origin, positionS=partner.queue_position, positionR=sendrecv.queue_position, latency=latency, col_id=sendrecv.col_id);
                 
                 self.matchID = self.matchID + 1;
 
@@ -206,12 +220,17 @@ class MessageQueue:
             if self.bcastQ[bi].isReady():
                 sr_list = self.bcastQ[bi].process(config.CA_Bcast);
                 self.op_message = self.op_message + " bcast";
+                colMQ = CollectiveOperationQueueEntry(self.blockablePendingMessage, self.indexAcumulator, self.matchID, self.topology);
                 #print(sr_list)
                 while len(sr_list) > 0:
                     sr = sr_list.pop(0);
-                    self.includeSendRecv(sr);
+                    colMQ.includeSendRecv(sr);
+                    #self.includeSendRecv(sr);
                 removal_indexes.append(bi);
+                self.matchID = colMQ.getMatchID();
+                self.col_matchQ.append(colMQ);
         
+
         for i in range(len(removal_indexes)-1, -1, -1):
             #print("Removing " + str(removal_indexes[i]) )
             del self.bcastQ[removal_indexes[i]]
@@ -224,10 +243,14 @@ class MessageQueue:
             if self.barrierQ[bi].isReady():
                 sr_list = self.barrierQ[bi].process(config.CA_Barrier);
                 self.op_message = self.op_message + " barrier";
+                colMQ = CollectiveOperationQueueEntry(self.blockablePendingMessage, self.indexAcumulator, self.matchID, self.topology);
                 while len(sr_list) > 0:
                     sr = sr_list.pop(0);
-                    self.includeSendRecv(sr);
+                    colMQ.includeSendRecv(sr);
+                    #self.includeSendRecv(sr);
                 removal_indexes.append(bi);
+                self.matchID = colMQ.getMatchID();
+                self.col_matchQ.append(colMQ);
 
         for i in range(len(removal_indexes)-1, -1, -1):
             #print("Removing " + str(removal_indexes[i]) )
@@ -240,10 +263,14 @@ class MessageQueue:
             if self.reduceQ[ri].isReady():
                 sr_list = self.reduceQ[ri].process(config.CA_Reduce);
                 self.op_message = self.op_message + " reduce";
+                colMQ = CollectiveOperationQueueEntry(self.blockablePendingMessage, self.indexAcumulator, self.matchID, self.topology);
                 while len(sr_list) > 0:
                     sr = sr_list.pop(0);
-                    self.includeSendRecv(sr);
+                    colMQ.includeSendRecv(sr);
+                    #self.includeSendRecv(sr);
                 removal_indexes.append(ri);
+                self.matchID = colMQ.getMatchID();
+                self.col_matchQ.append(colMQ);
         
         for i in range(len(removal_indexes)-1, -1, -1):
             #print("Removing " + str(removal_indexes[i]) )
@@ -256,11 +283,15 @@ class MessageQueue:
             if self.allreduceQ[ri].isReady():
                 sr_list = self.allreduceQ[ri].process(config.CA_Allreduce);
                 self.op_message = self.op_message + " allreduce";
+                colMQ = CollectiveOperationQueueEntry(self.blockablePendingMessage, self.indexAcumulator, self.matchID, self.topology);
                 while len(sr_list) > 0:
                     sr = sr_list.pop(0);
                     #print(sr)
-                    self.includeSendRecv(sr);
+                    colMQ.includeSendRecv(sr);
+                    #self.includeSendRecv(sr);
                 removal_indexes.append(ri);
+                self.matchID = colMQ.getMatchID();
+                self.col_matchQ.append(colMQ);
         
         for i in range(len(removal_indexes)-1, -1, -1):
             #print("Removing " + str(removal_indexes[i]) )
@@ -273,11 +304,15 @@ class MessageQueue:
             if self.alltoallQ[ai].isReady():
                 sr_list = self.alltoallQ[ai].process(config.CA_Alltoall);
                 self.op_message = self.op_message + " alltoall";
+                colMQ = CollectiveOperationQueueEntry(self.blockablePendingMessage, self.indexAcumulator, self.matchID, self.topology);
                 while len(sr_list) > 0:
                     sr = sr_list.pop(0);
                     #print(sr)
-                    self.includeSendRecv(sr);
+                    colMQ.includeSendRecv(sr);
+                    #self.includeSendRecv(sr);
                 removal_indexes.append(ai);
+                self.matchID = colMQ.getMatchID();
+                self.col_matchQ.append(colMQ);
         
         for i in range(len(removal_indexes)-1, -1, -1):
             #print("Removing " + str(removal_indexes[i]) )
@@ -290,11 +325,15 @@ class MessageQueue:
             if self.alltoallvQ[ai].isReady():
                 sr_list = self.alltoallvQ[ai].process(config.CA_Alltoallv);
                 self.op_message = self.op_message + " alltoallv";
+                colMQ = CollectiveOperationQueueEntry(self.blockablePendingMessage, self.indexAcumulator, self.matchID, self.topology);
                 while len(sr_list) > 0:
                     sr = sr_list.pop(0);
                     #print(sr)
-                    self.includeSendRecv(sr);
+                    colMQ.includeSendRecv(sr);
+                    #self.includeSendRecv(sr);
                 removal_indexes.append(ai);
+                self.matchID = colMQ.getMatchID();
+                self.col_matchQ.append(colMQ);
         
         for i in range(len(removal_indexes)-1, -1, -1):
             #print("Removing " + str(removal_indexes[i]) )
@@ -306,7 +345,7 @@ class MessageQueue:
 
 
 
-    def processMatchQueue(self, list_ranks, topology):
+    def processMatchQueue(self, list_ranks):
         
         '''
         if len(self.matchQ) == 0 or True:
@@ -330,12 +369,26 @@ class MessageQueue:
                     if mahTempt:
                         print("wtf dude") # This should have been served before (I believe it was already fixed)
         
-        
+
+        #if len(self.matchQ) == 0:
+        #    assert len(self.Col_matchQ) > 0, "matchQ == 0 and no Collectives Available on Col_matchQ"
+        #    tmp_list = self.Col_matchQ[0].getValidMatches();
+        #    if self.Col_matchQ[0].isEmpty():
+        #        del self.Col_matchQ[0];
+        #    self.matchQ = tmp_list;
+            
 
         #self.processContention(len(list_ranks), self.matchQ, earliest_match, "SC_CC");
         #self.processContention(len(list_ranks), self.matchQ, earliest_match, "SC_FATPIPE");
         earliest_match : MQ_Match;
-        earliest_match = self.topology.processContention(self.matchQ, self.currentPosition);
+        earliest_match = self.topology.processContention(self.matchQ, self.col_matchQ, self.currentPosition);
+
+        assert earliest_match is not None, "No match was found on MessageQueue"
+
+        if len(self.col_matchQ) > 0:
+            if self.col_matchQ[0].isEmpty():
+                del self.col_matchQ[0];
+
 
         # Increment position on the queue
         if earliest_match.blocking_send:

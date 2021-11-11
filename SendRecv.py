@@ -3,7 +3,7 @@ from MPI_Constants import *
 
 
 class SendRecv:
-    def __init__(self, kind, rank, partner, size, baseCycle, operation_origin = "Unknown", blocking = True, tag = None):
+    def __init__(self, kind, rank, partner, size, baseCycle, operation_origin = "Unknown", blocking = True, tag = None, col_id = 0):
         self.kind=kind; # SEND or RECV
         self.rank = rank;
         self.partner = partner;
@@ -14,6 +14,7 @@ class SendRecv:
         self.blocking = blocking;
         self.tag = tag;
         self.queue_position = 0; # To be used by the MessageQueue for ordering
+        self.col_id = col_id; # To be used for ordering Collective Operations that occurs with unblocking calls, to proper simulate latency.
 
     def __str__(self):
         if self.kind == MPIC_SEND:

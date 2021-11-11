@@ -2,7 +2,6 @@ import configparser
 
 
 
-
 class SimpleCommConfiguration:
     def __init__(self, configfile: str) -> None:
         
@@ -103,7 +102,7 @@ actions = ["init",
 
 
 class MQ_Match:
-    def __init__(self, id, rankS, rankR, size, baseCycle, endCycle, tag = None, blocking_send = True, blocking_recv = True, send_origin = "", recv_origin = "", positionS = 0, positionR = 0):
+    def __init__(self, id, rankS, rankR, size, baseCycle, endCycle, tag = None, blocking_send = True, blocking_recv = True, send_origin = "", recv_origin = "", positionS = 0, positionR = 0, latency = 0, col_id = 0):
         self.rankS = rankS;
         self.rankR = rankR;
         self.size = size;
@@ -114,6 +113,9 @@ class MQ_Match:
 
         self.solvedCycle = -1; # This demarks a portion of the connection that has been shared (for SHARED channel execution) [-1 for unused]
         self.bw_factor = 1; # This is the factor of the sharing portion demarked by solvedCycle (for SHARED channel execution)
+        self.latency = latency;
+        #self.incLatency = True
+        self.col_id = col_id;
         
 
         self.blocking_send = blocking_send;
@@ -139,6 +141,6 @@ class MQ_Match:
 
 
     def __str__ (self):
-        return "[(" + str(self.positionS) + ")S:" + str(self.rankS) + " (" + str(self.positionR) + ")R:" + str(self.rankR) + "] (base: " + str(self.baseCycle) + " end: " + str(self.endCycle) + ")"
+        return "[(" + str(self.positionS) + ")S:" + str(self.rankS) + " (" + str(self.positionR) + ")R:" + str(self.rankR) + "] (base: " + str(self.baseCycle) + " end: " + str(self.endCycle) + ")" + " lat: " + str(self.latency) +  " ID: " + str(self.id) + " col_id: " + str(self.col_id)
 
         #print(str(self.rankS) + " -> " + str(self.rankR))

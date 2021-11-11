@@ -85,7 +85,8 @@ class SimpleCommEngine:
 
         # Process MatchQueue
         match: MQ_Match;
-        match = self.MQ.processMatchQueue(self.list_ranks, self.config.topology);
+        match = self.MQ.processMatchQueue(self.list_ranks);
+        #assert match is not None, "No match was found"
         if match is not None:
             #print(" SR " + str(match.rankS) + " --> " + str(match.rankR))
             # ********* SEND
@@ -104,6 +105,8 @@ class SimpleCommEngine:
                     self.list_ranks[match.rankR].state = Rank.S_NORMAL;
             else:
                 self.list_ranks[match.rankR].include_iSendRecvConclusion(match.tag, match.endCycle);
+            #del match;
+
 
         return END;
 
@@ -140,11 +143,13 @@ class SimpleCommEngine:
                 print("{: <15}".format(rank.cycle), end='');
                 print(bcolors.ENDC, end='');
             print("");
+            input("")
         elif self.ended:
             biggestCycle = self.list_ranks[0].cycle;
             for ri in range(1, len(self.list_ranks)):
                 if self.list_ranks[ri].cycle > biggestCycle:
                     biggestCycle =  self.list_ranks[ri].cycle;
             print(biggestCycle);
+        
 
 
