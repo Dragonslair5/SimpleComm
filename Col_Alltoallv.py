@@ -58,7 +58,7 @@ class MQ_Alltoallv:
                 #if i != rank and recv_vector[i] > 0:
                 if i != rank:
                     recvsize = recvsize_datatype * recv_vector[i];
-                    sr = SendRecv(MPIC_RECV, rank, i, recvsize, baseCycle, operation_origin=self.op_name, tag=MPIC_COLL_TAG_ALLTOALLV);
+                    sr = SendRecv(MPIC_RECV, rank, i, recvsize, baseCycle, operation_origin=self.op_name, tag=MPIC_COLL_TAG_ALLTOALLV, col_id=1);
                     sr_list.append(sr);
                     #print("alltoallv " + str(rank) + " <-- " + str(i));
 
@@ -73,7 +73,7 @@ class MQ_Alltoallv:
                 #if i != rank and send_vector[i] > 0:
                 if i != rank:
                     sendsize = sendsize_datatype * send_vector[i];
-                    sr = SendRecv(MPIC_SEND, rank, i, sendsize, baseCycle, operation_origin=self.op_name, tag=MPIC_COLL_TAG_ALLTOALLV);
+                    sr = SendRecv(MPIC_SEND, rank, i, sendsize, baseCycle, operation_origin=self.op_name, tag=MPIC_COLL_TAG_ALLTOALLV, col_id=1);
                     sr_list.append(sr);
                     #print("alltoallv " + str(rank) + " --> " + str(i));
 

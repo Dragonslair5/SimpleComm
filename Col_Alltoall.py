@@ -28,8 +28,7 @@ class MQ_Alltoall:
     def isReady(self):
         return self.num_ranks == len(self.entries);
 
-    # Based on SimGrid
-    # alltoall__basic_linear (alltoall-basic-linear.cpp)
+    
     def process(self, algorithm: str) -> list:
         assert self.isReady();
 
@@ -40,18 +39,19 @@ class MQ_Alltoall:
         sys.exit(1);
         
 
-
+    # Based on SimGrid
+    # alltoall__basic_linear (alltoall-basic-linear.cpp)
     def algorithm_basic_linear(self)->list:
         sr_list = []
 
         # Post all receives first
         for ri in range(self.num_ranks):
             rank = self.entries[ri].rank;
-            recvsize = self.entries[ri].recvsize
+            recvsize = self.entries[ri].recvsize;
             baseCycle = self.entries[ri].baseCycle;
             i = (rank + 1) % self.num_ranks;
             while i != rank:
-                sr = SendRecv(MPIC_RECV, rank, i, recvsize , baseCycle, operation_origin=self.op_name, tag=MPIC_COLL_TAG_ALLTOALL);
+                sr = SendRecv(MPIC_RECV, rank, i, recvsize , baseCycle, operation_origin=self.op_name, tag=MPIC_COLL_TAG_ALLTOALL, col_id=0);
                 #print("alltoall " + str(rank) + " --> " + str(i));
                 sr_list.append(sr);
                 i = (i+1) % self.num_ranks;
@@ -63,7 +63,7 @@ class MQ_Alltoall:
             baseCycle = self.entries[ri].baseCycle;
             i = (rank + self.num_ranks - 1) % self.num_ranks;
             while i != rank:
-                sr = SendRecv(MPIC_SEND, rank, i, sendsize, baseCycle, operation_origin=self.op_name, tag=MPIC_COLL_TAG_ALLTOALL);
+                sr = SendRecv(MPIC_SEND, rank, i, sendsize, baseCycle, operation_origin=self.op_name, tag=MPIC_COLL_TAG_ALLTOALL, col_id=0);
                 #print("alltoall " + str(rank) + " <-- " + str(i));
                 sr_list.append(sr);
                 i = (i + self.num_ranks - 1) % self.num_ranks;
