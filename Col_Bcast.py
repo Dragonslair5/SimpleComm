@@ -51,7 +51,8 @@ class MQ_Bcast:
         sr_list: list[SendRecv]
         sr_list = [];
 
-        for rank in range(self.num_ranks):
+        #for rank in range(0, self.num_ranks):
+        for rank in range(self.num_ranks-1, -1, -1):
             mask = 0x1;
             #print(mask)
             #relative_rank = (rank >= self.root) if rank - self.root else rank - self.root + self.num_ranks;
@@ -94,7 +95,34 @@ class MQ_Bcast:
 
 
 
-        # Adjust position for latency increment
+        # Adjust position for latency increment (implemented with MPI_send)
+        layer = []
+        layer.append(self.root)
+        startingPOS = [1] * self.num_ranks;
+        
+        while True:
+            newLayer = []
+            for i in range(0, len(sr_list)):
+                send_recv = sr_list[i];
+                if send_recv.kind == MPIC_SEND and (send_recv.rank in layer) and send_recv.col_id == -1:
+                    send_recv.col_id = startingPOS[send_recv.rank];
+                    startingPOS[send_recv.rank] = startingPOS[send_recv.rank] + 1;
+                    startingPOS[send_recv.partner] = startingPOS[send_recv.rank];
+                
+            for i in range(0, len(sr_list)):
+                send_recv = sr_list[i];
+                if send_recv.kind == MPIC_RECV and (send_recv.partner in layer) and send_recv.col_id == -1:
+                    send_recv.col_id = startingPOS[send_recv.rank] - 1;
+                    newLayer.append(send_recv.rank);
+
+            if len(newLayer) == 0:
+                break;
+            layer = newLayer;
+        
+
+
+        # Adjust position for latency increment (Implemented with MPI_isend)
+        '''
         layer = []
         layer.append(self.root)
         L = 1;
@@ -111,7 +139,7 @@ class MQ_Bcast:
                 break;
             L = L + 1;
             layer = newLayer;
-        
+        '''
 
 
         return sr_list;
