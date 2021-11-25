@@ -154,7 +154,8 @@ class Rank:
         if(operation == "reduce"):
             self.current_operation = "reduce-" + str(self.index);
             self.state = Rank.S_COMMUNICATING;
-            root = int(workload[3]);
+            #root = int(workload[3]);
+            root = int(workload[4]);
             datatype = getDataTypeSize(int(workload[5]));
             size = int(workload[2]) * datatype;
             reduce = MQ_Reduce_entry(self.rank, root, size, self.cycle);

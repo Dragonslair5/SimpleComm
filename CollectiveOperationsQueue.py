@@ -65,17 +65,25 @@ class CollectiveOperationQueueEntry:
                 partner = partner_queue.pop(i);
                 assert sendrecv.tag == partner.tag;
 
+                
+                #latency = 0;
+                latency = 1.000000
+                #latency = 0.000001
+                #latency = 10.000000
+                #baseCycle = baseCycle + latency;
+                #if sendrecv.kind == MPIC_SEND:
+                #    sendrecv.baseCycle = sendrecv.baseCycle + latency;
+                #else:
+                #    partner.baseCycle = partner.baseCycle + latency;
+                
+                sendrecv.baseCycle = sendrecv.baseCycle + latency;
+                partner.baseCycle = partner.baseCycle + latency;
                 # Set the baseCycle (the highest between them)
                 if sendrecv.baseCycle > partner.baseCycle:
                     baseCycle = sendrecv.baseCycle;
                 else:
                     baseCycle = partner.baseCycle;
 
-                #latency = 0;
-                latency = 1.000000
-                #latency = 0.000001
-                #latency = 10.000000
-                baseCycle = baseCycle + latency;
 
 
                 # Calculate endCycle
@@ -97,6 +105,10 @@ class CollectiveOperationQueueEntry:
 
                 # Create the match and put it on the Matching Queue
                 #print("Match " + str())
+                #print("-----")
+                #print(sendrecv)
+                #print(partner)
+                #print("-----")
                 assert sendrecv.col_id == partner.col_id, "SEND and RECV have different col_id"
                 if sendrecv.kind == MPIC_SEND:
                     match = MQ_Match(self.matchID, sendrecv.rank, partner.rank, partner.size, baseCycle, endCycle, tag = partner.tag, blocking_send=sendrecv.blocking, blocking_recv=partner.blocking, send_origin=sendrecv.operation_origin, recv_origin=partner.operation_origin, positionS=sendrecv.queue_position, positionR=partner.queue_position, latency=latency, col_id=sendrecv.col_id);

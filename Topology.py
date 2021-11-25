@@ -142,6 +142,16 @@ class Topology:
                 valid_matchesQ = valid_matchesQ + tmp_valid;
                 invalid_matchesQ = invalid_matchesQ + tmp_invalid;
 
+            #for i in range(0, len(valid_matchesQ)):
+            #    rankR = valid_matchesQ[i];
+            #    for j in range(i+1, len(valid_matchesQ)):
+            #        if valid_matchesQ[j].rankR == rankR and valid_matchesQ[j].blocking_recv:
+            #            minToStart = valid_matchesQ[i].endCycle + valid_matchesQ[j].latency;
+            #            inc = minToStart - valid_matchesQ[j].baseCycle;
+            #            if inc >= 0:
+            #                valid_matchesQ[j].baseCycle = valid_matchesQ[j].baseCycle + inc;
+            #                valid_matchesQ[j].endCycle = valid_matchesQ[j].endCycle + inc;
+                                   
             #assert len(valid_matchesQ) > 0, "matchQ is empty on a process contention request (or no valid match was found)"
 
             #print("--- VALID MQ ---")
@@ -191,7 +201,10 @@ class Topology:
                                (valid_matchesQ[i].rankR == invalid_matchesQ[j].rankS) or
                                (valid_matchesQ[i].rankR == invalid_matchesQ[j].rankR)
                             ):
-                               inc = valid_matchesQ[i].endCycle - invalid_matchesQ[j].baseCycle;
+                               minToStart = valid_matchesQ[i].endCycle + invalid_matchesQ[j].latency;
+                               inc = minToStart - invalid_matchesQ[j].baseCycle;
+                               #inc = valid_matchesQ[i].endCycle - invalid_matchesQ[j].baseCycle;
+                               #if valid_matchesQ[i].endCycle + invalid_matchesQ[j].latency
                                if inc >= 0:
                                    #print(invalid_matchesQ[j])
                                    #print("inc: " + str(inc) + " lat:" + str(invalid_matchesQ[j].latency))
@@ -201,8 +214,8 @@ class Topology:
                                        #inc = inc + invalid_matchesQ[j].latency;
                                        #print(invalid_matchesQ[j])
                                     
-                                   if (valid_matchesQ[i].col_id < invalid_matchesQ[j].col_id):
-                                       inc = inc + invalid_matchesQ[j].latency;
+                                   #if (valid_matchesQ[i].col_id < invalid_matchesQ[j].col_id):
+                                   #    inc = inc + invalid_matchesQ[j].latency;
                                    
                                    
                                    invalid_matchesQ[j].baseCycle = invalid_matchesQ[j].baseCycle + inc; # + invalid_matchesQ[j].latency;

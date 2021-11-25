@@ -16,15 +16,17 @@ class MQ_Alltoallv:
     def __init__ (self, num_ranks):
         self.num_ranks = num_ranks;
         self.entries = [];
-        self.baseCycle = 0;
+        #self.baseCycle = 0;
+        #self.baseCycle = [0] * num_ranks;
         self.op_name = "alltoallv";
     
     def incEntry(self, alltoallv_entry: MQ_Alltoallv_entry):
         assert isinstance(alltoallv_entry, MQ_Alltoallv_entry);
         self.entries.append(alltoallv_entry);
         assert len(self.entries) <= self.num_ranks;
-        if self.baseCycle < alltoallv_entry.baseCycle:
-            self.baseCycle = alltoallv_entry.baseCycle;
+        #if self.baseCycle < alltoallv_entry.baseCycle:
+        #    self.baseCycle = alltoallv_entry.baseCycle;
+        #self.baseCycle[alltoallv_entry.rank] = alltoallv_entry.baseCycle;
 
     def isReady(self):
         return self.num_ranks == len(self.entries);
@@ -93,7 +95,7 @@ class MQ_Alltoallv:
             for i in range(self.num_ranks):
                 if i != rank and recv_vector[i] > 0:
                     recvsize = recvsize_datatype * recv_vector[i];
-                    sr = SendRecv(MPIC_RECV, rank, i, recvsize, baseCycle, operation_origin=self.op_name, tag=MPIC_COLL_TAG_ALLTOALLV);
+                    sr = SendRecv(MPIC_RECV, rank, i, recvsize, baseCycle[rank], operation_origin=self.op_name, tag=MPIC_COLL_TAG_ALLTOALLV);
                     sr_list.append(sr);
                     #print("alltoallv " + str(rank) + " <-- " + str(i));
 
@@ -107,7 +109,7 @@ class MQ_Alltoallv:
             for i in range(self.num_ranks):
                 if i != rank and send_vector[i] > 0:
                     sendsize = sendsize_datatype * send_vector[i];
-                    sr = SendRecv(MPIC_SEND, rank, i, sendsize, baseCycle, operation_origin=self.op_name, tag=MPIC_COLL_TAG_ALLTOALLV);
+                    sr = SendRecv(MPIC_SEND, rank, i, sendsize, baseCycle[rank], operation_origin=self.op_name, tag=MPIC_COLL_TAG_ALLTOALLV);
                     sr_list.append(sr);
                     #print("alltoallv " + str(rank) + " --> " + str(i));
 

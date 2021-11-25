@@ -165,17 +165,27 @@ class MessageQueue:
                 partner = partner_queue.pop(i);
                 assert sendrecv.tag == partner.tag;
 
-                # Set the baseCycle (the highest between them)
+                
+                if partner.rank == sendrecv.rank:
+                    latency = 0;
+                else:
+                    #latency = 0;
+                    latency = 1.000000
+                    #latency = 0.000001
+                    #latency = 10.000000
+                    #baseCycle = baseCycle + latency;
+                    #if sendrecv.kind == MPIC_SEND:
+                    #    sendrecv.baseCycle = sendrecv.baseCycle + latency;
+                    #else:
+                    #    partner.baseCycle = partner.baseCycle + latency;
+                    sendrecv.baseCycle = sendrecv.baseCycle + latency;
+                    partner.baseCycle = partner.baseCycle + latency;
+
+                    # Set the baseCycle (the highest between them)
                 if sendrecv.baseCycle > partner.baseCycle:
                     baseCycle = sendrecv.baseCycle;
                 else:
                     baseCycle = partner.baseCycle;
-
-                #latency = 0;
-                latency = 1.000000
-                #latency = 0.000001
-                #latency = 10.000000
-                baseCycle = baseCycle + latency;
 
 
                 # Calculate endCycle
