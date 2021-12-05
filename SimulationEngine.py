@@ -140,7 +140,8 @@ class SimpleCommEngine:
                 if self.saveState[ri] != rank.cycle:
                     self.saveState[ri] = rank.cycle;
                     print(bcolors.OKCYAN, end='');
-                print("{: <15e}".format(rank.cycle), end='');
+                #print("{: <15e}".format(rank.cycle), end='');
+                print("{: <15.6f}".format(rank.cycle), end='');
                 print(bcolors.ENDC, end='');
             print("");
             input("")

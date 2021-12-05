@@ -170,7 +170,8 @@ class MessageQueue:
                     latency = 0;
                 else:
                     #latency = 0;
-                    latency = 1.000000
+                    #latency = 1.000000
+                    latency = 0.000008
                     #latency = 0.000001
                     #latency = 10.000000
                     #baseCycle = baseCycle + latency;
@@ -213,6 +214,7 @@ class MessageQueue:
                 else:
                     match = MQ_Match(self.matchID, partner.rank, sendrecv.rank, partner.size, baseCycle, endCycle, tag = partner.tag, blocking_send=partner.blocking, blocking_recv=sendrecv.blocking, send_origin=partner.operation_origin , recv_origin=sendrecv.operation_origin, positionS=partner.queue_position, positionR=sendrecv.queue_position, latency=latency, col_id=sendrecv.col_id);
                 
+                #print(match)
                 self.matchID = self.matchID + 1;
 
                 self.matchQ.append(match);

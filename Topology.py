@@ -110,8 +110,8 @@ class Topology:
             #print(matchQ)
             #print("******")
 
-            if len(matchQ) == 1:
-                return matchQ.pop(0);
+            #if len(matchQ) == 1:
+            #    return matchQ.pop(0);
 
             valid_matchesQ : list[MQ_Match]; # For valid matches
             valid_matchesQ = []
@@ -170,14 +170,18 @@ class Topology:
             assert len(valid_matchesQ) > 0, "No valid Match was found"
 
             while True:
-                #print("*****************************")
+                #print(bcolors.OKBLUE + "********************************************************" + bcolors.ENDC)
+                #print(bcolors.OKGREEN + "STEP 1 ---- Found Ready?" + bcolors.ENDC)
                 # STEP 1 ---- Found Ready?
                 # This step is the stop condition in this never-ending loop
 
                 for i in range(0, len(valid_matchesQ)):
                     if valid_matchesQ[i].baseCycle == valid_matchesQ[i].endCycle:
                         #print("READY")
+                        #print(bcolors.OKCYAN, end='');
                         #print(valid_matchesQ[i])
+                        #print(valid_matchesQ[i].transmitted_data)
+                        #print(bcolors.ENDC, end='');
                         readyMatch = None;
                         #ready_index = -1;
                         for j in range(0, len(matchQ)):
@@ -194,14 +198,23 @@ class Topology:
                         assert readyMatch is not None, "ready match is not presented on matches queues"
                         #assert ready_index != -1, "ready match is not presented on matches queue"
 
+#                        for j in range(0, len(invalid_matchesQ)):
+#                            if (
+#                               (valid_matchesQ[i].rankS == invalid_matchesQ[j].rankS) or
+#                               (valid_matchesQ[i].rankS == invalid_matchesQ[j].rankR) or
+#                               (valid_matchesQ[i].rankR == invalid_matchesQ[j].rankS) or
+#                               (valid_matchesQ[i].rankR == invalid_matchesQ[j].rankR)
+#                            ):
+#                               minToStart = valid_matchesQ[i].endCycle + invalid_matchesQ[j].latency;
+#                               inc = minToStart - invalid_matchesQ[j].baseCycle;
                         for j in range(0, len(invalid_matchesQ)):
                             if (
-                               (valid_matchesQ[i].rankS == invalid_matchesQ[j].rankS) or
-                               (valid_matchesQ[i].rankS == invalid_matchesQ[j].rankR) or
-                               (valid_matchesQ[i].rankR == invalid_matchesQ[j].rankS) or
-                               (valid_matchesQ[i].rankR == invalid_matchesQ[j].rankR)
+                               (readyMatch.rankS == invalid_matchesQ[j].rankS) or
+                               (readyMatch.rankS == invalid_matchesQ[j].rankR) or
+                               (readyMatch.rankR == invalid_matchesQ[j].rankS) or
+                               (readyMatch.rankR == invalid_matchesQ[j].rankR)
                             ):
-                               minToStart = valid_matchesQ[i].endCycle + invalid_matchesQ[j].latency;
+                               minToStart = readyMatch.endCycle + invalid_matchesQ[j].latency;
                                inc = minToStart - invalid_matchesQ[j].baseCycle;
                                #inc = valid_matchesQ[i].endCycle - invalid_matchesQ[j].baseCycle;
                                #if valid_matchesQ[i].endCycle + invalid_matchesQ[j].latency
@@ -217,8 +230,9 @@ class Topology:
                                    #if (valid_matchesQ[i].col_id < invalid_matchesQ[j].col_id):
                                    #    inc = inc + invalid_matchesQ[j].latency;
                                    
-                                   
+                                   #print(bcolors.FAIL + "INCREMENTING!!! -- " + str(invalid_matchesQ[j].id) + bcolors.ENDC)
                                    invalid_matchesQ[j].baseCycle = invalid_matchesQ[j].baseCycle + inc; # + invalid_matchesQ[j].latency;
+                                   invalid_matchesQ[j].original_baseCycle = invalid_matchesQ[j].original_baseCycle + inc; # For debug purpose
                                    invalid_matchesQ[j].endCycle = invalid_matchesQ[j].endCycle + inc; # + invalid_matchesQ[j].latency;
                                    #print(invalid_matchesQ[j])
                                    #print("***")
@@ -229,23 +243,31 @@ class Topology:
                         return None; # There is one ready to be returned to the rank.
                 # ------------------------------------------------------------------
 
-                
+                #print(bcolors.OKGREEN + "STEP 2 ---- Find Window" + bcolors.ENDC)
                 # STEP 2 ---- Find Window
                 # lowest_cycle <----> second_lowest_cycle
+                li: int; 
+                sli: int;
                 lowest_cycle = valid_matchesQ[0].baseCycle;
+                li = valid_matchesQ[0].id;
                 for i in range(0, len(valid_matchesQ)):
                     if valid_matchesQ[i].baseCycle < lowest_cycle:
                         lowest_cycle = valid_matchesQ[i].baseCycle;
+                        li = valid_matchesQ[i].id
                 
                 second_lowest_cycle = valid_matchesQ[0].getUpperCycle();
+                sli=valid_matchesQ[0].id;
                 for i in range(0, len(valid_matchesQ)):
                     if valid_matchesQ[i].baseCycle < second_lowest_cycle and valid_matchesQ[i].baseCycle != lowest_cycle:
                         second_lowest_cycle = valid_matchesQ[i].baseCycle;
+                        sli=valid_matchesQ[i].id;
                     if valid_matchesQ[i].getUpperCycle() < second_lowest_cycle:
                         second_lowest_cycle = valid_matchesQ[i].getUpperCycle();
+                        sli=valid_matchesQ[i].id*-1
                 # ------------------------------------------------------------------
-                #print(str(lowest_cycle) + " ---- " + str(second_lowest_cycle))
+                #print(str(lowest_cycle) + "[" +str(li) + "] ---- [" + str(sli) + "]" + str(second_lowest_cycle))
 
+                #print(bcolors.OKGREEN + "STEP 3 ---- How Many (share this window)" + bcolors.ENDC)
                 # STEP 3 ---- How Many (share this window)
                 window_share_count = 0
                 indexes_to_increase = []
@@ -263,17 +285,29 @@ class Topology:
                         indexes_to_increase.append(i)
                         continue
                 # ------------------------------------------------------------------
-                #print(window_share_count)
+                #print("SHARING: " + str(window_share_count))
                 #print(indexes_to_increase)
+                #print("[ ", end='')
+                #print(valid_matchesQ[indexes_to_increase[0]].id, end='')
+                #for i in range(1, len(indexes_to_increase)):
+                #    print(" , ", end='');
+                #    print(valid_matchesQ[indexes_to_increase[i]].id, end='')
+                #print(" ]")
+                #for i in range(0, len(indexes_to_increase)):
+                #    valid_matchesQ[indexes_to_increase[i]].checkCorrectness()
+                #print(bcolors.OKGREEN + "STEP 4 ---- Increase" + bcolors.ENDC)
                 # STEP 4 ---- Increase
                 window_size = second_lowest_cycle - lowest_cycle;
                 newFactor = window_share_count;
+                #print("WindowSize: " + str(window_size))
                 #increment = window_size * (window_share_count - 1)
                 increment_list = []
                 for i in range(0, len(indexes_to_increase)):
                     curIndex = indexes_to_increase[i];
                     currentFactor = valid_matchesQ[curIndex].bw_factor;
+                    #print("Index: " + str(curIndex) + " currentFactor: " + str(currentFactor) + " newFactor: " + str(newFactor))
                     increment = (window_size * (newFactor / currentFactor) ) - window_size;
+                    assert increment >= 0, "increment can not be negative"
                     increment_list.append(increment);
                 #increment_list.sort();
                 #print(increment_list)
@@ -281,6 +315,7 @@ class Topology:
                 for i in range(1, len(increment_list)):
                     if increment_list[i] < smallest_increment:
                         smallest_increment = increment_list[i];
+                #print(smallest_increment)
                 #assert smallest_increment > 0, "Increment cannot be zero (0)";
                 for i in range(0, len(indexes_to_increase)):
                     curIndex = indexes_to_increase[i];
@@ -288,33 +323,52 @@ class Topology:
                     flooded_increment = 0;
                     if increment > smallest_increment:
                         flooded_increment = (increment - smallest_increment) * 1 / newFactor;
-                    
-                    valid_matchesQ[curIndex].baseCycle = valid_matchesQ[curIndex].baseCycle + window_size;
+                        assert flooded_increment >= 0, "flooded increment can not be negative"
+                    #valid_matchesQ[curIndex].transmitted_data.append([window_size, newFactor, (2500000000/newFactor)*window_size ])
+                    #valid_matchesQ[curIndex].baseCycle = valid_matchesQ[curIndex].baseCycle + window_size;
+                    if valid_matchesQ[curIndex].solvedCycle != -1:
+                        #assert valid_matchesQ[curIndex].solvedCycle == valid_matchesQ[curIndex].baseCycle + window_size
+                        decrement = valid_matchesQ[curIndex].solvedCycle - (valid_matchesQ[curIndex].baseCycle + window_size)
+                        decrement = decrement - decrement * 1/valid_matchesQ[curIndex].bw_factor
+                        valid_matchesQ[curIndex].endCycle = valid_matchesQ[curIndex].endCycle - decrement
                     valid_matchesQ[curIndex].endCycle = valid_matchesQ[curIndex].endCycle + smallest_increment + flooded_increment;
-                    valid_matchesQ[curIndex].solvedCycle = valid_matchesQ[curIndex].baseCycle + smallest_increment;
+                    valid_matchesQ[curIndex].solvedCycle = valid_matchesQ[curIndex].baseCycle + window_size + smallest_increment;
                     valid_matchesQ[curIndex].bw_factor = newFactor;
+                    #print("ID: " + str(valid_matchesQ[curIndex].id) + " base: " + str(valid_matchesQ[curIndex].baseCycle) + " solved: " + str(valid_matchesQ[curIndex].solvedCycle) + " end: " + str(valid_matchesQ[curIndex].endCycle))
 
                     #valid_matchesQ[curIndex].baseCycle = valid_matchesQ[curIndex].baseCycle + increment;
                     #valid_matchesQ[curIndex].endCycle = valid_matchesQ[curIndex].endCycle + increment;
-                lowest_cycle = valid_matchesQ[indexes_to_increase[0]].baseCycle;
-                second_lowest_cycle = valid_matchesQ[indexes_to_increase[0]].getUpperCycle();
                 # ------------------------------------------------------------------
 
+                #print(bcolors.OKGREEN + "STEP 5 ---- Crop" + bcolors.ENDC)
                 # STEP 5 ---- Crop
+                lci = valid_matchesQ[indexes_to_increase[0]].id;
+                lowest_cycle = valid_matchesQ[indexes_to_increase[0]].baseCycle;
+                slci = lci
+                second_lowest_cycle = valid_matchesQ[indexes_to_increase[0]].getUpperCycle();                
                 for i in range(0, len(valid_matchesQ)):
                     if valid_matchesQ[i].baseCycle < second_lowest_cycle and valid_matchesQ[i].baseCycle != lowest_cycle:
                         second_lowest_cycle = valid_matchesQ[i].baseCycle;
+                        slci = valid_matchesQ[i].id;
                     if valid_matchesQ[i].getUpperCycle() < second_lowest_cycle:
+                        assert False, "Mah que que eh isso!?" # Is it possible to get here?
                         second_lowest_cycle = valid_matchesQ[i].getUpperCycle();
-                
+
+                #print(str(lowest_cycle) + "[" + str(lci) + "] ---- [" + str(slci) + "]" + str(second_lowest_cycle));
+
                 for i in range(0, len(valid_matchesQ)):
                     if valid_matchesQ[i].baseCycle < second_lowest_cycle:
+                        #valid_matchesQ[i].transmitted_data.append([second_lowest_cycle - valid_matchesQ[i].baseCycle, valid_matchesQ[i].bw_factor, (2500000000/valid_matchesQ[i].bw_factor)*(second_lowest_cycle - valid_matchesQ[i].baseCycle) ])
+                        valid_matchesQ[i].includeTransmittedData(second_lowest_cycle - valid_matchesQ[i].baseCycle, valid_matchesQ[i].bw_factor, (2500000000/valid_matchesQ[i].bw_factor)*(second_lowest_cycle - valid_matchesQ[i].baseCycle))
+                        #print("Sending " + str((2500000000/valid_matchesQ[i].bw_factor)*(second_lowest_cycle - valid_matchesQ[i].baseCycle)) + " bytes -- ID: " + str(valid_matchesQ[i].id) + " bw_f: " + str(valid_matchesQ[i].bw_factor) + " time: " + str(second_lowest_cycle - valid_matchesQ[i].baseCycle))
                         valid_matchesQ[i].baseCycle = second_lowest_cycle;
-                    if valid_matchesQ[i].solvedCycle == second_lowest_cycle:
+                    #if valid_matchesQ[i].solvedCycle == second_lowest_cycle:
+                    #if valid_matchesQ[i].baseCycle == second_lowest_cycle:
+                    if valid_matchesQ[i].baseCycle == valid_matchesQ[i].solvedCycle:
                         valid_matchesQ[i].solvedCycle = -1;
                         valid_matchesQ[i].bw_factor = 1;
                 # ------------------------------------------------------------------
-
+                #input("")
 
 
             print( bcolors.FAIL + "ERROR: Unimplemented topology " + self.topology + bcolors.ENDC);
@@ -322,6 +376,7 @@ class Topology:
             return None
 
 
+        assert False, "We are analyzing SC_SHARED, WTF are you doing here?"
         
         if (self.topology == "KAHUNA"):
 

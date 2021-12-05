@@ -67,7 +67,8 @@ class CollectiveOperationQueueEntry:
 
                 
                 #latency = 0;
-                latency = 1.000000
+                #latency = 1.000000
+                latency = 0.000008
                 #latency = 0.000001
                 #latency = 10.000000
                 #baseCycle = baseCycle + latency;

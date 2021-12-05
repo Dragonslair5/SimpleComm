@@ -73,7 +73,9 @@ class Rank:
         if self.waitingTag == None: # Waitall
             if self.waitall == 0:
                 lenght = len(self.iSendRecvQ)
+                #print("Rank " + str(self.rank) + " cycle - " + str(self.cycle))
                 for i in range(lenght):
+                    #print(str(i) + " - isendrecv end cycle: " + str(self.iSendRecvQ[0].endCycle))
                     if self.cycle < self.iSendRecvQ[0].endCycle:
                         self.cycle = self.iSendRecvQ[0].endCycle;
                     del self.iSendRecvQ[0];

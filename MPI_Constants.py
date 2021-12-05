@@ -1,10 +1,17 @@
 import configparser
-
-
+from os.path import exists
+import sys
+from tp_utils import *
 
 class SimpleCommConfiguration:
     def __init__(self, configfile: str) -> None:
         
+        if not exists(configfile):
+            print( bcolors.FAIL + "Configuration file does not exist" + bcolors.ENDC);
+            sys.exit(1);
+
+
+
         config = configparser.ConfigParser();
         config.read(configfile);
         self.topology = config["TOPOLOGY"].get("topology", "SC_CC");
@@ -116,6 +123,9 @@ class MQ_Match:
         self.latency = latency;
         #self.incLatency = True
         self.col_id = col_id;
+        self.original_baseCycle = baseCycle # For debugging
+        self.transmitted_data = [] # For debugging
+        self.data_sent = 0
         
 
         self.blocking_send = blocking_send;
@@ -139,8 +149,33 @@ class MQ_Match:
         else:
             return self.endCycle;
 
+    def includeTransmittedData(self, length, bw_factor, data_size):
+        self.transmitted_data.append([length, bw_factor, data_size]);
+        self.data_sent = self.data_sent + data_size;
+        assert round(self.data_sent) <= (self.size+16), str(self.data_sent) + " > " + str(self.size + 16)
+
+
+    def checkCorrectness(self):
+        size = 0
+        sending = 0;
+        willsend = 0
+        bw = 2500000000
+        if self.solvedCycle != -1:
+            size = size + (self.endCycle - self.solvedCycle) * bw
+            sending = (self.endCycle - self.solvedCycle) * bw;
+            size = size + (self.solvedCycle - self.baseCycle) * (bw/self.bw_factor)
+            willsend = (self.solvedCycle - self.baseCycle) * (bw/self.bw_factor)
+        else:
+            size = size + (self.endCycle - self.baseCycle) * (bw/self.bw_factor)
+            willsend = (self.endCycle - self.baseCycle) * (bw/self.bw_factor)
+        size = size + self.data_sent;
+
+        print("ID: " + str(self.id) + " size: " + str(self.size+16) + " sent: " + str(round(self.data_sent)) + " sending: " + str(round(sending)) + " willsend: " + str(round(willsend)) + " data: " + str(round(size)))
 
     def __str__ (self):
-        return "[(" + str(self.positionS) + ")S:" + str(self.rankS) + " (" + str(self.positionR) + ")R:" + str(self.rankR) + "] (base: " + str(self.baseCycle) + " end: " + str(self.endCycle) + ")" + " lat: " + str(self.latency) +  " ID: " + str(self.id) + " col_id: " + str(self.col_id)
-
+#        return "[(" + str(self.positionS) + ")S:" + str(self.rankS) + " (" + str(self.positionR) + ")R:" + str(self.rankR) + "] (base: " + str(self.baseCycle) + " solved: " + str(self.solvedCycle) + " end: " + str(self.endCycle) + ")" + " lat: " + str(self.latency) +  " ID: " + str(self.id) + " col_id: " + str(self.col_id) + " bw_factor: " + str(self.bw_factor) + " originalBaseCycle: " + str(self.original_baseCycle) +" duration: " + str(self.endCycle - self.original_baseCycle) + " size: " + str(self.size+16) + " BW: " + str((self.size+16)/(self.endCycle - self.original_baseCycle))
+        data_sent = 0;
+        for i in range(0, len(self.transmitted_data)):
+            data_sent = data_sent + self.transmitted_data[i][2];
+        return "[(" + str(self.positionS) + ")S:" + str(self.rankS) + " (" + str(self.positionR) + ")R:" + str(self.rankR) + "] (base: " + str(self.baseCycle) + " solved: " + str(self.solvedCycle) + " end: " + str(self.endCycle) + ")" + " lat: " + str(self.latency) +  " ID: " + str(self.id) + " col_id: " + str(self.col_id) + " bw_factor: " + str(self.bw_factor) + " originalBaseCycle: " + str(self.original_baseCycle) +" duration: " + str(self.endCycle - self.original_baseCycle) + " size: " + str(self.size+16) + " BW: " + str((self.size+16)/(self.endCycle - self.original_baseCycle)) + " sent: " + str(data_sent)
         #print(str(self.rankS) + " -> " + str(self.rankR))
