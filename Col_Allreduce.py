@@ -84,7 +84,8 @@ class MQ_Allreduce:
                 mask = mask >> 1;
 
 
-        # Adjust position for latency increment in bcast
+        # Adjust position for latency increment in bcast (Implemented with MPI_isend)
+        '''
         layer = []
         layer.append(0) # Adding root
         L = 2;
@@ -100,6 +101,31 @@ class MQ_Allreduce:
             if len(newLayer) == 0:
                 break;
             L = L + 1;
+            layer = newLayer;
+        '''
+
+        # Adjust position for latency increment in bcast (implemented with MPI_send)
+        layer = []
+        layer.append(0)
+        startingPOS = [2] * self.num_ranks;
+        
+        while True:
+            newLayer = []
+            for i in range(0, len(sr_list)):
+                send_recv = sr_list[i];
+                if send_recv.kind == MPIC_SEND and (send_recv.rank in layer) and send_recv.col_id == -1:
+                    send_recv.col_id = startingPOS[send_recv.rank];
+                    startingPOS[send_recv.rank] = startingPOS[send_recv.rank] + 1;
+                    startingPOS[send_recv.partner] = startingPOS[send_recv.rank];
+                
+            for i in range(0, len(sr_list)):
+                send_recv = sr_list[i];
+                if send_recv.kind == MPIC_RECV and (send_recv.partner in layer) and send_recv.col_id == -1:
+                    send_recv.col_id = startingPOS[send_recv.rank] - 1;
+                    newLayer.append(send_recv.rank);
+
+            if len(newLayer) == 0:
+                break;
             layer = newLayer;
         
         return sr_list;
