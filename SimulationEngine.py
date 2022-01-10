@@ -19,7 +19,7 @@ class SimpleCommEngine:
         self.config = SimpleCommConfiguration(configfile);
         self.MQ : MessageQueue;
         self.MQ = MessageQueue(nRanks, self.config)
-
+        self.show_progress = self.config.show_progress;
 
     #def configure(self, configfile: str):
     #    self.config = SimpleCommConfiguration(configfile);
@@ -112,6 +112,8 @@ class SimpleCommEngine:
 
 
     def showResults(self):
+
+
         if self.verbose:
             print(bcolors.OKGREEN + "Result - step " + str(self.nSteps) + bcolors.OKPURPLE + self.MQ.op_message + bcolors.ENDC)
             for ri in range(len(self.list_ranks)):
@@ -145,12 +147,36 @@ class SimpleCommEngine:
                 print(bcolors.ENDC, end='');
             print("");
             input("")
-        elif self.ended:
-            biggestCycle = self.list_ranks[0].cycle;
-            for ri in range(1, len(self.list_ranks)):
-                if self.list_ranks[ri].cycle > biggestCycle:
-                    biggestCycle =  self.list_ranks[ri].cycle;
-            print(biggestCycle);
+        else:
+            if self.show_progress:
+                print("", end= '\r', flush=True);
+                for ri in range(len(self.list_ranks)):
+                    rank = self.list_ranks[ri];
+                    if self.saveState[ri] != rank.cycle:
+                        print(bcolors.OKCYAN, end='');
+                    print(str(rank.index) + "/" + str(len(rank.trace)) + "--", end='')
+                    print("{: <15.1f}".format( float(rank.index)/float(len(rank.trace)) * 100 ), end='');
+                    print(bcolors.ENDC, end='');
+                if self.ended:
+                    print("", end= '\r', flush=True); # Go back to the start of the line
+                    sys.stdout.write("\x1b[2K") # Erase the line
+                    biggestCycle = self.list_ranks[0].cycle;
+                    for ri in range(1, len(self.list_ranks)):
+                        if self.list_ranks[ri].cycle > biggestCycle:
+                            biggestCycle =  self.list_ranks[ri].cycle;
+                    print(biggestCycle);
+            elif self.ended:
+                biggestCycle = self.list_ranks[0].cycle;
+                for ri in range(1, len(self.list_ranks)):
+                    if self.list_ranks[ri].cycle > biggestCycle:
+                        biggestCycle =  self.list_ranks[ri].cycle;
+                print(biggestCycle);
+        #elif self.ended:
+        #    biggestCycle = self.list_ranks[0].cycle;
+        #    for ri in range(1, len(self.list_ranks)):
+        #        if self.list_ranks[ri].cycle > biggestCycle:
+        #            biggestCycle =  self.list_ranks[ri].cycle;
+        #    print(biggestCycle);
         
 
 

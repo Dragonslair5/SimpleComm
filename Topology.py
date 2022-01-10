@@ -330,12 +330,20 @@ class Topology:
             #    print(invalid_matchesQ[i])
             #print("----------------")
 
-
+            times: int
+            times = 0
+            print("{: <15d}".format(times), end='');
+            print("{: <15d}".format(len(valid_matchesQ)), end='');
+            print("{: <15d}".format(len(valid_matchesQ)), end='')
             while True:
                 #print(bcolors.OKBLUE + "********************************************************" + bcolors.ENDC)
                 #print(bcolors.OKGREEN + "STEP 1 ---- Found Ready?" + bcolors.ENDC)
                 # STEP 1 ---- Found Ready?
                 # This step is the stop condition in this never-ending loop
+                print("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b", end='');
+                print("{: <15d}".format(times), end='');
+                print("{: <15d}".format(len(valid_matchesQ)), end='')
+                times = times + 1;
                 for i in range(0, len(valid_matchesQ)):
                     if valid_matchesQ[i].baseCycle == valid_matchesQ[i].endCycle:
                         #print("READY")
@@ -380,7 +388,8 @@ class Topology:
                                    invalid_matchesQ[j].baseCycle = invalid_matchesQ[j].baseCycle + inc;
                                    invalid_matchesQ[j].original_baseCycle = invalid_matchesQ[j].original_baseCycle + inc;
                                    invalid_matchesQ[j].endCycle = invalid_matchesQ[j].endCycle + inc;
-                                   
+                        
+                        print("")
                         return readyMatch;
                 # ------------------------------------------------------------------
 
@@ -402,6 +411,7 @@ class Topology:
                 rankR = valid_matchesQ[li].rankR;
                 
                 second_lowest_cycle = valid_matchesQ[li].getUpperCycle();
+                assert lowest_cycle < second_lowest_cycle, "second lowest not bigger than lowest?"
                 sli=li;
                 for i in range(0, len(valid_matchesQ)):
                     if ( 
@@ -418,10 +428,10 @@ class Topology:
                             second_lowest_cycle = valid_matchesQ[i].getUpperCycle();
                             sli=i*-1
                 # ------------------------------------------------------------------
-
+                print("{: <15d}".format(len(currentRoundQueue)), end='')
                 #print(bcolors.OKGREEN + "STEP 3 ---- How Many (share this window)" + bcolors.ENDC)
                 # STEP 3 ---- How Many (share this window)
-                window_share_count_on_send = 0
+                window_share_count_on_send = 0;
                 window_share_count_on_recv = 0;
                 #window_share_count = 0
                 indexes_to_increase_on_sendrecv = []
