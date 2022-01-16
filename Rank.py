@@ -44,6 +44,8 @@ class Rank:
         self.waitingTag = None;
         self.shallEnd = False; # To allow a last operation to be done before finalizing (Barrier)
 
+        #print(self.trace)
+
     #def changeState(self, newState):
     #    self.state = newState;
 

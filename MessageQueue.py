@@ -1,5 +1,9 @@
 from CollectiveOperationsQueue import *
 from Topology import *
+from Top_CircuitSwitchedFreeMemory import *
+from Top_CircuitSwitchedSingleChannel import *
+from Top_Kahuna import *
+from Top_SharedSingleChannel import *
 from Rank import *
 
 
@@ -13,7 +17,19 @@ class MessageQueue:
         self.op_message = ""
 
         # Communication/Contention Topology
-        self.topology = Topology(numRanks, configfile.topology, configfile.internode_latency, configfile.internode_bandwidth);
+
+        if   configfile.topology == "SC_SHARED":
+            self.topology = TopSharedSingleChannel(numRanks, configfile.topology, configfile.internode_latency, configfile.internode_bandwidth, configfile.intranode_latency, configfile.intranode_bandwidth);
+        elif configfile.topology == "KAHUNA":
+            self.topology = TopKahuna(numRanks, configfile.topology, configfile.internode_latency, configfile.internode_bandwidth, configfile.intranode_latency, configfile.intranode_bandwidth);
+        elif configfile.topology == "SC_CS":
+            self.topology = TopCircuitSwitchedSingleChannel(numRanks, configfile.topology, configfile.internode_latency, configfile.internode_bandwidth, configfile.intranode_latency, configfile.intranode_bandwidth);
+        elif configfile.topology == "FM_CS":
+            self.topology = TopCircuitSwitchedFreeMemory(numRanks, configfile.topology, configfile.internode_latency, configfile.internode_bandwidth, configfile.intranode_latency, configfile.intranode_bandwidth);
+        else:
+            print( bcolors.FAIL + "ERROR: Unknown topology " + configfile.topology + bcolors.ENDC);
+            sys.exit(1);
+        
         
         # General SendRecv/Match queue
         self.sendQ: list[SendRecv];
@@ -165,7 +181,7 @@ class MessageQueue:
                 partner = partner_queue.pop(i);
                 assert sendrecv.tag == partner.tag;
 
-                
+                '''
                 if partner.rank == sendrecv.rank:
                     latency = 0;
                 else:
@@ -181,14 +197,15 @@ class MessageQueue:
                     #    partner.baseCycle = partner.baseCycle + latency;
                     sendrecv.baseCycle = sendrecv.baseCycle + latency;
                     partner.baseCycle = partner.baseCycle + latency;
+                '''
 
-                    # Set the baseCycle (the highest between them)
+                # Set the baseCycle (the highest between them)
                 if sendrecv.baseCycle > partner.baseCycle:
                     baseCycle = sendrecv.baseCycle;
                 else:
                     baseCycle = partner.baseCycle;
 
-
+                latency = 0;
                 # Calculate endCycle
                 # SEND size must be less or equal to RECV size
                 if sendrecv.kind == MPIC_SEND:
@@ -196,15 +213,21 @@ class MessageQueue:
                     #endCycle = baseCycle + SimpleCommunicationCalculus(sendrecv.size);
                     if sendrecv.rank == sendrecv.partner:
                         endCycle = baseCycle + self.topology.SimpleCommunicationCalculusIntranode(sendrecv.size); # inTRA
+                        latency = self.topology.intraLatency;
                     else:
                         endCycle = baseCycle + self.topology.SimpleCommunicationCalculusInternode(sendrecv.size); # inTER
+                        latency = self.topology.interLatency;
                 else:
                     assert sendrecv.size >= partner.size;
                     #endCycle = baseCycle + SimpleCommunicationCalculus(partner.size);
                     if sendrecv.rank == sendrecv.partner:
                         endCycle = baseCycle + self.topology.SimpleCommunicationCalculusIntranode(partner.size); # inTRA
+                        latency = self.topology.intraLatency;
                     else:
                         endCycle = baseCycle + self.topology.SimpleCommunicationCalculusInternode(partner.size); # inTER
+                        latency = self.topology.interLatency;
+
+                baseCycle = baseCycle + latency; # We consider the latency to be a 
 
                 # Create the match and put it on the Matching Queue
                 #print("Match " + str())

@@ -1,4 +1,3 @@
-import typing
 from Rank import *
 from Topology import *
 

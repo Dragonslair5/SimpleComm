@@ -29,6 +29,13 @@ class SimpleCommConfiguration:
             self.computation = True;
         else:
             self.computation = False;
+        self.show_progress : bool
+        self.show_progress = config["TOPOLOGY"].get("show_progress", "True");
+        if self.show_progress == "True":
+            self.show_progress = True;
+        else:
+            self.show_progress = False;
+
         self.processing_speed = config["TOPOLOGY"].getint("processing_speed", "1")
         
 
@@ -151,8 +158,10 @@ class MQ_Match:
 
     def includeTransmittedData(self, length, bw_factor, data_size):
         self.transmitted_data.append([length, bw_factor, data_size]);
+        print(str(data_size) + " / " + str(self.size + 16))
         self.data_sent = self.data_sent + data_size;
-        assert round(self.data_sent) <= (self.size+16), str(self.data_sent) + " > " + str(self.size + 16)
+        #print("<" + str(self.id) + "> " + str(self.data_sent) + "/" +str(self.size+16))
+        assert round(self.data_sent) <= (self.size+16), str(round(self.data_sent)) + " > " + str(self.size + 16)
 
 
     def checkCorrectness(self):

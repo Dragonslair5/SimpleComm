@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-
+import typing
 
 def printColors():
     print("\\033[XXm")
