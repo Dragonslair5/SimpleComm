@@ -160,7 +160,7 @@ class MQ_Match:
     def includeTransmittedData(self, length, bw_factor, data_size):
         self.transmitted_data.append([length, bw_factor, data_size]);
         #print(str(data_size) + " / " + str(self.size + 16))
-        self.data_sent = self.data_sent + data_size;
+        self.data_sent = self.data_sent + trunc(data_size);
         #print("<" + str(self.id) + "> " + str(self.data_sent) + "/" +str(self.size+16))   
         #print(self.transmitted_data)
         #print(self)
