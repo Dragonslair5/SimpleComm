@@ -227,7 +227,7 @@ class MessageQueue:
                         endCycle = baseCycle + self.topology.SimpleCommunicationCalculusInternode(partner.size); # inTER
                         latency = self.topology.interLatency;
 
-                baseCycle = baseCycle + latency; # We consider the latency to be a 
+                baseCycle = baseCycle + latency; # We consider the latency to be a delay on the start of the communication
 
                 # Create the match and put it on the Matching Queue
                 #print("Match " + str())

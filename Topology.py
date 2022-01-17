@@ -76,3 +76,40 @@ class Topology(ABC):
         return valid_matchesQ, invalid_matchesQ;
 
 
+    #@DeprecationWarning
+    def findTheEarliestRequestIndex(self, matchQ, currentPosition) -> int:
+        
+        index_earliest_request = None;
+        lowest_baseCycle = None;
+        # Find a valid request for current position
+        for i in range(0, len(matchQ)):
+            thisMatch : MQ_Match = matchQ[i];
+            if (
+                (    
+                    (thisMatch.positionS == currentPosition[thisMatch.rankS] or thisMatch.positionS < 0) and 
+                    (thisMatch.positionR == currentPosition[thisMatch.rankR] or thisMatch.positionR < 0)
+                ) or
+                (thisMatch.tag < 0)
+               ):
+                index_earliest_request = i;
+                lowest_baseCycle = thisMatch.baseCycle;
+                break;
+
+        assert index_earliest_request != None, "No valid Match was found"
+
+        # Find the earliest among the valid ones
+        for mi in range(0, len(matchQ)):
+            thisMatch : MQ_Match = matchQ[i];
+            if (thisMatch.baseCycle < lowest_baseCycle and 
+                 (
+                    (    
+                        (thisMatch.positionS == currentPosition[thisMatch.rankS] or thisMatch.positionS < 0) and 
+                        (thisMatch.positionR == currentPosition[thisMatch.rankR] or thisMatch.positionR < 0)
+                    ) or
+                    (thisMatch.tag < 0)
+                 )
+               ):
+                index_earliest_request = mi;
+                lowest_baseCycle = matchQ[mi].baseCycle;
+
+        return index_earliest_request;

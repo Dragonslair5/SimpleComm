@@ -2,6 +2,7 @@ import configparser
 from os.path import exists
 import sys
 from tp_utils import *
+from math import *
 
 class SimpleCommConfiguration:
     def __init__(self, configfile: str) -> None:
@@ -158,10 +159,14 @@ class MQ_Match:
 
     def includeTransmittedData(self, length, bw_factor, data_size):
         self.transmitted_data.append([length, bw_factor, data_size]);
-        print(str(data_size) + " / " + str(self.size + 16))
+        #print(str(data_size) + " / " + str(self.size + 16))
         self.data_sent = self.data_sent + data_size;
-        #print("<" + str(self.id) + "> " + str(self.data_sent) + "/" +str(self.size+16))
-        assert round(self.data_sent) <= (self.size+16), str(round(self.data_sent)) + " > " + str(self.size + 16)
+        #print("<" + str(self.id) + "> " + str(self.data_sent) + "/" +str(self.size+16))   
+        #print(self.transmitted_data)
+        #print(self)
+        #print("Truncated: " + str(trunc(self.data_sent)) + "  Raw: " + str(self.data_sent))
+        assert trunc(self.data_sent) <= (self.size+16), str(trunc(self.data_sent)) + " > " + str(self.size + 16)
+        #assert self.data_sent <= (self.size+16), str(self.data_sent) + " > " + str(self.size + 16)
 
 
     def checkCorrectness(self):
