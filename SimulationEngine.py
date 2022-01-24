@@ -6,10 +6,21 @@ from MessageQueue import *
 
 
 
+class SimulationOutput:
+
+    def __init__(self):
+        self.endTime = 0;
+        self.averageMessageSize = 0;
+        self.minimumMessageSize = 0;
+        self.largestMessageSize = 0;
+        self.numberOfMessages = 0;
+
+
 
 class SimpleCommEngine:
 
     def __init__(self, nRanks, configfile: str,  verbose = True):
+        self.list_ranks : list[Rank]
         self.list_ranks = []
         self.saveState = [0] * nRanks;
         self.nSteps = 0;
@@ -91,20 +102,37 @@ class SimpleCommEngine:
             #print(" SR " + str(match.rankS) + " --> " + str(match.rankR))
             # ********* SEND
             if match.blocking_send:
-                #assert self.list_ranks[match.rankS].cycle < match.endCycle, str(match.rankS) + " - cycle " + str(self.list_ranks[match.rankS].cycle) + " cycle " + str(match.endCycle);
+                assert self.list_ranks[match.rankS].cycle <= match.endCycle, str(match.rankS) + " - cycle " + str(self.list_ranks[match.rankS].cycle) + " cycle " + str(match.endCycle);
+                self.list_ranks[match.rankS].includeHaltedTime(self.list_ranks[match.rankS].cycle, match.endCycle);
                 self.list_ranks[match.rankS].cycle = match.endCycle;
                 if self.MQ.blockablePendingMessage[match.rankS] == 0:
                     self.list_ranks[match.rankS].state = Rank.S_NORMAL;
             else:
                 self.list_ranks[match.rankS].include_iSendRecvConclusion(match.tag, match.endCycle);
+            
+            # Statistics
+            self.list_ranks[match.rankS].amountOfCommunications = self.list_ranks[match.rankS].amountOfCommunications + 1;
+            self.list_ranks[match.rankS].amountOfDataOnCommunication = self.list_ranks[match.rankS].amountOfDataOnCommunication + match.size;
+            if match.size > self.list_ranks[match.rankS].largestDataOnASingleCommunication:
+                self.list_ranks[match.rankS].largestDataOnASingleCommunication = match.size;
+            
+
             # ********* RECV
             if match.blocking_recv:
-                #assert self.list_ranks[match.rankR].cycle < match.endCycle, str(match.rankR) + " - cycle " + str(self.list_ranks[match.rankR].cycle) + " cycle " + str(match.endCycle);
+                assert self.list_ranks[match.rankR].cycle <= match.endCycle, str(match.rankR) + " - cycle " + str(self.list_ranks[match.rankR].cycle) + " cycle " + str(match.endCycle);
+                self.list_ranks[match.rankR].includeHaltedTime(self.list_ranks[match.rankR].cycle, match.endCycle);
                 self.list_ranks[match.rankR].cycle = match.endCycle;
                 if self.MQ.blockablePendingMessage[match.rankR] == 0:
                     self.list_ranks[match.rankR].state = Rank.S_NORMAL;
             else:
                 self.list_ranks[match.rankR].include_iSendRecvConclusion(match.tag, match.endCycle);
+            
+            # Statistics
+            self.list_ranks[match.rankR].amountOfCommunications = self.list_ranks[match.rankR].amountOfCommunications + 1;
+            self.list_ranks[match.rankR].amountOfDataOnCommunication = self.list_ranks[match.rankR].amountOfDataOnCommunication + match.size
+            if match.size > self.list_ranks[match.rankR].largestDataOnASingleCommunication:
+                self.list_ranks[match.rankR].largestDataOnASingleCommunication = match.size;
+
             #del match;
 
 
@@ -150,13 +178,21 @@ class SimpleCommEngine:
         else:
             if self.show_progress:
                 print("", end= '\r', flush=True);
+                #print(str(self.nSteps) + " | ")
                 for ri in range(len(self.list_ranks)):
+                    rank: Rank;
                     rank = self.list_ranks[ri];
                     if self.saveState[ri] != rank.cycle:
                         print(bcolors.OKCYAN, end='');
+                    if rank.state == Rank.S_WAITING:
+                        print(bcolors.FAIL, end='');
                     print(str(rank.index) + "/" + str(len(rank.trace)) + "--", end='')
-                    print("{: <15.1f}".format( float(rank.index)/float(len(rank.trace)) * 100 ), end='');
+                    print("{: <4.1f}".format( float(rank.index)/float(len(rank.trace)) * 100 ), end='');
+                    #print("Sonic", end='')
+                    print(" {:15s}".format( rank.current_operation.split("-")[0] ), end='');
+                    #print(rank.current_operation , end='');
                     print(bcolors.ENDC, end='');
+                    self.saveState[ri] = rank.cycle;
                 if self.ended:
                     print("", end= '\r', flush=True); # Go back to the start of the line
                     sys.stdout.write("\x1b[2K") # Erase the line
@@ -170,7 +206,23 @@ class SimpleCommEngine:
                 for ri in range(1, len(self.list_ranks)):
                     if self.list_ranks[ri].cycle > biggestCycle:
                         biggestCycle =  self.list_ranks[ri].cycle;
-                print(biggestCycle);
+                #print(biggestCycle);
+                print("biggest:"+str(biggestCycle))
+                for ri in range(0, len(self.list_ranks)):
+
+                    endTime = self.list_ranks[ri].cycle;
+                    haltedTime = self.list_ranks[ri].timeHaltedDueCommunication;
+                    numCommunications = self.list_ranks[ri].amountOfCommunications;
+                    averageCommunicationSize = self.list_ranks[ri].amountOfDataOnCommunication / numCommunications;
+                    largestDataOnSingleCommunication = self.list_ranks[ri].largestDataOnASingleCommunication;
+
+                    print("rank"+str(ri), end=',')
+                    print(str(endTime), end=',')
+                    print(str(haltedTime), end=',')
+                    print(str(numCommunications), end=',')
+                    print(str(averageCommunicationSize), end=',')
+                    print(str(largestDataOnSingleCommunication))
+                    
         #elif self.ended:
         #    biggestCycle = self.list_ranks[0].cycle;
         #    for ri in range(1, len(self.list_ranks)):

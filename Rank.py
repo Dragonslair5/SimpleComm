@@ -46,6 +46,19 @@ class Rank:
 
         #print(self.trace)
 
+
+        # Statistics data
+        self.timeHaltedDueCommunication = 0;
+        self.amountOfDataOnCommunication = 0;
+        self.amountOfCommunications = 0;
+        self.largestDataOnASingleCommunication = 0;
+
+    def includeHaltedTime(self, begin, end):
+        assert end >= begin, "end must be greater than begin"
+        time = end - begin
+        self.timeHaltedDueCommunication = self.timeHaltedDueCommunication + time;
+
+
     #def changeState(self, newState):
     #    self.state = newState;
 
@@ -79,6 +92,7 @@ class Rank:
                 for i in range(lenght):
                     #print(str(i) + " - isendrecv end cycle: " + str(self.iSendRecvQ[0].endCycle))
                     if self.cycle < self.iSendRecvQ[0].endCycle:
+                        self.includeHaltedTime(self.cycle, self.iSendRecvQ[0].endCycle);
                         self.cycle = self.iSendRecvQ[0].endCycle;
                     del self.iSendRecvQ[0];
                 return True;
@@ -87,6 +101,7 @@ class Rank:
                 if tag == self.iSendRecvQ[i].tag:
                     #print(bcolors.WARNING + " Rank "+ str(self.rank) + " found tag " + str(tag) + bcolors.ENDC);
                     if self.cycle < self.iSendRecvQ[i].endCycle:
+                        self.includeHaltedTime(self.cycle, self.iSendRecvQ[i].endCycle)
                         self.cycle = self.iSendRecvQ[i].endCycle;
                     del self.iSendRecvQ[i];
                     self.waitall = self.waitall - 1;
@@ -233,6 +248,7 @@ class Rank:
         if(operation == "waitall"):
             self.current_operation = "waitall-" + str(self.index);
             amount = int(workload[2]);
+            self.waitingTag = None;
             self.waitall = self.waitall - amount;
             self.state = Rank.S_WAITING;
             return None;
