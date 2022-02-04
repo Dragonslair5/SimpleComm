@@ -1,5 +1,5 @@
 from Topology import *
-
+from CollectiveOperationsQueue import *
 
 
 
@@ -125,7 +125,7 @@ class TopKahuna(Topology):
         return None;
 
 
-    def processContention(self, matchQ, col_matchQ, currentPosition)-> MQ_Match:
+    def processContention(self, matchQ: typing.List[MQ_Match], col_matchQ: typing.List[CollectiveOperationQueueEntry], currentPosition)-> MQ_Match:
         
         valid_matchesQ : list[MQ_Match]; # For valid matches
         valid_matchesQ = []

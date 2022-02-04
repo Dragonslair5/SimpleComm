@@ -30,12 +30,13 @@ class SimpleCommConfiguration:
             self.computation = True;
         else:
             self.computation = False;
-        self.show_progress : bool
-        self.show_progress = config["TOPOLOGY"].get("show_progress", "True");
-        if self.show_progress == "True":
-            self.show_progress = True;
-        else:
-            self.show_progress = False;
+        #self.show_progress : bool
+        #self.show_progress = config["TOPOLOGY"].get("show_progress", "True");
+        #if self.show_progress == "True":
+        #    self.show_progress = True;
+        #else:
+        #    self.show_progress = False;
+        self.show_progress_level = config["TOPOLOGY"].get("show_progress_level", "blank");
 
         self.processing_speed = config["TOPOLOGY"].getint("processing_speed", "1")
         

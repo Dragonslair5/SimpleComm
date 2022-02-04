@@ -3,8 +3,9 @@ from Topology import *
 
 class TopCircuitSwitchedFreeMemory(Topology):
 
-    def processContention(self, matchQ, col_matchQ, currentPosition) -> MQ_Match:
+    def processContention_old(self, matchQ, col_matchQ, currentPosition) -> MQ_Match:
 
+        #print("Processing Contention...", end='')
         # We separate the several matches
         valid_matchesQ : list[MQ_Match]; # For valid matches
         valid_matchesQ = []
@@ -41,6 +42,7 @@ class TopCircuitSwitchedFreeMemory(Topology):
         # We might be on a deadlock if there is no valid match on this point
         assert len(valid_matchesQ) > 0, "No valid Match was found"
 
+        #print(" " + str(len(valid_matchesQ)) + " / " + str(len(valid_matchesQ) + len(invalid_matchesQ)))
 
         # find lowest cycle
         lowest_cycle = valid_matchesQ[0].baseCycle;
@@ -94,4 +96,48 @@ class TopCircuitSwitchedFreeMemory(Topology):
                     valid_matchesQ[j].original_baseCycle = valid_matchesQ[j].original_baseCycle + inc;
                     valid_matchesQ[j].endCycle = valid_matchesQ[j].endCycle + inc;
 
+        #print("Processing contention complete.")
         return readyMatch;
+
+
+
+    def processContention(self, matchQ, col_matchQ, currentPosition) -> MQ_Match:
+
+        # We separate the several matches
+        valid_matchesQ : list[MQ_Match]; # For valid matches
+        valid_matchesQ = []
+        invalid_matchesQ : list[MQ_Match]; # For invalid matches
+        invalid_matchesQ = []
+
+        ###[1] Find the valid matches
+        # Valid matches are the ones that:
+        #       1) match their position on the "currentPosition" tracker of the messagequeue 
+        #       OR
+        #       2) the ones that are untrackable (negative tag)
+        # We separate the matches on two arrays, onde for the valid ones (valid_matchesQ)
+        # and another for the invalid ondes (invalid_matchesQ)
+        for i in range(0, len(matchQ)):
+            thisMatch : MQ_Match = matchQ[i];
+            
+            if (
+                (    
+                    (thisMatch.positionS == currentPosition[thisMatch.rankS] or thisMatch.positionS < 0) and 
+                    (thisMatch.positionR == currentPosition[thisMatch.rankR] or thisMatch.positionR < 0)
+                ) or
+                (thisMatch.tag < 0)
+            ):
+                valid_matchesQ.append(thisMatch)
+            else:
+                invalid_matchesQ.append(thisMatch);
+        
+        # Valid among Collectives
+        for i in range(0, len(col_matchQ)):
+            tmp_valid, tmp_invalid = col_matchQ[i].getValidAndInvalidMatches();
+            valid_matchesQ = valid_matchesQ + tmp_valid;
+            invalid_matchesQ = invalid_matchesQ + tmp_invalid;
+
+        # We might be on a deadlock if there is no valid match on this point
+        assert len(valid_matchesQ) > 0, "No valid Match was found"
+
+        nFMUs = self.nRanks;
+        

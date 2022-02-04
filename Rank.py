@@ -31,6 +31,7 @@ class Rank:
     def __init__(self, rank: int, trace: list, configfile: SimpleCommConfiguration):
         self.rank = rank;
         self.trace = trace;
+        self.trace_size = len(trace)
         self.index = 0;
         self.state = Rank.S_NORMAL; # start at normal
         self.cycle = 0; # CurrentCycle

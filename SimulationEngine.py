@@ -30,7 +30,21 @@ class SimpleCommEngine:
         self.config = SimpleCommConfiguration(configfile);
         self.MQ : MessageQueue;
         self.MQ = MessageQueue(nRanks, self.config)
-        self.show_progress = self.config.show_progress;
+        #self.show_progress = self.config.show_progress;
+        self.show_progress_level = self.config.show_progress_level;
+
+        self.showResults = None;
+        if self.verbose:
+            self.showResults = self.print_verbose;
+        elif self.show_progress_level == "blank":
+            self.showResults = self.print_blank;
+        elif self.show_progress_level == "perrank":
+            self.showResults = self.print_progress_per_rank;
+        elif self.show_progress_level == "overall":
+            self.showResults = self.print_overall;
+        else:
+            print( bcolors.FAIL + "ERROR: Unknown show results option:  " + self.show_progress_level + bcolors.ENDC);
+            sys.exit(1);
 
     #def configure(self, configfile: str):
     #    self.config = SimpleCommConfiguration(configfile);
@@ -138,97 +152,135 @@ class SimpleCommEngine:
 
         return END;
 
-
-    def showResults(self):
-
-
-        if self.verbose:
-            print(bcolors.OKGREEN + "Result - step " + str(self.nSteps) + bcolors.OKPURPLE + self.MQ.op_message + bcolors.ENDC)
-            for ri in range(len(self.list_ranks)):
-                rank = self.list_ranks[ri];
-                if self.saveState[ri] != rank.cycle:
-                    print(bcolors.OKCYAN, end='');
-                print("{: <15}".format(rank.getCurrentStateName()), end='');
-                print(bcolors.ENDC, end='');
-            print("");
-            for ri in range(len(self.list_ranks)):
-                rank = self.list_ranks[ri];
-                if self.saveState[ri] != rank.cycle:
-                    print(bcolors.OKCYAN, end='');
-                print("{: <15}".format(str(self.MQ.currentPosition[ri])), end='');
-                print(bcolors.ENDC, end='');
-            print("");
-            for ri in range(len(self.list_ranks)):
-                rank = self.list_ranks[ri];
-                if self.saveState[ri] != rank.cycle:
-                    print(bcolors.OKCYAN, end='');
-                print("{: <15}".format(rank.current_operation), end='');
-                print(bcolors.ENDC, end='');
-            print("");
-            for ri in range(len(self.list_ranks)):
-                rank = self.list_ranks[ri];
-                if self.saveState[ri] != rank.cycle:
-                    self.saveState[ri] = rank.cycle;
-                    print(bcolors.OKCYAN, end='');
-                #print("{: <15e}".format(rank.cycle), end='');
-                print("{: <15.6f}".format(rank.cycle), end='');
-                print(bcolors.ENDC, end='');
-            print("");
-            input("")
-        else:
-            if self.show_progress:
-                print("", end= '\r', flush=True);
-                #print(str(self.nSteps) + " | ")
-                for ri in range(len(self.list_ranks)):
-                    rank: Rank;
-                    rank = self.list_ranks[ri];
-                    if self.saveState[ri] != rank.cycle:
-                        print(bcolors.OKCYAN, end='');
-                    if rank.state == Rank.S_WAITING:
-                        print(bcolors.FAIL, end='');
-                    print(str(rank.index) + "/" + str(len(rank.trace)) + "--", end='')
-                    print("{: <4.1f}".format( float(rank.index)/float(len(rank.trace)) * 100 ), end='');
-                    #print("Sonic", end='')
-                    print(" {:15s}".format( rank.current_operation.split("-")[0] ), end='');
-                    #print(rank.current_operation , end='');
-                    print(bcolors.ENDC, end='');
-                    self.saveState[ri] = rank.cycle;
-                if self.ended:
-                    print("", end= '\r', flush=True); # Go back to the start of the line
-                    sys.stdout.write("\x1b[2K") # Erase the line
-                    biggestCycle = self.list_ranks[0].cycle;
-                    for ri in range(1, len(self.list_ranks)):
-                        if self.list_ranks[ri].cycle > biggestCycle:
-                            biggestCycle =  self.list_ranks[ri].cycle;
-                    print(biggestCycle);
-            elif self.ended:
-                biggestCycle = self.list_ranks[0].cycle;
-                for ri in range(1, len(self.list_ranks)):
-                    if self.list_ranks[ri].cycle > biggestCycle:
-                        biggestCycle =  self.list_ranks[ri].cycle;
-                #print(biggestCycle);
-                print("biggest:"+str(biggestCycle))
-                for ri in range(0, len(self.list_ranks)):
-
-                    endTime = self.list_ranks[ri].cycle;
-                    haltedTime = self.list_ranks[ri].timeHaltedDueCommunication;
-                    numCommunications = self.list_ranks[ri].amountOfCommunications;
-                    averageCommunicationSize = self.list_ranks[ri].amountOfDataOnCommunication / numCommunications;
-                    largestDataOnSingleCommunication = self.list_ranks[ri].largestDataOnASingleCommunication;
-
-                    print("rank"+str(ri), end=',')
-                    print(str(endTime), end=',')
-                    print(str(haltedTime), end=',')
-                    print(str(numCommunications), end=',')
-                    print(str(averageCommunicationSize), end=',')
-                    print(str(largestDataOnSingleCommunication))
-                    
-        #elif self.ended:
-        #    biggestCycle = self.list_ranks[0].cycle;
-        #    for ri in range(1, len(self.list_ranks)):
-        #        if self.list_ranks[ri].cycle > biggestCycle:
-        #            biggestCycle =  self.list_ranks[ri].cycle;
-        #    print(biggestCycle);
         
 
+    def print_verbose(self):
+        print(bcolors.OKGREEN + "Result - step " + str(self.nSteps) + bcolors.OKPURPLE + self.MQ.op_message + bcolors.ENDC)
+        for ri in range(len(self.list_ranks)):
+            rank = self.list_ranks[ri];
+            if self.saveState[ri] != rank.cycle:
+                print(bcolors.OKCYAN, end='');
+            print("{: <15}".format(rank.getCurrentStateName()), end='');
+            print(bcolors.ENDC, end='');
+        print("");
+        for ri in range(len(self.list_ranks)):
+            rank = self.list_ranks[ri];
+            if self.saveState[ri] != rank.cycle:
+                print(bcolors.OKCYAN, end='');
+            print("{: <15}".format(str(self.MQ.currentPosition[ri])), end='');
+            print(bcolors.ENDC, end='');
+        print("");
+        for ri in range(len(self.list_ranks)):
+            rank = self.list_ranks[ri];
+            if self.saveState[ri] != rank.cycle:
+                print(bcolors.OKCYAN, end='');
+            print("{: <15}".format(rank.current_operation), end='');
+            print(bcolors.ENDC, end='');
+        print("");
+        for ri in range(len(self.list_ranks)):
+            rank = self.list_ranks[ri];
+            if self.saveState[ri] != rank.cycle:
+                self.saveState[ri] = rank.cycle;
+                print(bcolors.OKCYAN, end='');
+            #print("{: <15e}".format(rank.cycle), end='');
+            print("{: <15.6f}".format(rank.cycle), end='');
+            print(bcolors.ENDC, end='');
+        print("");
+        input(""); # Press key to advance
 
+
+    def print_progress_per_rank(self):
+        print("", end= '\r', flush=True);
+        #print(str(self.nSteps) + " | ")
+        for ri in range(len(self.list_ranks)):
+            rank: Rank;
+            rank = self.list_ranks[ri];
+            if self.saveState[ri] != rank.cycle:
+                print(bcolors.OKCYAN, end='');
+            if rank.state == Rank.S_WAITING:
+                print(bcolors.FAIL, end='');
+            print(str(rank.index) + "/" + str(len(rank.trace)) + "--", end='')
+            print("{: <4.1f}".format( float(rank.index)/float(len(rank.trace)) * 100 ), end='');
+            #print("Sonic", end='')
+            print(" {:15s}".format( rank.current_operation.split("-")[0] ), end='');
+            #print(rank.current_operation , end='');
+            print(bcolors.ENDC, end='');
+            self.saveState[ri] = rank.cycle;
+        if self.ended:
+            print("", end= '\r', flush=True); # Go back to the start of the line
+            sys.stdout.write("\x1b[2K") # Erase the line
+            biggestCycle = self.list_ranks[0].cycle;
+            for ri in range(1, len(self.list_ranks)):
+                if self.list_ranks[ri].cycle > biggestCycle:
+                    biggestCycle =  self.list_ranks[ri].cycle;
+            print(biggestCycle); 
+
+
+    def print_blank(self):
+        if not self.ended:
+            return None;
+        biggestCycle = self.list_ranks[0].cycle;
+        for ri in range(1, len(self.list_ranks)):
+            if self.list_ranks[ri].cycle > biggestCycle:
+                biggestCycle =  self.list_ranks[ri].cycle;
+        #print(biggestCycle);
+        print("biggest:"+str(biggestCycle))
+        print("rank,endTime,haltedTime,numCommunications,averageMessageSize,largestData")
+        for ri in range(0, len(self.list_ranks)):
+
+            endTime = self.list_ranks[ri].cycle;
+            haltedTime = self.list_ranks[ri].timeHaltedDueCommunication;
+            numCommunications = self.list_ranks[ri].amountOfCommunications;
+            averageCommunicationSize = self.list_ranks[ri].amountOfDataOnCommunication / numCommunications;
+            largestDataOnSingleCommunication = self.list_ranks[ri].largestDataOnASingleCommunication;
+
+            print("rank"+str(ri), end=',')
+            print(str(endTime), end=',')
+            print(str(haltedTime), end=',')
+            print(str(numCommunications), end=',')
+            print(str(averageCommunicationSize), end=',')
+            print(str(largestDataOnSingleCommunication))
+
+
+    def print_overall(self):
+        
+        print("", end= '\r', flush=True);
+        total: int
+        total = 0
+        partial: int
+        partial = 0
+        
+        for i in range(0, len(self.list_ranks)):
+            total = total + self.list_ranks[i].trace_size;
+            partial = partial + self.list_ranks[i].index;
+        
+        progress: float;
+        progress = (float(partial) / float(total)) * 100;
+        #print(str(progress) + "%", end='')
+        print("-- {:.2f}".format(progress) + "% --", end='')
+        
+        if not self.ended:
+            return None;
+
+        print("", end= '\r', flush=True);
+        biggestCycle = self.list_ranks[0].cycle;
+        for ri in range(1, len(self.list_ranks)):
+            if self.list_ranks[ri].cycle > biggestCycle:
+                biggestCycle =  self.list_ranks[ri].cycle;
+        #print(biggestCycle);
+        print("biggest:"+str(biggestCycle))
+        print("rank,endTime,haltedTime,numCommunications,averageMessageSize,largestData")
+        for ri in range(0, len(self.list_ranks)):
+
+            endTime = self.list_ranks[ri].cycle;
+            haltedTime = self.list_ranks[ri].timeHaltedDueCommunication;
+            numCommunications = self.list_ranks[ri].amountOfCommunications;
+            averageCommunicationSize = self.list_ranks[ri].amountOfDataOnCommunication / numCommunications;
+            largestDataOnSingleCommunication = self.list_ranks[ri].largestDataOnASingleCommunication;
+
+            print("rank"+str(ri), end=',')
+            print(str(endTime), end=',')
+            print(str(haltedTime), end=',')
+            print(str(numCommunications), end=',')
+            print(str(averageCommunicationSize), end=',')
+            print(str(largestDataOnSingleCommunication))
