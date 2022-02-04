@@ -21,7 +21,8 @@ class SimpleCommConfiguration:
         self.intranode_bandwidth = float(config["TOPOLOGY"].get("intranode_bandwidth", "10"));
         self.intranode_latency = float(config["TOPOLOGY"].get("intranode_latency", "10"));
         
-        
+        self.number_of_FMUs = int(config["TOPOLOGY"].get("number_of_fmus", "10"))
+
         # NOTE There might be a better way to grab a boolean
         self.computation : bool
         self.computation = config["TOPOLOGY"].get("computation", "True");
@@ -121,8 +122,16 @@ class MQ_Match:
     def __init__(self, id, rankS, rankR, size, baseCycle, endCycle, tag = None, blocking_send = True, blocking_recv = True, send_origin = "", recv_origin = "", positionS = 0, positionR = 0, latency = 0, col_id = 0):
         self.rankS = rankS;
         self.rankR = rankR;
+
         self.size = size;
         self.baseCycle = baseCycle;
+
+        # Individual timings for SEND/RECV
+        self.send_baseCycle = 10; # >= baseCycle
+        self.send_endCycle = 0; # <= endCycle
+        self.recv_baseCycle = 10; # >= baseCycle
+        self.recv_endCycle = 0; # <= endCycle
+
         self.endCycle = endCycle;
         self.tag = tag;
         self.id = id;
@@ -147,9 +156,6 @@ class MQ_Match:
         self.positionS = positionS; # Ordering
         self.positionR = positionR; # Ordering
         
-        # Miscelaneous
-        self.removelat = True;
-        self.fused = False;
 
     def getUpperCycle(self) -> float:
         assert self.solvedCycle <= self.endCycle, "solvedCycle cannot be higher than endCycle";

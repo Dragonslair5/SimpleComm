@@ -6,13 +6,14 @@ from abc import ABC, abstractmethod
 
 class Topology(ABC):
 
-    def __init__(self, nRanks, topology, interLatency, interBandwidth, intraLatency, intraBandwidth):
+    #def __init__(self, nRanks, topology, interLatency, interBandwidth, intraLatency, intraBandwidth):
+    def __init__(self, nRanks, configfile: SimpleCommConfiguration):
         self.nRanks = nRanks;
-        self.topology = topology;
-        self.interLatency = interLatency;
-        self.interBandwidth = interBandwidth;
-        self.intraLatency = intraLatency;
-        self.intraBandwidth = intraBandwidth;
+        self.topology = configfile.topology;
+        self.interLatency = configfile.internode_latency;
+        self.interBandwidth = configfile.internode_bandwidth;
+        self.intraLatency = configfile.intranode_latency;
+        self.intraBandwidth = configfile.intranode_bandwidth;
 
     def SimpleCommunicationCalculusInternode(self, workload):
         workload = int(workload) + 16 # 16 Bytes as MPI overhead (based on SimGrid)

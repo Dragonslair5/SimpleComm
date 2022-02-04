@@ -3,6 +3,13 @@ from Topology import *
 
 class TopCircuitSwitchedFreeMemory(Topology):
 
+    def __init__(self, nRanks, configfile: SimpleCommConfiguration):
+        super(TopCircuitSwitchedFreeMemory, self).__init__(nRanks, configfile);
+        self.nFMUs = configfile.number_of_FMUs;
+        assert self.nFMUs > 0, "Number of Free Memory Units needs to be at least 1 when using FMUs topology"
+
+
+
     def processContention_old(self, matchQ, col_matchQ, currentPosition) -> MQ_Match:
 
         #print("Processing Contention...", end='')
@@ -139,5 +146,66 @@ class TopCircuitSwitchedFreeMemory(Topology):
         # We might be on a deadlock if there is no valid match on this point
         assert len(valid_matchesQ) > 0, "No valid Match was found"
 
-        nFMUs = self.nRanks;
+
+        # find lowest cycle
+        lowest_cycle = valid_matchesQ[0].baseCycle;
+        li = 0
+        for i in range(0, len(valid_matchesQ)):
+            if valid_matchesQ[i].baseCycle < lowest_cycle:
+                lowest_cycle = valid_matchesQ[i].baseCycle;
+                li = i
+
+
+        # Grab the ready match from the matches queue (matchQ) or collectives matches queue (col_matchQ)
+        readyMatch = None;
+        for j in range(0, len(matchQ)):
+            if valid_matchesQ[li].id == matchQ[j].id:
+               readyMatch = matchQ.pop(j)
+               break;
+        if readyMatch is None:
+            for j in range(0, len(col_matchQ)):
+                readyMatch = col_matchQ[j].getMatchByID(valid_matchesQ[li].id);
+                if readyMatch is not None:
+                    break;
+        # If readyMatch is None, it does not exist... what happened?        
+        assert readyMatch is not None, "ready match is not presented on matches queues"
+
+
+        for j in range(0, len(invalid_matchesQ)):
+            if (
+                               (readyMatch.rankS == invalid_matchesQ[j].rankS) or
+                               (readyMatch.rankS == invalid_matchesQ[j].rankR) or
+                               (readyMatch.rankR == invalid_matchesQ[j].rankS) or
+                               (readyMatch.rankR == invalid_matchesQ[j].rankR) or
+                               (readyMatch.rankR % self.nFMUs == invalid_matchesQ[j].rankR % self.nFMUs)
+            ):
+                minToStart = readyMatch.endCycle + invalid_matchesQ[j].latency;
+                inc = minToStart - invalid_matchesQ[j].baseCycle;
+                
+                if inc >= 0:
+                    invalid_matchesQ[j].baseCycle = invalid_matchesQ[j].baseCycle + inc;
+                    invalid_matchesQ[j].original_baseCycle = invalid_matchesQ[j].original_baseCycle + inc;
+                    invalid_matchesQ[j].endCycle = invalid_matchesQ[j].endCycle + inc;
+
+        for j in range(0, len(valid_matchesQ)):
+            if (
+                               (readyMatch.rankS == valid_matchesQ[j].rankS) or
+                               (readyMatch.rankS == valid_matchesQ[j].rankR) or
+                               (readyMatch.rankR == valid_matchesQ[j].rankS) or
+                               (readyMatch.rankR == valid_matchesQ[j].rankR) or
+                               (readyMatch.rankR % self.nFMUs == valid_matchesQ[j].rankR % self.nFMUs)
+            ):
+                minToStart = readyMatch.endCycle + valid_matchesQ[j].latency;
+                inc = minToStart - valid_matchesQ[j].baseCycle;
+                
+                if inc >= 0:
+                    valid_matchesQ[j].baseCycle = valid_matchesQ[j].baseCycle + inc;
+                    valid_matchesQ[j].original_baseCycle = valid_matchesQ[j].original_baseCycle + inc;
+                    valid_matchesQ[j].endCycle = valid_matchesQ[j].endCycle + inc;
+
+        #print("Processing contention complete.")
+        return readyMatch;
+
+
+        
         

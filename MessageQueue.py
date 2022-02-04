@@ -19,13 +19,17 @@ class MessageQueue:
         # Communication/Contention Topology
 
         if   configfile.topology == "SC_SHARED":
-            self.topology = TopSharedSingleChannel(numRanks, configfile.topology, configfile.internode_latency, configfile.internode_bandwidth, configfile.intranode_latency, configfile.intranode_bandwidth);
+            self.topology = TopSharedSingleChannel(numRanks, configfile);
+            #self.topology = TopSharedSingleChannel(numRanks, configfile.topology, configfile.internode_latency, configfile.internode_bandwidth, configfile.intranode_latency, configfile.intranode_bandwidth);
         elif configfile.topology == "KAHUNA":
-            self.topology = TopKahuna(numRanks, configfile.topology, configfile.internode_latency, configfile.internode_bandwidth, configfile.intranode_latency, configfile.intranode_bandwidth);
+            self.topology = TopKahuna(numRanks, configfile);
+            #self.topology = TopKahuna(numRanks, configfile.topology, configfile.internode_latency, configfile.internode_bandwidth, configfile.intranode_latency, configfile.intranode_bandwidth);
         elif configfile.topology == "SC_CS":
-            self.topology = TopCircuitSwitchedSingleChannel(numRanks, configfile.topology, configfile.internode_latency, configfile.internode_bandwidth, configfile.intranode_latency, configfile.intranode_bandwidth);
+            self.topology = TopCircuitSwitchedSingleChannel(numRanks, configfile);
+            #self.topology = TopCircuitSwitchedSingleChannel(numRanks, configfile.topology, configfile.internode_latency, configfile.internode_bandwidth, configfile.intranode_latency, configfile.intranode_bandwidth);
         elif configfile.topology == "FM_CS":
-            self.topology = TopCircuitSwitchedFreeMemory(numRanks, configfile.topology, configfile.internode_latency, configfile.internode_bandwidth, configfile.intranode_latency, configfile.intranode_bandwidth);
+            self.topology = TopCircuitSwitchedFreeMemory(numRanks, configfile);
+            #self.topology = TopCircuitSwitchedFreeMemory(numRanks, configfile.topology, configfile.internode_latency, configfile.internode_bandwidth, configfile.intranode_latency, configfile.intranode_bandwidth);
         else:
             print( bcolors.FAIL + "ERROR: Unknown topology " + configfile.topology + bcolors.ENDC);
             sys.exit(1);
