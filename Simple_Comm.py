@@ -23,8 +23,6 @@ def main():
     # StartUp the simulation engine
     simEngine = SimpleCommEngine(nRanks, configFile, verbose);
 
-    # Read configurations
-    #simEngine.configure(configFile)
 
     # Read up the traces
     simEngine.read_traces(nRanks, files_path);
@@ -35,9 +33,7 @@ def main():
         run = simEngine.simulate();
         simEngine.showResults();
 
-    #simEngine.showResults();
 
-    #printColors();
 
 if __name__ == "__main__":
     main()

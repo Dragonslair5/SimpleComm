@@ -127,10 +127,16 @@ class MQ_Match:
         self.baseCycle = baseCycle;
 
         # Individual timings for SEND/RECV
-        self.send_baseCycle = 10; # >= baseCycle
-        self.send_endCycle = 0; # <= endCycle
-        self.recv_baseCycle = 10; # >= baseCycle
-        self.recv_endCycle = 0; # <= endCycle
+        self.send_original_baseCycle = -1;
+        self.send_baseCycle = -1; # >= baseCycle
+        self.send_endCycle = -1; # <= endCycle
+        self.recv_original_baseCycle = -1;
+        self.recv_baseCycle = -1; # >= baseCycle
+        self.recv_endCycle = -1; # <= endCycle
+        
+        self.initialized = False;
+        self.still_solving_send = True;
+        #****
 
         self.endCycle = endCycle;
         self.tag = tag;
@@ -157,6 +163,52 @@ class MQ_Match:
         self.positionR = positionR; # Ordering
         
 
+    
+
+    def sep_initializeMatch(self, transmissionTime: float):
+        assert self.send_baseCycle >= 0, "This should have been initialized"
+        assert self.recv_baseCycle >= 0, "This should have been initialized"
+        assert self.initialized == False, "Cant initialize an already initialized match"
+        self.send_endCycle = self.send_baseCycle + transmissionTime;
+        self.recv_endCycle = self.recv_baseCycle + transmissionTime;
+        self.initialized = True;
+
+    
+    def sep_getBaseCycle(self) -> float:
+        if self.still_solving_send:
+            return self.send_baseCycle;
+        else:
+            return self.recv_baseCycle;
+
+    def sep_getEndCycle(self) -> float:
+        if self.still_solving_send:
+            return self.send_endCycle;
+        else:
+            return self.recv_endCycle;
+    
+    def sep_incrementCycle(self, increment: float):
+        if self.still_solving_send:
+            self.send_baseCycle = self.send_baseCycle + increment;
+            self.send_endCycle = self.send_endCycle + increment;
+        else:
+            self.recv_baseCycle = self.recv_baseCycle + increment;
+            self.recv_endCycle = self.recv_endCycle + increment;
+    
+    def sep_move_RECV_after_SEND(self):
+        assert self.still_solving_send == True, "Wtf?"
+        minToStart = self.send_endCycle;
+        inc = minToStart - self.recv_baseCycle;
+
+        if inc > 0:
+            self.recv_baseCycle = self.recv_baseCycle + inc;
+            self.recv_endCycle = self.recv_endCycle + inc;
+        self.still_solving_send = False;
+        
+
+
+
+
+    
     def getUpperCycle(self) -> float:
         assert self.solvedCycle <= self.endCycle, "solvedCycle cannot be higher than endCycle";
         if self.solvedCycle != -1:
@@ -193,10 +245,14 @@ class MQ_Match:
 
         print("ID: " + str(self.id) + " size: " + str(self.size+16) + " sent: " + str(round(self.data_sent)) + " sending: " + str(round(sending)) + " willsend: " + str(round(willsend)) + " data: " + str(round(size)))
 
-    def __str__ (self):
+    def __strX__ (self):
 #        return "[(" + str(self.positionS) + ")S:" + str(self.rankS) + " (" + str(self.positionR) + ")R:" + str(self.rankR) + "] (base: " + str(self.baseCycle) + " solved: " + str(self.solvedCycle) + " end: " + str(self.endCycle) + ")" + " lat: " + str(self.latency) +  " ID: " + str(self.id) + " col_id: " + str(self.col_id) + " bw_factor: " + str(self.bw_factor) + " originalBaseCycle: " + str(self.original_baseCycle) +" duration: " + str(self.endCycle - self.original_baseCycle) + " size: " + str(self.size+16) + " BW: " + str((self.size+16)/(self.endCycle - self.original_baseCycle))
         data_sent = 0;
         for i in range(0, len(self.transmitted_data)):
             data_sent = data_sent + self.transmitted_data[i][2];
         return "[(" + str(self.positionS) + ")S:" + str(self.rankS) + " (" + str(self.positionR) + ")R:" + str(self.rankR) + "] (base: " + str(self.baseCycle) + " solved: " + str(self.solvedCycle) + " end: " + str(self.endCycle) + ")" + " lat: " + str(self.latency) +  " ID: " + str(self.id) + " col_id: " + str(self.col_id) + " bw_factor: " + str(self.bw_factor) + " originalBaseCycle: " + str(self.original_baseCycle) +" duration: " + str(self.endCycle - self.original_baseCycle) + " size: " + str(self.size+16) + " BW: " + str((self.size+16)/(self.endCycle - self.original_baseCycle)) + " sent: " + str(data_sent)
         #print(str(self.rankS) + " -> " + str(self.rankR))
+
+    def __str__(self):
+
+        return "S:" + str(self.rankS) + ": " + str(self.send_endCycle) + "    R:" + str(self.rankR) + ": " + str(self.recv_endCycle)

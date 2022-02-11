@@ -14,6 +14,7 @@ class Topology(ABC):
         self.interBandwidth = configfile.internode_bandwidth;
         self.intraLatency = configfile.intranode_latency;
         self.intraBandwidth = configfile.intranode_bandwidth;
+        self.independent_send_recv = False;
 
     def SimpleCommunicationCalculusInternode(self, workload):
         workload = int(workload) + 16 # 16 Bytes as MPI overhead (based on SimGrid)

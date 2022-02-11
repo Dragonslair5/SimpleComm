@@ -113,16 +113,21 @@ class SimpleCommEngine:
         match = self.MQ.processMatchQueue(self.list_ranks);
         #assert match is not None, "No match was found"
         if match is not None:
+            #print(match)
             #print(" SR " + str(match.rankS) + " --> " + str(match.rankR))
             # ********* SEND
             if match.blocking_send:
-                assert self.list_ranks[match.rankS].cycle <= match.endCycle, str(match.rankS) + " - cycle " + str(self.list_ranks[match.rankS].cycle) + " cycle " + str(match.endCycle);
-                self.list_ranks[match.rankS].includeHaltedTime(self.list_ranks[match.rankS].cycle, match.endCycle);
-                self.list_ranks[match.rankS].cycle = match.endCycle;
+                assert match.send_original_baseCycle <= match.send_endCycle
+                if not self.MQ.topology.independent_send_recv:
+                    assert self.list_ranks[match.rankS].cycle <= match.send_endCycle, "Rank:" + str(match.rankS) + ": cycle " + str(self.list_ranks[match.rankS].cycle) + " cycle " + str(match.send_endCycle);
+                
+                if match.send_endCycle > self.list_ranks[match.rankS].cycle:
+                    self.list_ranks[match.rankS].includeHaltedTime(self.list_ranks[match.rankS].cycle, match.send_endCycle);
+                    self.list_ranks[match.rankS].cycle = match.send_endCycle;
                 if self.MQ.blockablePendingMessage[match.rankS] == 0:
                     self.list_ranks[match.rankS].state = Rank.S_NORMAL;
             else:
-                self.list_ranks[match.rankS].include_iSendRecvConclusion(match.tag, match.endCycle);
+                self.list_ranks[match.rankS].include_iSendRecvConclusion(match.tag, match.send_endCycle);
             
             # Statistics
             self.list_ranks[match.rankS].amountOfCommunications = self.list_ranks[match.rankS].amountOfCommunications + 1;
@@ -133,13 +138,17 @@ class SimpleCommEngine:
 
             # ********* RECV
             if match.blocking_recv:
-                assert self.list_ranks[match.rankR].cycle <= match.endCycle, str(match.rankR) + " - cycle " + str(self.list_ranks[match.rankR].cycle) + " cycle " + str(match.endCycle);
-                self.list_ranks[match.rankR].includeHaltedTime(self.list_ranks[match.rankR].cycle, match.endCycle);
-                self.list_ranks[match.rankR].cycle = match.endCycle;
+                assert match.recv_original_baseCycle <= match.recv_endCycle
+                if not self.MQ.topology.independent_send_recv:
+                    assert self.list_ranks[match.rankR].cycle <= match.recv_endCycle, "Rank:" + str(match.rankR) + ": cycle " + str(self.list_ranks[match.rankR].cycle) + " cycle " + str(match.recv_endCycle);
+                
+                if match.recv_endCycle > self.list_ranks[match.rankR].cycle:
+                    self.list_ranks[match.rankR].includeHaltedTime(self.list_ranks[match.rankR].cycle, match.recv_endCycle);
+                    self.list_ranks[match.rankR].cycle = match.recv_endCycle;
                 if self.MQ.blockablePendingMessage[match.rankR] == 0:
                     self.list_ranks[match.rankR].state = Rank.S_NORMAL;
             else:
-                self.list_ranks[match.rankR].include_iSendRecvConclusion(match.tag, match.endCycle);
+                self.list_ranks[match.rankR].include_iSendRecvConclusion(match.tag, match.recv_endCycle);
             
             # Statistics
             self.list_ranks[match.rankR].amountOfCommunications = self.list_ranks[match.rankR].amountOfCommunications + 1;
@@ -152,7 +161,26 @@ class SimpleCommEngine:
 
         return END;
 
-        
+
+
+
+# *********************************************************
+#  ____  ____  ___ _   _ _____ ___ _   _  ____ 
+# |  _ \|  _ \|_ _| \ | |_   _|_ _| \ | |/ ___|
+# | |_) | |_) || ||  \| | | |  | ||  \| | |  _ 
+# |  __/|  _ < | || |\  | | |  | || |\  | |_| |
+# |_|   |_| \_\___|_| \_| |_| |___|_| \_|\____|
+#                                              
+#  _____ _   _ _   _  ____ _____ ___ ___  _   _ ____  
+# |  ___| | | | \ | |/ ___|_   _|_ _/ _ \| \ | / ___| 
+# | |_  | | | |  \| | |     | |  | | | | |  \| \___ \ 
+# |  _| | |_| | |\  | |___  | |  | | |_| | |\  |___) |
+# |_|    \___/|_| \_|\____| |_| |___\___/|_| \_|____/ 
+#                                                     
+# *********************************************************
+
+
+
 
     def print_verbose(self):
         print(bcolors.OKGREEN + "Result - step " + str(self.nSteps) + bcolors.OKPURPLE + self.MQ.op_message + bcolors.ENDC)

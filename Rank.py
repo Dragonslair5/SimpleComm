@@ -55,6 +55,8 @@ class Rank:
         self.largestDataOnASingleCommunication = 0;
 
     def includeHaltedTime(self, begin, end):
+        #if end < begin:
+        #    return None;
         assert end >= begin, "end must be greater than begin"
         time = end - begin
         self.timeHaltedDueCommunication = self.timeHaltedDueCommunication + time;

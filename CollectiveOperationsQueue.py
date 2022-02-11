@@ -65,20 +65,6 @@ class CollectiveOperationQueueEntry:
                 assert sendrecv.tag == partner.tag;
 
                 
-                #latency = 0;
-                #latency = 1.000000
-                #latency = 0.000008
-                #latency = 0.000001
-                #latency = 10.000000
-                #baseCycle = baseCycle + latency;
-                #if sendrecv.kind == MPIC_SEND:
-                #    sendrecv.baseCycle = sendrecv.baseCycle + latency;
-                #else:
-                #    partner.baseCycle = partner.baseCycle + latency;
-                
-                #sendrecv.baseCycle = sendrecv.baseCycle + latency;
-                #partner.baseCycle = partner.baseCycle + latency;
-                # Set the baseCycle (the highest between them)
                 if sendrecv.baseCycle > partner.baseCycle:
                     baseCycle = sendrecv.baseCycle;
                 else:
@@ -123,6 +109,28 @@ class CollectiveOperationQueueEntry:
                 
                 self.matchID = self.matchID + 1;
 
+                # Fulfilling individual information for SEND/RECV to be used by a topology that separates the occurrence of these two
+                if sendrecv.kind == MPIC_SEND:
+                    match.send_original_baseCycle = sendrecv.baseCycle;
+                    match.send_baseCycle = sendrecv.baseCycle;
+                    match.send_endCycle = -1;
+                    match.still_solving_send = True;
+
+                    match.recv_original_baseCycle = partner.baseCycle;
+                    match.recv_baseCycle = partner.baseCycle;
+                    match.recv_endCycle = -1;
+
+                else:
+                    match.send_original_baseCycle = partner.baseCycle;
+                    match.send_baseCycle = partner.baseCycle;
+                    match.send_endCycle = -1;
+                    match.still_solving_send = True;
+
+                    match.recv_original_baseCycle = sendrecv.baseCycle;
+                    match.recv_baseCycle = sendrecv.baseCycle;
+                    match.recv_endCycle = -1;
+                # ************
+
                 self.matchQ.append(match);
                 
                 return True; # Match!
@@ -131,6 +139,7 @@ class CollectiveOperationQueueEntry:
 
     def getValidAndInvalidMatches(self) -> typing.Tuple[ typing.List[MQ_Match] , typing.List[MQ_Match] ]:
         #print("Col MatchQ size: " + str(len(self.matchQ)))
+        assert len(self.matchQ) > 0, "Where are the matches?"
         valid_matches = [];
         invalid_matches = [];
         lowest_col_id = self.matchQ[0].col_id;

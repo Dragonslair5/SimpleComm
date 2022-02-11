@@ -1,4 +1,6 @@
 from CollectiveOperationsQueue import *
+from Top_FreeMemoryIndependent import TopFreeMemoryIndependent
+from Top_NoContention import *
 from Topology import *
 from Top_CircuitSwitchedFreeMemory import *
 from Top_CircuitSwitchedSingleChannel import *
@@ -20,16 +22,16 @@ class MessageQueue:
 
         if   configfile.topology == "SC_SHARED":
             self.topology = TopSharedSingleChannel(numRanks, configfile);
-            #self.topology = TopSharedSingleChannel(numRanks, configfile.topology, configfile.internode_latency, configfile.internode_bandwidth, configfile.intranode_latency, configfile.intranode_bandwidth);
         elif configfile.topology == "KAHUNA":
             self.topology = TopKahuna(numRanks, configfile);
-            #self.topology = TopKahuna(numRanks, configfile.topology, configfile.internode_latency, configfile.internode_bandwidth, configfile.intranode_latency, configfile.intranode_bandwidth);
         elif configfile.topology == "SC_CS":
             self.topology = TopCircuitSwitchedSingleChannel(numRanks, configfile);
-            #self.topology = TopCircuitSwitchedSingleChannel(numRanks, configfile.topology, configfile.internode_latency, configfile.internode_bandwidth, configfile.intranode_latency, configfile.intranode_bandwidth);
         elif configfile.topology == "FM_CS":
             self.topology = TopCircuitSwitchedFreeMemory(numRanks, configfile);
-            #self.topology = TopCircuitSwitchedFreeMemory(numRanks, configfile.topology, configfile.internode_latency, configfile.internode_bandwidth, configfile.intranode_latency, configfile.intranode_bandwidth);
+        elif configfile.topology == "FREE_MEMORY_INDEPENDENT":
+            self.topology = TopFreeMemoryIndependent(numRanks, configfile);
+        elif configfile.topology == "NO_CONTENTION":
+            self.topology = TopNoContention(numRanks, configfile);
         else:
             print( bcolors.FAIL + "ERROR: Unknown topology " + configfile.topology + bcolors.ENDC);
             sys.exit(1);
@@ -185,24 +187,6 @@ class MessageQueue:
                 partner = partner_queue.pop(i);
                 assert sendrecv.tag == partner.tag;
 
-                '''
-                if partner.rank == sendrecv.rank:
-                    latency = 0;
-                else:
-                    #latency = 0;
-                    #latency = 1.000000
-                    latency = 0.000008
-                    #latency = 0.000001
-                    #latency = 10.000000
-                    #baseCycle = baseCycle + latency;
-                    #if sendrecv.kind == MPIC_SEND:
-                    #    sendrecv.baseCycle = sendrecv.baseCycle + latency;
-                    #else:
-                    #    partner.baseCycle = partner.baseCycle + latency;
-                    sendrecv.baseCycle = sendrecv.baseCycle + latency;
-                    partner.baseCycle = partner.baseCycle + latency;
-                '''
-
                 # Set the baseCycle (the highest between them)
                 if sendrecv.baseCycle > partner.baseCycle:
                     baseCycle = sendrecv.baseCycle;
@@ -243,6 +227,26 @@ class MessageQueue:
                 
                 #print(match)
                 self.matchID = self.matchID + 1;
+
+                # Fulfilling individual information for SEND/RECV to be used by a topology that separates the occurrence of these two
+                if sendrecv.kind == MPIC_SEND:
+                    match.send_baseCycle = sendrecv.baseCycle;
+                    match.send_endCycle = -1;
+                    match.still_solving_send = True;
+
+                    match.recv_baseCycle = partner.baseCycle;
+                    match.recv_endCycle = -1;
+
+                else:
+                    match.send_baseCycle = partner.baseCycle;
+                    match.send_endCycle = -1;
+                    match.still_solving_send = True;
+
+                    match.recv_baseCycle = sendrecv.baseCycle;
+                    match.recv_endCycle = -1;
+                # ************
+
+
 
                 self.matchQ.append(match);
                 
@@ -445,6 +449,12 @@ class MessageQueue:
         receiving_message = ") [" + earliest_match.recv_origin + "] R:(";
 
         self.op_message = self.op_message + sending_message + str(earliest_match.rankS) + receiving_message + str(earliest_match.rankR) + ") size: " + str(earliest_match.size) + " Bytes" + " Ending in cycle: " + str(earliest_match.endCycle)
+
+
+        if not self.topology.independent_send_recv:
+            earliest_match.send_endCycle = earliest_match.endCycle;
+            earliest_match.recv_endCycle = earliest_match.endCycle;
+
 
         #print("earliest: ", end='')
         #print(earliest_match)
