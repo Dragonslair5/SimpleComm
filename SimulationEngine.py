@@ -8,12 +8,51 @@ from MessageQueue import *
 
 class SimulationOutput:
 
+
+
     def __init__(self):
         self.endTime = 0;
         self.averageMessageSize = 0;
         self.minimumMessageSize = 0;
         self.largestMessageSize = 0;
         self.numberOfMessages = 0;
+        
+        self.match_list: list[self.SimOutput_SendRecv]
+        self.match_list = []
+
+
+
+    def inlude_match(self, match: MQ_Match):
+        sendrecv = self.SimOutput_SendRecv(match.rankS, match.rankR, match.send_baseCycle, match.send_endCycle,
+                                            match.recv_baseCycle, match.recv_endCycle, match.size, match.send_origin);
+        self.match_list.append(sendrecv);
+
+    class SimOutput_SendRecv:
+
+        def __init__(self,
+                     rankS: int, 
+                     rankR: int, 
+                     send_baseCycle: float, 
+                     send_endCycle: float, 
+                     recv_baseCycle: float, 
+                     recv_endCycle: float, 
+                     size: int,
+                     operation_origin: str
+            ):
+            
+
+            self.rankS = rankS;
+            self.rankR = rankR;
+            self.send_baseCycle = send_baseCycle;
+            self.send_endCycle = send_endCycle;
+            self.recv_baseCycle = recv_baseCycle;
+            self.recv_endCycle = recv_endCycle;
+            self.size = size;
+            self.operation_origin = operation_origin;
+
+        def __str__(self):
+            return (str(self.rankS)+","+str(self.rankR)+","+str(self.send_baseCycle)+","+str(self.send_endCycle)+","+str(self.recv_baseCycle)+","+str(self.recv_endCycle)+","+str(self.size)+","+self.operation_origin)
+
 
 
 
@@ -45,6 +84,8 @@ class SimpleCommEngine:
         else:
             print( bcolors.FAIL + "ERROR: Unknown show results option:  " + self.show_progress_level + bcolors.ENDC);
             sys.exit(1);
+
+        self.simOutput = SimulationOutput();
 
     #def configure(self, configfile: str):
     #    self.config = SimpleCommConfiguration(configfile);
@@ -115,6 +156,10 @@ class SimpleCommEngine:
         if match is not None:
             #print(match)
             #print(" SR " + str(match.rankS) + " --> " + str(match.rankR))
+
+            # General Statistics
+            self.simOutput.inlude_match(match);
+
             # ********* SEND
             if match.blocking_send:
                 assert match.send_original_baseCycle <= match.send_endCycle
@@ -268,6 +313,10 @@ class SimpleCommEngine:
             print(str(numCommunications), end=',')
             print(str(averageCommunicationSize), end=',')
             print(str(largestDataOnSingleCommunication))
+        print("#")
+        print("rankS,rankR,SbaseCycle,SendCycle,RbaseCycle,RendCycle,size,opOrigin")
+        for i in range(len(self.simOutput.match_list)):
+            print(self.simOutput.match_list[i])
 
 
     def print_overall(self):
