@@ -1,6 +1,6 @@
 from Topology import *
 from CollectiveOperationsQueue import *
-
+from memory_profiler import profile
 
 
 class TopKahuna(Topology):
@@ -122,9 +122,20 @@ class TopKahuna(Topology):
                 valid_matchesQ[i].solvedCycle = -1;
                 valid_matchesQ[i].bw_factor = 1;
 
+            # GAMBIARRA: Should investigate why we need to do this. 
+            # Sometimes the result does not reach the endCycle, and we do not know why this happens.
+            if ((valid_matchesQ[i].baseCycle - valid_matchesQ[i].original_baseCycle)/(valid_matchesQ[i].endCycle - valid_matchesQ[i].original_baseCycle)) > 0.998:
+                        valid_matchesQ[i].baseCycle = valid_matchesQ[i].endCycle;
+
+        
+
         return None;
 
 
+    # instantiating the decorator
+    #@profile
+    # code for which memory has to
+    # be monitored
     def processContention(self, matchQ: typing.List[MQ_Match], col_matchQ: typing.List[CollectiveOperationQueueEntry], currentPosition)-> MQ_Match:
         
         valid_matchesQ : list[MQ_Match]; # For valid matches
@@ -136,6 +147,11 @@ class TopKahuna(Topology):
 
         times: int;
         times = 0;
+
+        #print("--------------------");
+        #for i in range(len(valid_matchesQ)):
+        #    print(valid_matchesQ[i]);
+        #print("--------------------");
 
         while True:
 

@@ -245,7 +245,7 @@ class MQ_Match:
 
         print("ID: " + str(self.id) + " size: " + str(self.size+16) + " sent: " + str(round(self.data_sent)) + " sending: " + str(round(sending)) + " willsend: " + str(round(willsend)) + " data: " + str(round(size)))
 
-    def __strX__ (self):
+    def __str__ (self):
 #        return "[(" + str(self.positionS) + ")S:" + str(self.rankS) + " (" + str(self.positionR) + ")R:" + str(self.rankR) + "] (base: " + str(self.baseCycle) + " solved: " + str(self.solvedCycle) + " end: " + str(self.endCycle) + ")" + " lat: " + str(self.latency) +  " ID: " + str(self.id) + " col_id: " + str(self.col_id) + " bw_factor: " + str(self.bw_factor) + " originalBaseCycle: " + str(self.original_baseCycle) +" duration: " + str(self.endCycle - self.original_baseCycle) + " size: " + str(self.size+16) + " BW: " + str((self.size+16)/(self.endCycle - self.original_baseCycle))
         data_sent = 0;
         for i in range(0, len(self.transmitted_data)):
@@ -253,6 +253,6 @@ class MQ_Match:
         return "[(" + str(self.positionS) + ")S:" + str(self.rankS) + " (" + str(self.positionR) + ")R:" + str(self.rankR) + "] (base: " + str(self.baseCycle) + " solved: " + str(self.solvedCycle) + " end: " + str(self.endCycle) + ")" + " lat: " + str(self.latency) +  " ID: " + str(self.id) + " col_id: " + str(self.col_id) + " bw_factor: " + str(self.bw_factor) + " originalBaseCycle: " + str(self.original_baseCycle) +" duration: " + str(self.endCycle - self.original_baseCycle) + " size: " + str(self.size+16) + " BW: " + str((self.size+16)/(self.endCycle - self.original_baseCycle)) + " sent: " + str(data_sent)
         #print(str(self.rankS) + " -> " + str(self.rankR))
 
-    def __str__(self):
+    def __strx__(self):
 
         return "S:" + str(self.rankS) + ": " + str(self.send_endCycle) + "    R:" + str(self.rankR) + ": " + str(self.recv_endCycle)

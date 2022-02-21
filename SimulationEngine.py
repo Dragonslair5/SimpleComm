@@ -27,6 +27,11 @@ class SimulationOutput:
                                             match.recv_baseCycle, match.recv_endCycle, match.size, match.send_origin);
         self.match_list.append(sendrecv);
 
+    def unload_Matches_on_the_screen(self):
+        while self.match_list:
+            print(self.match_list[0])
+            self.match_list.pop(0)
+
     class SimOutput_SendRecv:
 
         def __init__(self,
@@ -77,6 +82,7 @@ class SimpleCommEngine:
             self.showResults = self.print_verbose;
         elif self.show_progress_level == "blank":
             self.showResults = self.print_blank;
+            print("rankS,rankR,SbaseCycle,SendCycle,RbaseCycle,RendCycle,size,opOrigin");
         elif self.show_progress_level == "perrank":
             self.showResults = self.print_progress_per_rank;
         elif self.show_progress_level == "overall":
@@ -158,13 +164,15 @@ class SimpleCommEngine:
             #print(" SR " + str(match.rankS) + " --> " + str(match.rankR))
 
             # General Statistics
-            self.simOutput.inlude_match(match);
+            if self.show_progress_level == "blank":
+                self.simOutput.inlude_match(match);
 
             # ********* SEND
             if match.blocking_send:
                 assert match.send_original_baseCycle <= match.send_endCycle
                 if not self.MQ.topology.independent_send_recv:
-                    assert self.list_ranks[match.rankS].cycle <= match.send_endCycle, "Rank:" + str(match.rankS) + ": cycle " + str(self.list_ranks[match.rankS].cycle) + " cycle " + str(match.send_endCycle);
+                    # * 1.001 due to floating point imprecision (purely empirical value)
+                    assert self.list_ranks[match.rankS].cycle <= match.send_endCycle * 1.001, "Rank:" + str(match.rankS) + ": cycle " + str(self.list_ranks[match.rankS].cycle) + " cycle " + str(match.send_endCycle);
                 
                 if match.send_endCycle > self.list_ranks[match.rankS].cycle:
                     self.list_ranks[match.rankS].includeHaltedTime(self.list_ranks[match.rankS].cycle, match.send_endCycle);
@@ -185,7 +193,8 @@ class SimpleCommEngine:
             if match.blocking_recv:
                 assert match.recv_original_baseCycle <= match.recv_endCycle
                 if not self.MQ.topology.independent_send_recv:
-                    assert self.list_ranks[match.rankR].cycle <= match.recv_endCycle, "Rank:" + str(match.rankR) + ": cycle " + str(self.list_ranks[match.rankR].cycle) + " cycle " + str(match.recv_endCycle);
+                    # * 1.001 due to floating point imprecision (purely empirical value)
+                    assert self.list_ranks[match.rankR].cycle <= match.recv_endCycle  * 1.001, "Rank:" + str(match.rankR) + ": cycle " + str(self.list_ranks[match.rankR].cycle) + " cycle " + str(match.recv_endCycle);
                 
                 if match.recv_endCycle > self.list_ranks[match.rankR].cycle:
                     self.list_ranks[match.rankR].includeHaltedTime(self.list_ranks[match.rankR].cycle, match.recv_endCycle);
@@ -290,8 +299,13 @@ class SimpleCommEngine:
 
 
     def print_blank(self):
+        #print("rankS,rankR,SbaseCycle,SendCycle,RbaseCycle,RendCycle,size,opOrigin")
+        self.simOutput.unload_Matches_on_the_screen();
+        #for i in range(len(self.simOutput.match_list)):
+        #    print(self.simOutput.match_list[i])
         if not self.ended:
             return None;
+        print("#")
         biggestCycle = self.list_ranks[0].cycle;
         for ri in range(1, len(self.list_ranks)):
             if self.list_ranks[ri].cycle > biggestCycle:
@@ -313,10 +327,7 @@ class SimpleCommEngine:
             print(str(numCommunications), end=',')
             print(str(averageCommunicationSize), end=',')
             print(str(largestDataOnSingleCommunication))
-        print("#")
-        print("rankS,rankR,SbaseCycle,SendCycle,RbaseCycle,RendCycle,size,opOrigin")
-        for i in range(len(self.simOutput.match_list)):
-            print(self.simOutput.match_list[i])
+        
 
 
     def print_overall(self):
