@@ -1,5 +1,6 @@
 from Rank import *
 from Topology import *
+from CheckMatch import *
 
 
 
@@ -34,6 +35,17 @@ class CollectiveOperationQueueEntry:
         else:
             sendrecv.queue_position = -1;
 
+        if MQ_CheckMatch.checkMatch(sendrecv, self.sendQ, self.recvQ, self.matchQ, self.topology, self.matchID):
+            self.matchID = self.matchID + 1;
+        else:
+            if sendrecv.kind == MPIC_SEND:
+                self.sendQ.append(sendrecv)
+            elif sendrecv.kind == MPIC_RECV:
+                self.recvQ.append(sendrecv)
+            else:
+                print( bcolors.FAIL + "ERROR: Unknown SendRecv of kind" + str(sendrecv.kind) + bcolors.ENDC);
+                sys.exit(1);
+        '''
         if sendrecv.kind == MPIC_SEND:
             if not self.checkMatch(sendrecv):
                 self.sendQ.append(sendrecv)
@@ -43,8 +55,9 @@ class CollectiveOperationQueueEntry:
         else:
             print( bcolors.FAIL + "ERROR: Unknown SendRecv of kind" + str(sendrecv.kind) + bcolors.ENDC);
             sys.exit(1);
-    
-    def checkMatch(self, sendrecv: SendRecv):
+        '''
+
+    def checkMatch_OLD(self, sendrecv: SendRecv):
         # Look on recvQ or sendQ?
         if sendrecv.kind == MPIC_SEND:
             partner_queue = self.recvQ;
