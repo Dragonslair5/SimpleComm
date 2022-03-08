@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 
 
-
+# Abstract class
 class Topology(ABC):
 
     #def __init__(self, nRanks, topology, interLatency, interBandwidth, intraLatency, intraBandwidth):
@@ -15,6 +15,7 @@ class Topology(ABC):
         self.intraLatency = configfile.intranode_latency;
         self.intraBandwidth = configfile.intranode_bandwidth;
         self.independent_send_recv = False;
+        self.eager_protocol_max_size = configfile.eager_protocol_max_size;
 
     def SimpleCommunicationCalculusInternode(self, workload):
         workload = int(workload) + 16 # 16 Bytes as MPI overhead (based on SimGrid)

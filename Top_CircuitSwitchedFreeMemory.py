@@ -7,6 +7,7 @@ class TopCircuitSwitchedFreeMemory(Topology):
         super(TopCircuitSwitchedFreeMemory, self).__init__(nRanks, configfile);
         self.nFMUs = configfile.number_of_FMUs;
         assert self.nFMUs > 0, "Number of Free Memory Units needs to be at least 1 when using FMUs topology"
+        assert self.eager_protocol_max_size == 0, "Eager Protocol can not be activated with this Topology"
 
 
     def processContention(self, matchQ, col_matchQ, currentPosition) -> MQ_Match:

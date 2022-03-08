@@ -3,6 +3,12 @@ from Topology import *
 
 class TopCircuitSwitchedSingleChannel(Topology):
 
+
+    def __init__(self, nRanks, configfile: SimpleCommConfiguration):
+        super(TopCircuitSwitchedSingleChannel, self).__init__(nRanks, configfile);
+        assert self.eager_protocol_max_size == 0, "Eager Protocol can not be activated with this Topology"
+
+
     def processContention(self, matchQ, col_matchQ, currentPosition) -> MQ_Match:
         
         valid_matchesQ : list[MQ_Match]; # For valid matches

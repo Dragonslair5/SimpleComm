@@ -23,10 +23,10 @@ class SimpleCommConfiguration:
         self.intranode_latency = float(config["TOPOLOGY"].get("intranode_latency", "10"));
         
 
-        # SimGrid (65536 bytes) (64KB in short)
-        # MPICH2 Version 3.3.1 (262144 bytes) (256KB in short) (mpidi_ch3_post.h)
+        # SimGrid               (65536 bytes) (64KB in short)
+        # OpenMPI Version 4.0.5 (65536 bytes) (64KB in short) (btl_tcp_component.c)
+        # MPICH2 Version 3.3.1  (262144 bytes) (256KB in short) (mpidi_ch3_post.h)
         self.eager_protocol_max_size = int(config["TOPOLOGY"].get("eager_protocol_max_size", "0")) # 0 means to turn it off
-
 
         self.number_of_FMUs = int(config["TOPOLOGY"].get("number_of_fmus", "10"))
 

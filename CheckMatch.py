@@ -36,6 +36,9 @@ class MQ_CheckMatch:
                 partner = partner_queue.pop(i);
                 assert sendrecv.tag == partner.tag;
 
+
+                
+
                 # Set the baseCycle (the highest between them)
                 if sendrecv.baseCycle > partner.baseCycle:
                     baseCycle = sendrecv.baseCycle;
@@ -47,6 +50,11 @@ class MQ_CheckMatch:
                 # SEND size must be less or equal to RECV size
                 if sendrecv.kind == MPIC_SEND:
                     assert sendrecv.size <= partner.size;
+
+                    # Eager Protocol
+                    if sendrecv.size < topology.eager_protocol_max_size:
+                        baseCycle = sendrecv.baseCycle;
+
                     #endCycle = baseCycle + SimpleCommunicationCalculus(sendrecv.size);
                     if sendrecv.rank == sendrecv.partner:
                         endCycle = baseCycle + topology.SimpleCommunicationCalculusIntranode(sendrecv.size); # inTRA
@@ -56,6 +64,11 @@ class MQ_CheckMatch:
                         latency = topology.interLatency;
                 else:
                     assert sendrecv.size >= partner.size;
+
+                    # Eager Protocol
+                    if partner.size < topology.eager_protocol_max_size:
+                        baseCycle = partner.baseCycle;
+
                     #endCycle = baseCycle + SimpleCommunicationCalculus(partner.size);
                     if sendrecv.rank == sendrecv.partner:
                         endCycle = baseCycle + topology.SimpleCommunicationCalculusIntranode(partner.size); # inTRA

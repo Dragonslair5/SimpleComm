@@ -170,7 +170,8 @@ class SimpleCommEngine:
             # ********* SEND
             if match.blocking_send:
                 assert match.send_original_baseCycle <= match.send_endCycle
-                if not self.MQ.topology.independent_send_recv:
+                # Eager Protocol - skip this assert if Eager Protocol is used
+                if not self.MQ.topology.independent_send_recv and match.size >= self.config.eager_protocol_max_size:
                     # * 1.001 due to floating point imprecision (purely empirical value)
                     assert self.list_ranks[match.rankS].cycle <= match.send_endCycle * 1.001, "Rank:" + str(match.rankS) + ": cycle " + str(self.list_ranks[match.rankS].cycle) + " cycle " + str(match.send_endCycle);
                 

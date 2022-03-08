@@ -8,6 +8,8 @@ class TopFreeMemoryIndependent(Topology):
         self.nFMUs = configfile.number_of_FMUs;
         self.independent_send_recv = True;
         assert self.nFMUs > 0, "Number of Free Memory Units needs to be at least 1 when using FMUs topology"
+        #assert self.eager_protocol_max_size == 0, "Eager Protocol can not be activated with this Topology"
+
 
 
 
