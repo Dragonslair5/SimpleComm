@@ -313,6 +313,10 @@ class SimpleCommEngine:
                 biggestCycle =  self.list_ranks[ri].cycle;
         #print(biggestCycle);
         print("biggest:"+str(biggestCycle))
+        biggest_buffer_size = 0;
+        if isinstance(self.MQ.topology, TopFreeMemoryIndependent):
+            biggest_buffer_size = self.MQ.topology.fmu_circularBuffer.biggest_buffer_size;
+        print("biggest_buffer_size:"+str(biggest_buffer_size));
         print("rank,endTime,haltedTime,numCommunications,averageMessageSize,largestData")
         for ri in range(0, len(self.list_ranks)):
 
@@ -358,6 +362,10 @@ class SimpleCommEngine:
                 biggestCycle =  self.list_ranks[ri].cycle;
         #print(biggestCycle);
         print("biggest:"+str(biggestCycle))
+        biggest_buffer_size = 0;
+        if isinstance(self.MQ.topology, TopFreeMemoryIndependent):
+            biggest_buffer_size = self.MQ.topology.fmu_circularBuffer.biggest_buffer_size;
+        print("biggest_buffer_size:"+str(biggest_buffer_size));
         print("rank,endTime,haltedTime,numCommunications,averageMessageSize,largestData")
         for ri in range(0, len(self.list_ranks)):
 
