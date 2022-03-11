@@ -19,13 +19,14 @@ class Topology(ABC):
 
     def SimpleCommunicationCalculusInternode(self, workload):
         workload = int(workload) + 16 # 16 Bytes as MPI overhead (based on SimGrid)
-        latency=self.interLatency;
+        #latency=self.interLatency; # Treating latency elsewhere
         bandwidth=self.interBandwidth;
-        return latency + workload/bandwidth;
+        return workload/bandwidth;
+        #return latency + workload/bandwidth;
 
     def SimpleCommunicationCalculusIntranode(self, workload):
         workload = int(workload) + 16 # 16 Bytes as MPI overhead (based on SimGrid)
-        latency=self.interLatency;
+        #latency=self.interLatency; # Treating latency elsewhere
         bandwidth=self.interBandwidth;
         return 0;
         return latency + workload/bandwidth;

@@ -176,8 +176,9 @@ class MQ_Match:
         assert self.send_baseCycle >= 0, "This should have been initialized"
         assert self.recv_baseCycle >= 0, "This should have been initialized"
         assert self.initialized == False, "Cant initialize an already initialized match"
-        self.send_endCycle = self.send_baseCycle + transmissionTime;
-        self.recv_endCycle = self.recv_baseCycle + transmissionTime;
+        latency = self.latency;
+        self.send_endCycle = self.send_baseCycle + latency + transmissionTime;
+        self.recv_endCycle = self.recv_baseCycle + latency + transmissionTime;
         self.initialized = True;
 
     

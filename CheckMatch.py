@@ -77,7 +77,9 @@ class MQ_CheckMatch:
                         endCycle = baseCycle + topology.SimpleCommunicationCalculusInternode(partner.size); # inTER
                         latency = topology.interLatency;
 
-                baseCycle = baseCycle + latency; # We consider the latency to be a delay on the start of the communication
+                # We consider the latency to be a delay on the start of the communication
+                baseCycle = baseCycle + latency; 
+                endCycle = endCycle + latency; 
 
                 # Create the match and put it on the Matching Queue
                 #print("Match " + str())

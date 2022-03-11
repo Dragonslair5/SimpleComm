@@ -167,7 +167,7 @@ class TopFreeMemoryIndependent(Topology):
                                (rank_in_usage == partner_rank) or
                                (readyMatch.rankR % self.nFMUs == valid_matchesQ[j].rankR % self.nFMUs)
                 ):
-                    minToStart = readyMatch.sep_getEndCycle();
+                    minToStart = readyMatch.sep_getEndCycle() + valid_matchesQ[j].latency;
                     inc = minToStart - valid_matchesQ[j].sep_getBaseCycle();
 
                     if inc > 0:
@@ -186,7 +186,7 @@ class TopFreeMemoryIndependent(Topology):
                                (rank_in_usage == partner_rank) or
                                (readyMatch.rankR % self.nFMUs == invalid_matchesQ[j].rankR % self.nFMUs)
                 ):
-                    minToStart = readyMatch.sep_getEndCycle();
+                    minToStart = readyMatch.sep_getEndCycle() + invalid_matchesQ[j].latency;
                     inc = minToStart - invalid_matchesQ[j].sep_getBaseCycle();
 
                     if inc > 0:

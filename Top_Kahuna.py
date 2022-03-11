@@ -1,6 +1,5 @@
 from Topology import *
 from CollectiveOperationsQueue import *
-from memory_profiler import profile
 
 
 class TopKahuna(Topology):
@@ -132,10 +131,6 @@ class TopKahuna(Topology):
         return None;
 
 
-    # instantiating the decorator
-    #@profile
-    # code for which memory has to
-    # be monitored
     def processContention(self, matchQ: typing.List[MQ_Match], col_matchQ: typing.List[CollectiveOperationQueueEntry], currentPosition)-> MQ_Match:
         
         valid_matchesQ : list[MQ_Match]; # For valid matches
