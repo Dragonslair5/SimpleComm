@@ -15,38 +15,36 @@ class SimpleCommConfiguration:
 
         config = configparser.ConfigParser();
         config.read(configfile);
-        self.topology = config["TOPOLOGY"].get("topology", "SC_CC");
-        
+
+        # NOTE There might be a better way to grab a boolean
+        self.computation : bool
+        self.computation = config["Simulation"].get("computation", "True");
+        if self.computation == "True":
+            self.computation = True;
+        else:
+            self.computation = False;
+        self.show_progress_level = config["Simulation"].get("show_progress_level", "blank");
+
+
+        self.topology = config["TOPOLOGY"].get("topology", "KAHUNA");
+
         self.internode_bandwidth = float(config["TOPOLOGY"].get("internode_bandwidth", "10"));
         self.internode_latency = float(config["TOPOLOGY"].get("internode_latency", "10"));
         self.intranode_bandwidth = float(config["TOPOLOGY"].get("intranode_bandwidth", "10"));
         self.intranode_latency = float(config["TOPOLOGY"].get("intranode_latency", "10"));
         
+        self.fmu_bandwidth = float(config["TOPOLOGY"].get("fmu_bandwidth", "10"));
+        self.fmu_latency = float(config["TOPOLOGY"].get("fmu_latency", "10"));
+        self.fmu_pivot_value = float(config["TOPOLOGY"].get("fmu_pivot_value", "10"));
 
         # SimGrid               (65536 bytes) (64KB in short)
         # OpenMPI Version 4.0.5 (65536 bytes) (64KB in short) (btl_tcp_component.c)
         # MPICH2 Version 3.3.1  (262144 bytes) (256KB in short) (mpidi_ch3_post.h)
-        self.eager_protocol_max_size = int(config["TOPOLOGY"].get("eager_protocol_max_size", "0")) # 0 means to turn it off
+        self.eager_protocol_max_size = int(config["TOPOLOGY"].get("eager_protocol_max_size", "0")); # 0 means to turn it off
 
-        self.number_of_FMUs = int(config["TOPOLOGY"].get("number_of_fmus", "10"))
+        self.number_of_FMUs = int(config["TOPOLOGY"].get("number_of_fmus", "10"));
 
-        # NOTE There might be a better way to grab a boolean
-        self.computation : bool
-        self.computation = config["TOPOLOGY"].get("computation", "True");
-        #print(self.computation)
-        if self.computation == "True":
-            self.computation = True;
-        else:
-            self.computation = False;
-        #self.show_progress : bool
-        #self.show_progress = config["TOPOLOGY"].get("show_progress", "True");
-        #if self.show_progress == "True":
-        #    self.show_progress = True;
-        #else:
-        #    self.show_progress = False;
-        self.show_progress_level = config["TOPOLOGY"].get("show_progress_level", "blank");
-
-        self.processing_speed = config["TOPOLOGY"].getint("processing_speed", "1")
+        self.processing_speed = config["TOPOLOGY"].getint("processing_speed", "1");
         
 
 
@@ -126,7 +124,7 @@ actions = ["init",
 
 
 class MQ_Match:
-    def __init__(self, id, rankS, rankR, size, baseCycle, endCycle, tag = None, blocking_send = True, blocking_recv = True, send_origin = "", recv_origin = "", positionS = 0, positionR = 0, latency = 0, col_id = 0):
+    def __init__(self, id, rankS, rankR, size, baseCycle, endCycle, tag = None, blocking_send = True, blocking_recv = True, send_origin = "", recv_origin = "", positionS = 0, positionR = 0, bandwidth = 1,latency = 0, col_id = 0):
         self.rankS = rankS;
         self.rankR = rankR;
 
@@ -151,6 +149,7 @@ class MQ_Match:
 
         self.solvedCycle = -1; # This demarks a portion of the connection that has been shared (for SHARED channel execution) [-1 for unused]
         self.bw_factor = 1; # This is the factor of the sharing portion demarked by solvedCycle (for SHARED channel execution)
+        self.bw = bandwidth;
         self.latency = latency;
         #self.incLatency = True
         self.col_id = col_id;
@@ -235,7 +234,7 @@ class MQ_Match:
         assert trunc(self.data_sent) <= (self.size+16), str(trunc(self.data_sent)) + " > " + str(self.size + 16)
         #assert self.data_sent <= (self.size+16), str(self.data_sent) + " > " + str(self.size + 16)
 
-
+    @DeprecationWarning
     def checkCorrectness(self):
         size = 0
         sending = 0;

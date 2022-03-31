@@ -9,6 +9,7 @@ class Topology(ABC):
     #def __init__(self, nRanks, topology, interLatency, interBandwidth, intraLatency, intraBandwidth):
     def __init__(self, nRanks, configfile: SimpleCommConfiguration):
         self.nRanks = nRanks;
+        self.cores_per_node = 1; # TODO: Fix it after you include this option
         self.topology = configfile.topology;
         self.interLatency = configfile.internode_latency;
         self.interBandwidth = configfile.internode_bandwidth;
@@ -17,6 +18,30 @@ class Topology(ABC):
         self.independent_send_recv = False;
         self.eager_protocol_max_size = configfile.eager_protocol_max_size;
 
+    
+    
+
+
+    def CommunicationCalculus_Bandwidth(self, rankS: int, rankR: int, workload: int):
+
+        workload = int(workload) + 16; # 16 Bytes as MPI overhead (based on SimGrid)
+
+        nodeS = rankS // self.cores_per_node;
+        nodeR = rankR // self.cores_per_node;
+
+        bandwidth: float;
+        if nodeS == nodeR: # Intranode
+            bandwidth=self.intraBandwidth;
+        else: #Internode
+            bandwidth=self.interBandwidth;
+
+        if bandwidth == 0:
+            return 0, bandwidth;
+        else:
+            return workload/bandwidth, bandwidth;
+
+    
+    '''
     def SimpleCommunicationCalculusInternode(self, workload):
         workload = int(workload) + 16 # 16 Bytes as MPI overhead (based on SimGrid)
         #latency=self.interLatency; # Treating latency elsewhere
@@ -30,7 +55,7 @@ class Topology(ABC):
         bandwidth=self.interBandwidth;
         return 0;
         return latency + workload/bandwidth;
-
+    '''
 
     @abstractmethod
     def processContention(self, matchQ, col_matchQ, currentPosition) -> MQ_Match:

@@ -46,6 +46,7 @@ class MQ_CheckMatch:
                     baseCycle = partner.baseCycle;
 
                 latency = 0;
+                bandwidth = 1;
                 # Calculate endCycle
                 # SEND size must be less or equal to RECV size
                 if sendrecv.kind == MPIC_SEND:
@@ -57,11 +58,14 @@ class MQ_CheckMatch:
 
                     #endCycle = baseCycle + SimpleCommunicationCalculus(sendrecv.size);
                     if sendrecv.rank == sendrecv.partner:
-                        endCycle = baseCycle + topology.SimpleCommunicationCalculusIntranode(sendrecv.size); # inTRA
+                        #endCycle = baseCycle + topology.SimpleCommunicationCalculusIntranode(sendrecv.size); # inTRA
                         latency = topology.intraLatency;
                     else:
-                        endCycle = baseCycle + topology.SimpleCommunicationCalculusInternode(sendrecv.size); # inTER
+                        #endCycle = baseCycle + topology.SimpleCommunicationCalculusInternode(sendrecv.size); # inTER
                         latency = topology.interLatency;
+                    endCycle, bandwidth = topology.CommunicationCalculus_Bandwidth(sendrecv.rank, sendrecv.partner, sendrecv.size);
+                    endCycle = endCycle + baseCycle;
+                    #endCycle = baseCycle + topology.CommunicationCalculus_Bandwidth(sendrecv.rank, sendrecv.partner, sendrecv.size)
                 else:
                     assert sendrecv.size >= partner.size;
 
@@ -71,11 +75,14 @@ class MQ_CheckMatch:
 
                     #endCycle = baseCycle + SimpleCommunicationCalculus(partner.size);
                     if sendrecv.rank == sendrecv.partner:
-                        endCycle = baseCycle + topology.SimpleCommunicationCalculusIntranode(partner.size); # inTRA
+                        #endCycle = baseCycle + topology.SimpleCommunicationCalculusIntranode(partner.size); # inTRA
                         latency = topology.intraLatency;
                     else:
-                        endCycle = baseCycle + topology.SimpleCommunicationCalculusInternode(partner.size); # inTER
+                        #endCycle = baseCycle + topology.SimpleCommunicationCalculusInternode(partner.size); # inTER
                         latency = topology.interLatency;
+                    endCycle, bandwidth = topology.CommunicationCalculus_Bandwidth(partner.rank, partner.partner, partner.size);
+                    endCycle = endCycle + baseCycle;
+                    #endCycle = baseCycle + topology.CommunicationCalculus_Bandwidth(partner.rank, partner.partner, partner.size)
 
                 # We consider the latency to be a delay on the start of the communication
                 baseCycle = baseCycle + latency; 
@@ -85,9 +92,9 @@ class MQ_CheckMatch:
                 #print("Match " + str())
                 assert sendrecv.col_id == partner.col_id, "SEND and RECV have different col_id"
                 if sendrecv.kind == MPIC_SEND:
-                    match = MQ_Match(matchID, sendrecv.rank, partner.rank, sendrecv.size, baseCycle, endCycle, tag = partner.tag, blocking_send=sendrecv.blocking, blocking_recv=partner.blocking, send_origin=sendrecv.operation_origin, recv_origin=partner.operation_origin, positionS=sendrecv.queue_position, positionR=partner.queue_position, latency=latency, col_id=sendrecv.col_id);
+                    match = MQ_Match(matchID, sendrecv.rank, partner.rank, sendrecv.size, baseCycle, endCycle, tag = partner.tag, blocking_send=sendrecv.blocking, blocking_recv=partner.blocking, send_origin=sendrecv.operation_origin, recv_origin=partner.operation_origin, positionS=sendrecv.queue_position, positionR=partner.queue_position, bandwidth=bandwidth, latency=latency, col_id=sendrecv.col_id);
                 else:
-                    match = MQ_Match(matchID, partner.rank, sendrecv.rank, partner.size, baseCycle, endCycle, tag = partner.tag, blocking_send=partner.blocking, blocking_recv=sendrecv.blocking, send_origin=partner.operation_origin , recv_origin=sendrecv.operation_origin, positionS=partner.queue_position, positionR=sendrecv.queue_position, latency=latency, col_id=sendrecv.col_id);
+                    match = MQ_Match(matchID, partner.rank, sendrecv.rank, partner.size, baseCycle, endCycle, tag = partner.tag, blocking_send=partner.blocking, blocking_recv=sendrecv.blocking, send_origin=partner.operation_origin , recv_origin=sendrecv.operation_origin, positionS=partner.queue_position, positionR=sendrecv.queue_position, bandwidth=bandwidth, latency=latency, col_id=sendrecv.col_id);
                 
                 #print(match)
                 #matchID = self.matchID + 1;
