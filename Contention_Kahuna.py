@@ -13,6 +13,7 @@ class Contention_Kahuna:
     @staticmethod
     def findWindow(valid_matchesQ: typing.List[MQ_Match]) -> typing.Tuple[float, float]:
         assert len(valid_matchesQ) > 0
+        print(str(valid_matchesQ[0].baseCycle) + " " + str(valid_matchesQ[0].getUpperCycle()) + " " + str(valid_matchesQ[0].endCycle) )
         lowest_cycle = valid_matchesQ[0].baseCycle;
         for i in range(0, len(valid_matchesQ)):
                         if valid_matchesQ[i].baseCycle < lowest_cycle:
