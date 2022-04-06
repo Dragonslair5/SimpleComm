@@ -314,7 +314,9 @@ class SimpleCommEngine:
         #print(biggestCycle);
         print("biggest:"+str(biggestCycle))
         biggest_buffer_size = 0;
-        if isinstance(self.MQ.topology, TopFreeMemoryIndependent):
+        if (isinstance(self.MQ.topology, TopFreeMemoryIndependent) or
+            isinstance(self.MQ.topology, TopHybrid)
+        ):
             biggest_buffer_size = self.MQ.topology.fmu_circularBuffer.biggest_buffer_size;
         print("biggest_buffer_size:"+str(biggest_buffer_size));
         print("rank,endTime,haltedTime,numCommunications,averageMessageSize,largestData")
@@ -363,7 +365,9 @@ class SimpleCommEngine:
         #print(biggestCycle);
         print("biggest:"+str(biggestCycle))
         biggest_buffer_size = 0;
-        if isinstance(self.MQ.topology, TopFreeMemoryIndependent):
+        if (isinstance(self.MQ.topology, TopFreeMemoryIndependent) or
+            isinstance(self.MQ.topology, TopHybrid)
+        ):
             biggest_buffer_size = self.MQ.topology.fmu_circularBuffer.biggest_buffer_size;
         print("biggest_buffer_size:"+str(biggest_buffer_size));
         print("rank,endTime,haltedTime,numCommunications,averageMessageSize,largestData")

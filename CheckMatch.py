@@ -56,13 +56,19 @@ class MQ_CheckMatch:
                     if sendrecv.size < topology.eager_protocol_max_size:
                         baseCycle = sendrecv.baseCycle;
 
+                    '''
                     #endCycle = baseCycle + SimpleCommunicationCalculus(sendrecv.size);
                     if sendrecv.rank == sendrecv.partner:
                         #endCycle = baseCycle + topology.SimpleCommunicationCalculusIntranode(sendrecv.size); # inTRA
-                        latency = topology.intraLatency;
+                        latency = topology.CommunicationCalculus_Latency(sendrecv.rank, partner.rank, sendrecv.size);
+                        #latency = topology.intraLatency;
                     else:
                         #endCycle = baseCycle + topology.SimpleCommunicationCalculusInternode(sendrecv.size); # inTER
+                        latency = topology.CommunicationCalculus_Latency(sendrecv.rank, partner.rank, sendrecv.size);
                         latency = topology.interLatency;
+                    '''
+
+                    latency = topology.CommunicationCalculus_Latency(sendrecv.rank, partner.rank, sendrecv.size);
                     endCycle, bandwidth = topology.CommunicationCalculus_Bandwidth(sendrecv.rank, sendrecv.partner, sendrecv.size);
                     endCycle = endCycle + baseCycle;
                     #endCycle = baseCycle + topology.CommunicationCalculus_Bandwidth(sendrecv.rank, sendrecv.partner, sendrecv.size)
@@ -73,6 +79,7 @@ class MQ_CheckMatch:
                     if partner.size < topology.eager_protocol_max_size:
                         baseCycle = partner.baseCycle;
 
+                    '''
                     #endCycle = baseCycle + SimpleCommunicationCalculus(partner.size);
                     if sendrecv.rank == sendrecv.partner:
                         #endCycle = baseCycle + topology.SimpleCommunicationCalculusIntranode(partner.size); # inTRA
@@ -80,6 +87,9 @@ class MQ_CheckMatch:
                     else:
                         #endCycle = baseCycle + topology.SimpleCommunicationCalculusInternode(partner.size); # inTER
                         latency = topology.interLatency;
+                    '''
+
+                    latency = topology.CommunicationCalculus_Latency(partner.rank, sendrecv.rank, partner.size);
                     endCycle, bandwidth = topology.CommunicationCalculus_Bandwidth(partner.rank, partner.partner, partner.size);
                     endCycle = endCycle + baseCycle;
                     #endCycle = baseCycle + topology.CommunicationCalculus_Bandwidth(partner.rank, partner.partner, partner.size)

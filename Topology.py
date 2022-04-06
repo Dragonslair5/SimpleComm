@@ -40,7 +40,26 @@ class Topology(ABC):
         else:
             return workload/bandwidth, bandwidth;
 
+    def CommunicationCalculus_Latency(self, rankS: int, rankR: int, workload: int):
+
+        if rankS == rankR:
+            return 0;
+
+        nodeS = rankS // self.cores_per_node;
+        nodeR = rankR // self.cores_per_node;
+
+        latency: float;
+        if nodeS == nodeR: # Intranode
+            latency = self.intraLatency;
+        else: # Internode
+            latency = self.interLatency;
+
+        return latency;
+        
     
+
+
+
     '''
     def SimpleCommunicationCalculusInternode(self, workload):
         workload = int(workload) + 16 # 16 Bytes as MPI overhead (based on SimGrid)

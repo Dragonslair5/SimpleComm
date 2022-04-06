@@ -17,6 +17,10 @@ class TopFreeMemoryIndependent(Topology):
         self.fmu_circularBuffer : FMU_CircularBuffer;
         self.fmu_circularBuffer = FMU_CircularBuffer(self.nFMUs);
 
+        #Override
+        self.interLatency = configfile.fmu_latency;
+        self.interBandwidth = configfile.fmu_bandwidth;
+
 
 
 
@@ -75,11 +79,11 @@ class TopFreeMemoryIndependent(Topology):
         while readyMatch == None:
 
             lowest_cycle = valid_matchesQ[0].sep_getBaseCycle();
-            li = 0
+            li = 0;
             for i in range(0, len(valid_matchesQ)):
                 if valid_matchesQ[i].sep_getBaseCycle() < lowest_cycle:
                     lowest_cycle = valid_matchesQ[i].sep_getBaseCycle();
-                    li = i
+                    li = i;
 
             readyMatch = valid_matchesQ[li];
 

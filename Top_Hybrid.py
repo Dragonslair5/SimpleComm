@@ -13,8 +13,14 @@ class TopHybrid(Topology):
         super(TopHybrid, self).__init__(nRanks, configfile);
 
         self.nFMUs = configfile.number_of_FMUs;
-        self.independent_send_recv = True;
+        #self.independent_send_recv = True;
         assert self.nFMUs > 0, "Number of Free Memory Units needs to be at least 1 when using FMUs topology"
+
+        # Constants here
+        self.TOP_FMU = 1;
+        self.TOP_NETWORK = 2;
+        # ****
+        self.used_topology = None;
 
         self.pivotValue = configfile.fmu_pivot_value;
         self.fmu_bandwidth = configfile.fmu_bandwidth;
@@ -56,11 +62,110 @@ class TopHybrid(Topology):
             return workload/bandwidth, bandwidth;
 
 
+    def CommunicationCalculus_Latency(self, rankS: int, rankR: int, workload: int):
+
+        if rankS == rankR:
+            return 0;
+
+        nodeS = rankS // self.cores_per_node;
+        nodeR = rankR // self.cores_per_node;
+
+        latency: float;
+        if nodeS == nodeR: # Intranode
+            latency = self.intraLatency;
+        else: # Internode
+            if self.isThroughFMU(rankS, rankR, workload):
+                latency = self.fmu_latency;
+            else:
+                latency = self.interLatency;
+
+        return latency;
 
 
 
 
     def processContention(self, matchQ, col_matchQ, currentPosition) -> MQ_Match:
+
+        # We separate the several matches
+        valid_matchesQ : list[MQ_Match]; # For valid matches
+        valid_matchesQ = []
+        invalid_matchesQ : list[MQ_Match]; # For invalid matches
+        invalid_matchesQ = []
+
+        ###[1] Find the valid matches
+        # Valid matches are the ones that:
+        #       1) match their position on the "currentPosition" tracker of the messagequeue 
+        #       OR
+        #       2) the ones that are untrackable (negative tag)
+        # We separate the matches on two arrays, one for the valid ones (valid_matchesQ)
+        # and another for the invalid ones (invalid_matchesQ)
+        valid_matchesQ, invalid_matchesQ = self.separateValidAndInvalidMatches(matchQ, col_matchQ, currentPosition);
+        # We might be on a deadlock if there is no valid match on this point
+        assert len(valid_matchesQ) > 0, "No valid Match was found"
+        # *******************************************************************************************************************************
+
+
+        network_matchesQ: list[MQ_Match];
+        network_matchesQ = [];
+
+        fmu_matchesQ: list[MQ_Match];
+        fmu_matchesQ = [];
+
+        for i in range(len(valid_matchesQ)):
+            match = valid_matchesQ[i];
+            fmu_matchesQ.append(match)
+
+        readyMatchID: int;
+        readyMatchID = None;
+
+        #readyMatchID = self.Contention_Kahuna(network_matchesQ, invalid_matchesQ, -1);
+        readyMatchID = self.Contention_FMU(fmu_matchesQ, invalid_matchesQ);
+
+        # Grab the ready match from the matches queue (matchQ) or collectives matches queue (col_matchQ)
+        readyMatch: MQ_Match;
+        readyMatch = None;
+        for j in range(0, len(matchQ)):
+            if readyMatchID == matchQ[j].id:
+               readyMatch = matchQ.pop(j)
+               break;
+        if readyMatch is None:
+            for j in range(0, len(col_matchQ)):
+                readyMatch = col_matchQ[j].getMatchByID(readyMatchID);
+                if readyMatch is not None:
+                    break;
+        # If readyMatch is None, it does not exist... what happened?        
+        assert readyMatch is not None, "ready match is not presented on matches queues"
+
+
+
+
+        if self.used_topology == self.TOP_NETWORK:
+            readyMatch.send_endCycle = readyMatch.endCycle;
+            readyMatch.recv_endCycle = readyMatch.endCycle
+            # Eager Protocol
+            if readyMatch.size < self.eager_protocol_max_size:
+                readyMatch.send_endCycle = readyMatch.send_baseCycle;
+                if readyMatch.recv_baseCycle > readyMatch.endCycle:
+                    readyMatch.recv_endCycle = readyMatch.recv_baseCycle;
+        elif self.used_topology == self.TOP_FMU:
+            # Eager Protocol
+            if readyMatch.size < self.eager_protocol_max_size:
+                readyMatch.send_endCycle = readyMatch.send_baseCycle;
+            readyMatch.endCycle = readyMatch.recv_endCycle;
+        else:
+            print( bcolors.FAIL + "ERROR: Unknown Topology being used on Hybrid topology" + bcolors.ENDC);
+            sys.exit(1);
+
+
+        print("endS: " + str(readyMatch.send_endCycle) + " endR: " + str(readyMatch.recv_endCycle) + " end: " + str(readyMatch.endCycle) )
+
+
+
+        return readyMatch;
+
+
+
+    def old_processContention(self, matchQ, col_matchQ, currentPosition) -> MQ_Match:
 
         # We separate the several matches
         valid_matchesQ : list[MQ_Match]; # For valid matches
@@ -164,6 +269,7 @@ class TopHybrid(Topology):
 
     def Contention_Kahuna(self, valid_matchesQ: typing.List[MQ_Match], invalid_matchesQ: typing.List[MQ_Match], time_limit: float)-> int:
 
+        self.used_topology = self.TOP_NETWORK
 
         times: int;
         times = 0;
@@ -247,7 +353,23 @@ class TopHybrid(Topology):
 
     def Contention_FMU(self, valid_matchesQ: typing.List[MQ_Match], invalid_matchesQ: typing.List[MQ_Match])-> int:
 
+        self.used_topology = self.TOP_FMU;
+
+
+
+        # Check for not initialized matches, and initialize them
+        for i in range(len(valid_matchesQ)):
+            if not valid_matchesQ[i].initialized:
+                #valid_matchesQ[i].sep_initializeMatch(self.SimpleCommunicationCalculusInternode(valid_matchesQ[i].size));
+                valid_matchesQ[i].sep_initializeMatch(self.CommunicationCalculus_Bandwidth(valid_matchesQ[i].rankS, valid_matchesQ[i].rankR, valid_matchesQ[i].size)[0]);
+
+
+
+
+        readyMatch : MQ_Match;
         readyMatch = None;
+
+
 
         while readyMatch == None:
 
