@@ -319,6 +319,13 @@ class SimpleCommEngine:
         ):
             biggest_buffer_size = self.MQ.topology.fmu_circularBuffer.biggest_buffer_size;
         print("biggest_buffer_size:"+str(biggest_buffer_size));
+        hybrid_pivot_value = -1;
+        proportion_fmu_usage = 0;
+        if isinstance(self.MQ.topology, TopHybrid):
+            hybrid_pivot_value = self.MQ.topology.pivotValue;
+            proportion_fmu_usage = (self.MQ.topology.total_messages_fmu / self.MQ.topology.total_messages) * 100;
+        print("hybrid_pivot_value:"+str(int(hybrid_pivot_value)));
+        print("proportion_fmu_usage:"+str(proportion_fmu_usage))
         print("rank,endTime,haltedTime,numCommunications,averageMessageSize,largestData")
         for ri in range(0, len(self.list_ranks)):
 
@@ -370,6 +377,13 @@ class SimpleCommEngine:
         ):
             biggest_buffer_size = self.MQ.topology.fmu_circularBuffer.biggest_buffer_size;
         print("biggest_buffer_size:"+str(biggest_buffer_size));
+        hybrid_pivot_value = -1;
+        proportion_fmu_usage = 0;
+        if isinstance(self.MQ.topology, TopHybrid):
+            hybrid_pivot_value = self.MQ.topology.pivotValue;
+            proportion_fmu_usage = (self.MQ.topology.total_messages_fmu / self.MQ.topology.total_messages) * 100;
+        print("hybrid_pivot_value:"+str(int(hybrid_pivot_value)));
+        print("proportion_fmu_usage:"+str(proportion_fmu_usage))
         print("rank,endTime,haltedTime,numCommunications,averageMessageSize,largestData")
         for ri in range(0, len(self.list_ranks)):
 

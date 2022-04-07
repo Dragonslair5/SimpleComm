@@ -20,11 +20,18 @@ class TopHybrid(Topology):
         self.TOP_FMU = 1;
         self.TOP_NETWORK = 2;
         # ****
+
+        self.total_messages = 0;
+        self.total_messages_fmu = 0;
+        self.total_messages_network = 0;
+
         self.used_topology = None;
 
-        self.pivotValue = configfile.fmu_pivot_value;
         self.fmu_bandwidth = configfile.fmu_bandwidth;
         self.fmu_latency = configfile.fmu_latency;
+
+        #self.pivotValue = configfile.fmu_pivot_value;
+        self.pivotValue = self.calculatePivot(self.interLatency, self.interBandwidth, self.fmu_latency, self.fmu_bandwidth);
 
         self.fmu_circularBuffer : FMU_CircularBuffer;
         self.fmu_circularBuffer = FMU_CircularBuffer(self.nFMUs);
@@ -34,9 +41,49 @@ class TopHybrid(Topology):
     # Decide if a match should be served by FMU
     def isThroughFMU(self, rankS: int, rankR: int, size: int)->bool:
 
+        # Negative value means to use only the network
+        if self.pivotValue < 0:
+            return False;
+
         if size >= self.pivotValue:
             return True;
         return False
+
+
+    # -1 = Network only
+    #  0 = FMU only
+    def calculatePivot(self, network_latency: float, network_bandwidth: float, fmu_latency: float, fmu_bandwidth: float)->float:
+
+        fmu_latency = fmu_latency * 2;
+
+        # If latencies are equal
+        if(network_bandwidth == fmu_bandwidth):
+            if fmu_latency < network_latency:
+                return 0.0;
+            else:
+                return -1.0;
+
+        # If bandwidthes are equal
+        if(network_latency == fmu_latency):
+            if fmu_bandwidth > network_bandwidth:
+                return 0.0;
+            else:
+                return -1.0;
+
+        # if lat and bw are different
+        pivotValue = (fmu_latency - network_latency) / ((1/network_bandwidth) - (1/fmu_bandwidth))
+
+        if pivotValue < 0:
+            if fmu_bandwidth > network_bandwidth:
+                return 0.0;
+            else:
+                return -1.0;
+
+        if fmu_bandwidth > network_bandwidth:
+            return pivotValue;
+
+
+        assert False, "FMU is worst than Network for large messages, but better on small messages. We did not implement this case."
 
 
     # Override
@@ -111,15 +158,67 @@ class TopHybrid(Topology):
         fmu_matchesQ: list[MQ_Match];
         fmu_matchesQ = [];
 
+        #for i in range(len(valid_matchesQ)):
+        #    match = valid_matchesQ[i];
+        #    fmu_matchesQ.append(match)
+
         for i in range(len(valid_matchesQ)):
-            match = valid_matchesQ[i];
-            fmu_matchesQ.append(match)
+            match = valid_matchesQ[i]
+            if self.isThroughFMU(match.rankS, match.rankR, match.size):
+                fmu_matchesQ.append(match);
+                pass
+            else:
+                network_matchesQ.append(match);
+                pass
+
+
+        # *** Find Lowest
+        lowest_cycle_fmu: float;
+        lowest_cycle_fmu = None;
+        lowest_cycle_network: float;
+        lowest_cycle_network = None;
+
+
+        # Check for not initialized matches, and initialize them
+        for i in range(len(fmu_matchesQ)):
+            if not fmu_matchesQ[i].initialized:
+                fmu_matchesQ[i].sep_initializeMatch(self.CommunicationCalculus_Bandwidth(fmu_matchesQ[i].rankS, fmu_matchesQ[i].rankR, fmu_matchesQ[i].size)[0])
+
+        if len(fmu_matchesQ) > 0:
+            lowest_cycle_fmu = fmu_matchesQ[0].sep_getBaseCycle();
+            for i in range(len(fmu_matchesQ)):
+                if lowest_cycle_fmu > fmu_matchesQ[i].sep_getBaseCycle():
+                    lowest_cycle_fmu = fmu_matchesQ[i].sep_getBaseCycle();
+
+        if len(network_matchesQ) > 0:
+            lowest_cycle_network = Contention_Kahuna.findWindow(network_matchesQ)[0];
+
+        #**************************************************************
+
 
         readyMatchID: int;
         readyMatchID = None;
 
+        if lowest_cycle_fmu == None:
+            readyMatchID = self.Contention_Kahuna(network_matchesQ, invalid_matchesQ, -1);
+        else:
+            if lowest_cycle_network == None:
+                readyMatchID = self.Contention_FMU(fmu_matchesQ, invalid_matchesQ);
+            else:
+                if lowest_cycle_fmu <= lowest_cycle_network:
+                    readyMatchID = self.Contention_FMU(fmu_matchesQ, invalid_matchesQ);
+                else:
+                    readyMatchID = self.Contention_Kahuna(network_matchesQ, invalid_matchesQ, lowest_cycle_fmu);
+                    if readyMatchID == None:
+                        readyMatchID = self.Contention_FMU(fmu_matchesQ, invalid_matchesQ);
+
+
+
+        #**************************************************************
+
+
         #readyMatchID = self.Contention_Kahuna(network_matchesQ, invalid_matchesQ, -1);
-        readyMatchID = self.Contention_FMU(fmu_matchesQ, invalid_matchesQ);
+        #readyMatchID = self.Contention_FMU(fmu_matchesQ, invalid_matchesQ);
 
         # Grab the ready match from the matches queue (matchQ) or collectives matches queue (col_matchQ)
         readyMatch: MQ_Match;
@@ -147,17 +246,21 @@ class TopHybrid(Topology):
                 readyMatch.send_endCycle = readyMatch.send_baseCycle;
                 if readyMatch.recv_baseCycle > readyMatch.endCycle:
                     readyMatch.recv_endCycle = readyMatch.recv_baseCycle;
+            self.total_messages_network = self.total_messages_network + 1;
         elif self.used_topology == self.TOP_FMU:
             # Eager Protocol
             if readyMatch.size < self.eager_protocol_max_size:
                 readyMatch.send_endCycle = readyMatch.send_baseCycle;
             readyMatch.endCycle = readyMatch.recv_endCycle;
+            self.total_messages_fmu = self.total_messages_fmu + 1;
         else:
             print( bcolors.FAIL + "ERROR: Unknown Topology being used on Hybrid topology" + bcolors.ENDC);
             sys.exit(1);
 
 
-        print("endS: " + str(readyMatch.send_endCycle) + " endR: " + str(readyMatch.recv_endCycle) + " end: " + str(readyMatch.endCycle) )
+        self.total_messages = self.total_messages + 1;
+
+        #print("endS: " + str(readyMatch.send_endCycle) + " endR: " + str(readyMatch.recv_endCycle) + " end: " + str(readyMatch.endCycle) )
 
 
 
