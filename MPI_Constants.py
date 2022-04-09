@@ -24,6 +24,11 @@ class SimpleCommConfiguration:
         else:
             self.computation = False;
         self.show_progress_level = config["Simulation"].get("show_progress_level", "blank");
+        self.print_communication_trace = config["Simulation"].get("print_communication_trace", "True");
+        if self.print_communication_trace == "True":
+            self.print_communication_trace = True;
+        else:
+            self.print_communication_trace = False;
 
 
         self.topology = config["TOPOLOGY"].get("topology", "KAHUNA");

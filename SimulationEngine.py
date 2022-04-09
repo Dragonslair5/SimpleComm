@@ -28,6 +28,7 @@ class SimulationOutput:
         self.match_list.append(sendrecv);
 
     def unload_Matches_on_the_screen(self):
+        
         while self.match_list:
             print(self.match_list[0])
             self.match_list.pop(0)
@@ -76,13 +77,15 @@ class SimpleCommEngine:
         self.MQ = MessageQueue(nRanks, self.config)
         #self.show_progress = self.config.show_progress;
         self.show_progress_level = self.config.show_progress_level;
+        self.print_communication_trace = self.config.print_communication_trace; # Used on print_blank
 
         self.showResults = None;
         if self.verbose:
             self.showResults = self.print_verbose;
         elif self.show_progress_level == "blank":
             self.showResults = self.print_blank;
-            print("rankS,rankR,SbaseCycle,SendCycle,RbaseCycle,RendCycle,size,opOrigin");
+            if self.print_communication_trace:
+                print("rankS,rankR,SbaseCycle,SendCycle,RbaseCycle,RendCycle,size,opOrigin");
         elif self.show_progress_level == "perrank":
             self.showResults = self.print_progress_per_rank;
         elif self.show_progress_level == "overall":
@@ -164,7 +167,7 @@ class SimpleCommEngine:
             #print(" SR " + str(match.rankS) + " --> " + str(match.rankR))
 
             # General Statistics
-            if self.show_progress_level == "blank":
+            if self.show_progress_level == "blank" and self.print_communication_trace:
                 self.simOutput.inlude_match(match);
 
             # ********* SEND
@@ -306,7 +309,8 @@ class SimpleCommEngine:
         #    print(self.simOutput.match_list[i])
         if not self.ended:
             return None;
-        print("#")
+        if self.print_communication_trace:
+            print("#");
         biggestCycle = self.list_ranks[0].cycle;
         for ri in range(1, len(self.list_ranks)):
             if self.list_ranks[ri].cycle > biggestCycle:
