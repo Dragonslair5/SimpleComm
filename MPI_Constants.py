@@ -128,6 +128,40 @@ actions = ["init",
 "location"]
 
 
+
+
+class MPI_Operations:
+    
+    MPI_SEND = 0;
+    MPI_RECV = 1;
+    MPI_ISEND=2;
+    MPI_IRECV=3;
+    MPI_WAIT=4;
+    MPI_WAITALL=5;
+
+
+
+    MPI_BCAST=100;
+    MPI_BARRIER=101;
+    MPI_REDUCE=102;
+    MPI_ALLREDUCE=103;
+    MPI_ALLTOALL=104;
+    MPI_ALLTOALLV=105;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class MQ_Match:
     def __init__(self, id, rankS, rankR, size, baseCycle, endCycle, tag = None, blocking_send = True, blocking_recv = True, send_origin = "", recv_origin = "", positionS = 0, positionR = 0, bandwidth = 1,latency = 0, col_id = 0):
         self.rankS = rankS;
