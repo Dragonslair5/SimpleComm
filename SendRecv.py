@@ -3,13 +3,14 @@ from MPI_Constants import *
 
 
 class SendRecv:
-    def __init__(self, kind, rank, partner, size, baseCycle, operation_origin = "Unknown", blocking = True, tag = None, col_id = 0):
+    def __init__(self, kind, rank, partner, size, baseCycle, operation_origin_ID, operation_origin = "Unknown", blocking = True, tag = None, col_id = 0):
         self.kind=kind; # SEND or RECV
         self.rank = rank;
         self.partner = partner;
         self.size = size;
         self.baseCycle = baseCycle;
-        self.operation_origin = operation_origin;
+        self.operation_origin_ID = operation_origin_ID; # Operation ID (defined on MPI_Operations class)
+        self.operation_origin = operation_origin; # Name of the Operation
         # Using on non-blocking operations
         self.blocking = blocking;
         self.tag = tag;

@@ -69,7 +69,7 @@ class MQ_Bcast:
                         src = src + self.num_ranks;
                     #print("Rank " + str(rank) + " received from " + str(src));
                     # (simgrid) recv
-                    sr = SendRecv(MPIC_RECV, rank, src, self.size, self.baseCycle[rank], "bcast", tag=MPIC_COLL_TAG_BCAST, col_id=-1);
+                    sr = SendRecv(MPIC_RECV, rank, src, self.size, self.baseCycle[rank], MPI_Operations.MPI_BCAST, "bcast", tag=MPIC_COLL_TAG_BCAST, col_id=-1);
                     sr_list.append(sr);
                     break;
                 mask = mask << 1;
@@ -83,7 +83,7 @@ class MQ_Bcast:
                     if dst >= self.num_ranks:
                         dst = dst - self.num_ranks;
                     # (simgrid) send
-                    sr = SendRecv(MPIC_SEND, rank, dst, self.size, self.baseCycle[rank], "bcast", tag=MPIC_COLL_TAG_BCAST, col_id=-1);
+                    sr = SendRecv(MPIC_SEND, rank, dst, self.size, self.baseCycle[rank], MPI_Operations.MPI_BCAST, "bcast", tag=MPIC_COLL_TAG_BCAST, col_id=-1);
                     #print("R" + str(rank) + " -> " + "R" + str(dst));
                     sr_list.append(sr);
                     #print("Rank " + str(rank) + " sends to " + str(dst));

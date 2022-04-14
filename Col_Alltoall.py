@@ -59,7 +59,7 @@ class MQ_Alltoall:
             baseCycle = self.entries[ri].baseCycle;
             i = (rank + 1) % self.num_ranks;
             while i != rank:
-                sr = SendRecv(MPIC_RECV, rank, i, recvsize , baseCycle, operation_origin=self.op_name, tag=MPIC_COLL_TAG_ALLTOALL, col_id=0);
+                sr = SendRecv(MPIC_RECV, rank, i, recvsize , baseCycle, MPI_Operations.MPI_ALLTOALL, operation_origin=self.op_name, tag=MPIC_COLL_TAG_ALLTOALL, col_id=0);
                 #print("alltoall " + str(rank) + " --> " + str(i));
                 sr_list.append(sr);
                 i = (i+1) % self.num_ranks;
@@ -71,7 +71,7 @@ class MQ_Alltoall:
             baseCycle = self.entries[ri].baseCycle;
             i = (rank + self.num_ranks - 1) % self.num_ranks;
             while i != rank:
-                sr = SendRecv(MPIC_SEND, rank, i, sendsize, baseCycle, operation_origin=self.op_name, tag=MPIC_COLL_TAG_ALLTOALL, col_id=0);
+                sr = SendRecv(MPIC_SEND, rank, i, sendsize, baseCycle, MPI_Operations.MPI_ALLTOALL, operation_origin=self.op_name, tag=MPIC_COLL_TAG_ALLTOALL, col_id=0);
                 #print("alltoall " + str(rank) + " <-- " + str(i));
                 sr_list.append(sr);
                 i = (i + self.num_ranks - 1) % self.num_ranks;
@@ -92,7 +92,7 @@ class MQ_Alltoall:
             i = (rank + 1) % self.num_ranks;
             order = 0
             while i != rank:
-                sr = SendRecv(MPIC_RECV, rank, i, recvsize , baseCycle, operation_origin=self.op_name, tag=MPIC_COLL_TAG_ALLTOALL, col_id=order);
+                sr = SendRecv(MPIC_RECV, rank, i, recvsize , baseCycle, MPI_Operations.MPI_ALLTOALL, operation_origin=self.op_name, tag=MPIC_COLL_TAG_ALLTOALL, col_id=order);
                 #print("alltoall " + str(rank) + " --> " + str(i));
                 sr_list.append(sr);
                 i = (i+1) % self.num_ranks;
@@ -106,7 +106,7 @@ class MQ_Alltoall:
             i = (rank + self.num_ranks - 1) % self.num_ranks;
             order = 0;
             while i != rank:
-                sr = SendRecv(MPIC_SEND, rank, i, sendsize, baseCycle, operation_origin=self.op_name, tag=MPIC_COLL_TAG_ALLTOALL, col_id=order);
+                sr = SendRecv(MPIC_SEND, rank, i, sendsize, baseCycle, MPI_Operations.MPI_ALLTOALL, operation_origin=self.op_name, tag=MPIC_COLL_TAG_ALLTOALL, col_id=order);
                 #print("alltoall " + str(rank) + " <-- " + str(i));
                 sr_list.append(sr);
                 i = (i + self.num_ranks - 1) % self.num_ranks;

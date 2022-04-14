@@ -131,7 +131,8 @@ actions = ["init",
 
 
 class MPI_Operations:
-    
+
+    # P2P    
     MPI_SEND = 0;
     MPI_RECV = 1;
     MPI_ISEND=2;
@@ -140,7 +141,7 @@ class MPI_Operations:
     MPI_WAITALL=5;
 
 
-
+    # Collectives
     MPI_BCAST=100;
     MPI_BARRIER=101;
     MPI_REDUCE=102;
@@ -151,11 +152,38 @@ class MPI_Operations:
 
 
 
+    @staticmethod
+    def getOperationNameByID(ID: int)->str:
+        
+        if ID == MPI_Operations.MPI_SEND:
+            return "MPI_SEND";
+        if ID == MPI_Operations.MPI_RECV:
+            return "MPI_RECV";
+        if ID == MPI_Operations.MPI_ISEND:
+            return "MPI_ISEND";
+        if ID == MPI_Operations.MPI_IRECV:
+            return "MPI_IRECV";
+        if ID == MPI_Operations.MPI_WAIT:
+            return "MPI_WAIT";
+        if ID == MPI_Operations.MPI_WAITALL:
+            return "MPI_WAITALL";
 
 
+        if ID == MPI_Operations.MPI_BCAST:
+            return "MPI_BCAST";
+        if ID == MPI_Operations.MPI_BARRIER:
+            return "MPI_BARRIER";
+        if ID == MPI_Operations.MPI_REDUCE:
+            return "MPI_REDUCE";
+        if ID == MPI_Operations.MPI_ALLREDUCE:
+            return "MPI_ALLREDUCE";
+        if ID == MPI_Operations.MPI_ALLTOALL:
+            return "MPI_ALLTOALL";
+        if ID == MPI_Operations.MPI_ALLTOALLV:
+            return "MPI_ALLTOALLV";
 
-
-
+        print( bcolors.FAIL + "ERROR: Unknown Operation ID: " + str(ID) + bcolors.ENDC);
+        sys.exit(1);
 
 
 
@@ -163,7 +191,28 @@ class MPI_Operations:
 
 
 class MQ_Match:
-    def __init__(self, id, rankS, rankR, size, baseCycle, endCycle, tag = None, blocking_send = True, blocking_recv = True, send_origin = "", recv_origin = "", positionS = 0, positionR = 0, bandwidth = 1,latency = 0, col_id = 0):
+    def __init__(self, 
+                 id, 
+                 rankS, 
+                 rankR, 
+                 size, 
+                 baseCycle, 
+                 endCycle, 
+                 tag = None, 
+                 blocking_send = True, 
+                 blocking_recv = True, 
+                 send_origin = "", 
+                 send_operation_ID = MPI_Operations.MPI_SEND,
+                 recv_origin = "", 
+                 recv_operation_ID = MPI_Operations.MPI_RECV,
+                 positionS = 0, 
+                 positionR = 0, 
+                 bandwidth = 1,
+                 latency = 0, 
+                 col_id = 0):
+
+
+
         self.rankS = rankS;
         self.rankR = rankR;
 
@@ -203,7 +252,9 @@ class MQ_Match:
         self.blocking_recv = blocking_recv;
         
         self.send_origin = send_origin; # The operations name
+        self.send_operation_ID = send_operation_ID; # The operation ID
         self.recv_origin = recv_origin; # The operations name
+        self.recv_operation_ID = recv_operation_ID; # The operation ID
 
         # Ordering for when it matters (TAG not negative)
         self.positionS = positionS; # Ordering

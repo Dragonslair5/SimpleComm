@@ -179,12 +179,12 @@ class SimpleCommEngine:
                     assert self.list_ranks[match.rankS].cycle <= match.send_endCycle * 1.100, "Rank:" + str(match.rankS) + ": cycle " + str(self.list_ranks[match.rankS].cycle) + " cycle " + str(match.send_endCycle);
                 
                 if match.send_endCycle > self.list_ranks[match.rankS].cycle:
-                    self.list_ranks[match.rankS].includeHaltedTime(self.list_ranks[match.rankS].cycle, match.send_endCycle);
+                    self.list_ranks[match.rankS].includeHaltedTime(self.list_ranks[match.rankS].cycle, match.send_endCycle, match.send_operation_ID);
                     self.list_ranks[match.rankS].cycle = match.send_endCycle;
                 if self.MQ.blockablePendingMessage[match.rankS] == 0:
                     self.list_ranks[match.rankS].state = Rank.S_NORMAL;
             else:
-                self.list_ranks[match.rankS].include_iSendRecvConclusion(match.tag, match.send_endCycle);
+                self.list_ranks[match.rankS].include_iSendRecvConclusion(match.tag, match.send_endCycle, match.send_operation_ID);
             
             # Statistics
             self.list_ranks[match.rankS].amountOfCommunications = self.list_ranks[match.rankS].amountOfCommunications + 1;
@@ -201,12 +201,12 @@ class SimpleCommEngine:
                     assert self.list_ranks[match.rankR].cycle <= match.recv_endCycle  * 1.100, "Rank:" + str(match.rankR) + ": cycle " + str(self.list_ranks[match.rankR].cycle) + " cycle " + str(match.recv_endCycle);
                 
                 if match.recv_endCycle > self.list_ranks[match.rankR].cycle:
-                    self.list_ranks[match.rankR].includeHaltedTime(self.list_ranks[match.rankR].cycle, match.recv_endCycle);
+                    self.list_ranks[match.rankR].includeHaltedTime(self.list_ranks[match.rankR].cycle, match.recv_endCycle, match.recv_operation_ID);
                     self.list_ranks[match.rankR].cycle = match.recv_endCycle;
                 if self.MQ.blockablePendingMessage[match.rankR] == 0:
                     self.list_ranks[match.rankR].state = Rank.S_NORMAL;
             else:
-                self.list_ranks[match.rankR].include_iSendRecvConclusion(match.tag, match.recv_endCycle);
+                self.list_ranks[match.rankR].include_iSendRecvConclusion(match.tag, match.recv_endCycle, match.recv_operation_ID);
             
             # Statistics
             self.list_ranks[match.rankR].amountOfCommunications = self.list_ranks[match.rankR].amountOfCommunications + 1;
@@ -355,6 +355,16 @@ class SimpleCommEngine:
             print(str(numCommunications), end=',')
             print(str(averageCommunicationSize), end=',')
             print(str(largestDataOnSingleCommunication))
+
+            print("H_"+"rank"+str(ri), end='')
+            for key, value in self.list_ranks[ri].dict_mpi_overhead.items():
+                halted_dictionary = self.list_ranks[ri].dict_mpi_overhead;
+                haltedTime = halted_dictionary[key];
+                if haltedTime == 0:
+                    continue;
+                haltedTime_percentage = (haltedTime / endTime)*100;
+                print("," + key + ":" + "{:.2f}".format(haltedTime_percentage), end='')
+            print("")
         
 
 
@@ -423,3 +433,13 @@ class SimpleCommEngine:
             print(str(numCommunications), end=',')
             print(str(averageCommunicationSize), end=',')
             print(str(largestDataOnSingleCommunication))
+
+            print("H_"+"rank"+str(ri), end='')
+            for key, value in self.list_ranks[ri].dict_mpi_overhead.items():
+                halted_dictionary = self.list_ranks[ri].dict_mpi_overhead;
+                haltedTime = halted_dictionary[key];
+                if haltedTime == 0:
+                    continue;
+                haltedTime_percentage = (haltedTime / endTime)*100;
+                print("," + key + ":" + "{:.2f}".format(haltedTime_percentage), end='')
+            print("")

@@ -53,10 +53,10 @@ class MQ_Reduce:
         for rank in range(0, self.num_ranks):
             if rank != self.root:
                 # Send rank -> root
-                sr = SendRecv(MPIC_SEND, rank, self.root, self.size, self.baseCycle[rank], operation_origin=self.op_name, tag=MPIC_COLL_TAG_REDUCE, col_id=0);
+                sr = SendRecv(MPIC_SEND, rank, self.root, self.size, self.baseCycle[rank], MPI_Operations.MPI_REDUCE, operation_origin=self.op_name, tag=MPIC_COLL_TAG_REDUCE, col_id=0);
                 sr_list.append(sr);
                 # Recv rank-> root
-                sr = SendRecv(MPIC_RECV, self.root, rank, self.size, self.baseCycle[self.root], operation_origin=self.op_name, tag=MPIC_COLL_TAG_REDUCE, col_id=0);
+                sr = SendRecv(MPIC_RECV, self.root, rank, self.size, self.baseCycle[self.root], MPI_Operations.MPI_REDUCE, operation_origin=self.op_name, tag=MPIC_COLL_TAG_REDUCE, col_id=0);
                 sr_list.append(sr);
 
         return sr_list;

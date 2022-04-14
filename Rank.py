@@ -11,11 +11,16 @@ from Col_Allreduce import *
 from Col_Alltoall import *
 from Col_Alltoallv import *
 
+
+
+
+
 class iSendRecv:
 
-    def __init__(self, tag, endCycle):
+    def __init__(self, tag, endCycle, operation_ID):
         self.tag = tag;
         self.endCycle = endCycle;
+        self.operation_ID = operation_ID;
 
 
 
@@ -54,12 +59,22 @@ class Rank:
         self.amountOfCommunications = 0;
         self.largestDataOnASingleCommunication = 0;
 
-    def includeHaltedTime(self, begin, end):
+
+        #self.dict_mpi_overhead = {key:value for key, value in MPI_Operations.__dict__.items() if not key.startswith('__') and not callable(key)}
+        self.dict_mpi_overhead = {key:value for key, value in MPI_Operations.__dict__.items() if key.startswith('MPI_')}
+        self.dict_mpi_overhead = dict.fromkeys(self.dict_mpi_overhead, 0);
+        
+
+
+    def includeHaltedTime(self, begin, end, operation_ID):
         #if end < begin:
         #    return None;
         assert end >= begin, "end must be greater than begin"
         time = end - begin
         self.timeHaltedDueCommunication = self.timeHaltedDueCommunication + time;
+
+        self.dict_mpi_overhead[MPI_Operations.getOperationNameByID(operation_ID)] = self.dict_mpi_overhead[MPI_Operations.getOperationNameByID(operation_ID)] + time
+
 
 
     #def changeState(self, newState):
@@ -80,8 +95,8 @@ class Rank:
         return "Unknown";
 
 
-    def include_iSendRecvConclusion(self, tag, endcycle):
-        isendrecv = iSendRecv(tag, endcycle);
+    def include_iSendRecvConclusion(self, tag, endcycle, operation_ID):
+        isendrecv = iSendRecv(tag, endcycle, operation_ID);
         self.iSendRecvQ.append(isendrecv);
         self.waitall = self.waitall + 1;
 
@@ -95,7 +110,7 @@ class Rank:
                 for i in range(lenght):
                     #print(str(i) + " - isendrecv end cycle: " + str(self.iSendRecvQ[0].endCycle))
                     if self.cycle < self.iSendRecvQ[0].endCycle:
-                        self.includeHaltedTime(self.cycle, self.iSendRecvQ[0].endCycle);
+                        self.includeHaltedTime(self.cycle, self.iSendRecvQ[0].endCycle, self.iSendRecvQ[0].operation_ID);
                         self.cycle = self.iSendRecvQ[0].endCycle;
                     del self.iSendRecvQ[0];
                 return True;
@@ -104,7 +119,7 @@ class Rank:
                 if tag == self.iSendRecvQ[i].tag:
                     #print(bcolors.WARNING + " Rank "+ str(self.rank) + " found tag " + str(tag) + bcolors.ENDC);
                     if self.cycle < self.iSendRecvQ[i].endCycle:
-                        self.includeHaltedTime(self.cycle, self.iSendRecvQ[i].endCycle)
+                        self.includeHaltedTime(self.cycle, self.iSendRecvQ[i].endCycle, self.iSendRecvQ[i].operation_ID);
                         self.cycle = self.iSendRecvQ[i].endCycle;
                     del self.iSendRecvQ[i];
                     self.waitall = self.waitall - 1;
@@ -148,7 +163,7 @@ class Rank:
             tag = int(workload[3]);
             datatype = getDataTypeSize(int(workload[5]));
             size = int(workload[4]) * datatype;
-            sr = SendRecv(MPIC_SEND, self.rank, target, size, self.cycle, "send", tag=tag);
+            sr = SendRecv(MPIC_SEND, self.rank, target, size, self.cycle, MPI_Operations.MPI_SEND, "send", tag=tag);
             self.current_operation = "send(" + str(target) + ")-" + str(self.index);
             return sr;
         if(operation == "recv"):
@@ -157,7 +172,7 @@ class Rank:
             tag = int(workload[3]);
             datatype = getDataTypeSize(int(workload[5]));
             size = int(workload[4]) * datatype;
-            sr = SendRecv(MPIC_RECV, self.rank, source, size, self.cycle, "recv", tag=tag);
+            sr = SendRecv(MPIC_RECV, self.rank, source, size, self.cycle, MPI_Operations.MPI_RECV, "recv", tag=tag);
             self.current_operation = "recv(" + str(source) + ")-" + str(self.index);
             return sr;
         if(operation == "bcast"):
@@ -226,7 +241,7 @@ class Rank:
             tag = int(workload[3]);
             datatype = getDataTypeSize(int(workload[5]));
             size = int(workload[4]) * datatype;
-            sr = SendRecv(MPIC_SEND, self.rank, target, size, self.cycle, "isend", blocking = False, tag=tag);
+            sr = SendRecv(MPIC_SEND, self.rank, target, size, self.cycle, MPI_Operations.MPI_ISEND, "isend", blocking = False, tag=tag);
             self.current_operation = "isend-(" + str(target) + ")-" + str(self.index);
             return sr;
         if(operation == "irecv"):
@@ -235,7 +250,7 @@ class Rank:
             tag = int(workload[3]);
             datatype = getDataTypeSize(int(workload[5]));
             size = int(workload[4]) * datatype;
-            sr = SendRecv(MPIC_RECV, self.rank, source, size, self.cycle, "irecv", blocking = False, tag=tag);
+            sr = SendRecv(MPIC_RECV, self.rank, source, size, self.cycle, MPI_Operations.MPI_IRECV, "irecv", blocking = False, tag=tag);
             self.current_operation = "irecv(" + str(source) + ")-" + str(self.index);
             return sr;
         if(operation == "wait"):
