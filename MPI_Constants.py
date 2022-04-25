@@ -220,6 +220,9 @@ class MQ_Match:
         self.baseCycle = baseCycle;
 
 
+        # FMU
+        self.fmu_in_use = None;
+
 
         # Individual timings for SEND/RECV
         self.send_original_baseCycle = -1;

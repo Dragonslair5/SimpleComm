@@ -1,6 +1,7 @@
-from email.message import Message
+#from email.message import Message
 from CollectiveOperationsQueue import *
-from Top_FreeMemoryIndependent import TopFreeMemoryIndependent
+from Top_FreeMemoryIndependent import *
+from Top_FreeMemoryIndependentInterleaving import *
 from Top_NoContention import *
 from Topology import *
 from Top_CircuitSwitchedFreeMemory import *
@@ -35,6 +36,8 @@ class MessageQueue:
             self.topology = TopCircuitSwitchedFreeMemory(numRanks, configfile);
         elif configfile.topology == "FREE_MEMORY_INDEPENDENT": # *** FMU
             self.topology = TopFreeMemoryIndependent(numRanks, configfile);
+        elif configfile.topology == "FREE_MEMORY_INDEPENDENT_INTERLEAVING": # *** FMU interleaving
+            self.topology = TopFreeMemoryIndependentInterleaving(numRanks, configfile);
         elif configfile.topology == "NO_CONTENTION":
             self.topology = TopNoContention(numRanks, configfile);
         else:
