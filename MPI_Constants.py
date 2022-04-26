@@ -41,6 +41,7 @@ class SimpleCommConfiguration:
         self.fmu_bandwidth = float(config["TOPOLOGY"].get("fmu_bandwidth", "10"));
         self.fmu_latency = float(config["TOPOLOGY"].get("fmu_latency", "10"));
         self.fmu_pivot_value = float(config["TOPOLOGY"].get("fmu_pivot_value", "10"));
+        self.fmu_contention_model = config["TOPOLOGY"].get("fmu_contention_model", "STATIC");
 
         # SimGrid               (65536 bytes) (64KB in short)
         # OpenMPI Version 4.0.5 (65536 bytes) (64KB in short) (btl_tcp_component.c)
@@ -295,6 +296,7 @@ class MQ_Match:
         else:
             self.recv_baseCycle = self.recv_baseCycle + increment;
             self.recv_endCycle = self.recv_endCycle + increment;
+            self.endCycle = self.recv_endCycle;
     
     def sep_move_RECV_after_SEND(self):
         assert self.still_solving_send == True, "Wtf?"

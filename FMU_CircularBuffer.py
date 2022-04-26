@@ -26,7 +26,11 @@ class FMU_CircularBuffer:
         self.biggest_buffer_size = 0;
 
     def insert_entry(self, fmu: int, match_id: int, size: int) -> None:
-        assert fmu < self.nFMUs
+        if fmu >= self.nFMUs: # This happens when using NO_CONFLICT as content model on FMU
+            if size > self.biggest_buffer_size:
+                self.biggest_buffer_size = size;
+            return
+        #assert fmu < self.nFMUs
         newInput = self.CircularBufferInput(match_id, size);
         self.circular_buffer[fmu].append(newInput);
 
@@ -56,6 +60,8 @@ class FMU_CircularBuffer:
 
 
     def consume_entry(self, fmu: int, match_id: int):
+        if fmu >= self.nFMUs:  # This happens when using NO_CONFLICT as content model on FMU
+            return;
         fmu_buffer : typing.List[self.CircularBufferInput];
         fmu_buffer = self.circular_buffer[fmu];
         for i in range(0, len(fmu_buffer)):

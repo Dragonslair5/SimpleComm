@@ -326,7 +326,8 @@ class SimpleCommEngine:
         print("halted_time_percentage:" + "{:.2f}".format(halted_time_percentage) )
         biggest_buffer_size = 0;
         if (isinstance(self.MQ.topology, TopFreeMemoryIndependent) or
-            isinstance(self.MQ.topology, TopHybrid)
+            isinstance(self.MQ.topology, TopHybrid) or
+            isinstance(self.MQ.topology, TopFreeMemoryUnit)
         ):
             biggest_buffer_size = self.MQ.topology.fmu_circularBuffer.biggest_buffer_size;
         print("biggest_buffer_size:"+str(biggest_buffer_size));
@@ -404,7 +405,8 @@ class SimpleCommEngine:
         print("halted_time_percentage:" + "{:.2f}".format(halted_time_percentage) )
         biggest_buffer_size = 0;
         if (isinstance(self.MQ.topology, TopFreeMemoryIndependent) or
-            isinstance(self.MQ.topology, TopHybrid)
+            isinstance(self.MQ.topology, TopHybrid) or
+            isinstance(self.MQ.topology, TopFreeMemoryUnit)
         ):
             biggest_buffer_size = self.MQ.topology.fmu_circularBuffer.biggest_buffer_size;
         print("biggest_buffer_size:"+str(biggest_buffer_size));
