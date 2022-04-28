@@ -79,6 +79,26 @@ class TopFreeMemoryUnit(Topology):
 
 
 
+
+    def initializeUnitializedMatches(self, valid_matchesQ: typing.List[MQ_Match])-> None:
+        for i in range(len(valid_matchesQ)):
+            if not valid_matchesQ[i].initialized:
+                #valid_matchesQ[i].sep_initializeMatch(self.SimpleCommunicationCalculusInternode(valid_matchesQ[i].size));
+                valid_matchesQ[i].sep_initializeMatch(self.CommunicationCalculus_Bandwidth(valid_matchesQ[i].rankS, valid_matchesQ[i].rankR, valid_matchesQ[i].size)[0]);
+                #chosenFMU = self.fmu_interleave % self.nFMUs;
+                chosenFMU = self.chooseFMU(valid_matchesQ[i].rankR);
+                valid_matchesQ[i].fmu_in_use = chosenFMU;
+                if chosenFMU < self.nFMUs:
+                    minToStart = self.fmu_last_cycle_vector[chosenFMU] + valid_matchesQ[i].latency;
+                    print("fmuLast: " + str(self.fmu_last_cycle_vector[chosenFMU]) + " Lat: " + str(valid_matchesQ[i].latency))
+                    print(str(minToStart) + " [] " + str(valid_matchesQ[i].sep_getBaseCycle()))
+                    inc = minToStart - valid_matchesQ[i].sep_getBaseCycle();
+                    if inc > 0:
+                        valid_matchesQ[i].sep_incrementCycle(inc);
+
+
+
+
     def processContention(self, matchQ, col_matchQ, currentPosition) -> MQ_Match:
 
         # We separate the several matches
@@ -94,33 +114,21 @@ class TopFreeMemoryUnit(Topology):
         #       2) the ones that are untrackable (negative tag)
         # We separate the matches on two arrays, onde for the valid ones (valid_matchesQ)
         # and another for the invalid ondes (invalid_matchesQ)
-        for i in range(0, len(matchQ)):
-            thisMatch : MQ_Match = matchQ[i];
-            
-            if (
-                (    
-                    (thisMatch.positionS == currentPosition[thisMatch.rankS] or thisMatch.positionS < 0) and 
-                    (thisMatch.positionR == currentPosition[thisMatch.rankR] or thisMatch.positionR < 0)
-                ) or
-                (thisMatch.tag < 0)
-            ):
-                valid_matchesQ.append(thisMatch)
-            else:
-                invalid_matchesQ.append(thisMatch);
-        
-        # Valid among Collectives
-        for i in range(0, len(col_matchQ)):
-            tmp_valid, tmp_invalid = col_matchQ[i].getValidAndInvalidMatches();
-            valid_matchesQ = valid_matchesQ + tmp_valid;
-            invalid_matchesQ = invalid_matchesQ + tmp_invalid;
-
+        valid_matchesQ, invalid_matchesQ = self.separateValidAndInvalidMatches(matchQ, col_matchQ, currentPosition);
         # We might be on a deadlock if there is no valid match on this point
         assert len(valid_matchesQ) > 0, "No valid Match was found"
 
         # *******************************************************************************************************************************
 
+        print("\n***")
+        for i in range(len(valid_matchesQ)):
+            #print( str(valid_matchesQ[i].sep_getBaseCycle()) + " " + str(valid_matchesQ[i].endCycle) + " fmu: " + str(valid_matchesQ[i].fmu_in_use))
+            print(str(valid_matchesQ[i].id) + " " + str(valid_matchesQ[i].sep_getBaseCycle()))
+        print("***")
 
         # Check for not initialized matches, and initialize them
+        self.initializeUnitializedMatches(valid_matchesQ);
+        '''
         for i in range(len(valid_matchesQ)):
             if not valid_matchesQ[i].initialized:
                 #valid_matchesQ[i].sep_initializeMatch(self.SimpleCommunicationCalculusInternode(valid_matchesQ[i].size));
@@ -133,7 +141,13 @@ class TopFreeMemoryUnit(Topology):
                     inc = minToStart - valid_matchesQ[i].sep_getBaseCycle();
                     if inc > 0:
                         valid_matchesQ[i].sep_incrementCycle(inc);
-                
+         '''
+
+        print("\n***")
+        for i in range(len(valid_matchesQ)):
+            #print( str(valid_matchesQ[i].sep_getBaseCycle()) + " " + str(valid_matchesQ[i].endCycle) + " fmu: " + str(valid_matchesQ[i].fmu_in_use))
+            print(str(valid_matchesQ[i].id) + " " + str(valid_matchesQ[i].sep_getBaseCycle()))
+        print("***")
 
         # find lowest cycle
         readyMatch : MQ_Match
@@ -149,6 +163,7 @@ class TopFreeMemoryUnit(Topology):
                     li = i;
 
             readyMatch = valid_matchesQ[li];
+            #print("\nreadyMatch = " + str(readyMatch.id))
 
             rank_in_usage = None;
             if readyMatch.still_solving_send:
@@ -221,8 +236,15 @@ class TopFreeMemoryUnit(Topology):
         self.fmu_circularBuffer.consume_entry(readyMatch.fmu_in_use,
                                               readyMatch.id);
 
+        #print("\n***")
+        #for i in range(len(valid_matchesQ)):
+        #    print("id: " + str(valid_matchesQ[i].id) + " " + str(valid_matchesQ[i].sep_getBaseCycle()) + " base_send: " + str(valid_matchesQ[i].send_baseCycle) + " base_recv: " + str(valid_matchesQ[i].recv_baseCycle) + " endCycle: " + str(valid_matchesQ[i].endCycle) + " recvEndCycle: " + str(valid_matchesQ[i].recv_endCycle) + " fmu: " + str(valid_matchesQ[i].fmu_in_use) + " size: " + str(valid_matchesQ[i].size))
+        #print("***")
+
         
+        assert readyMatch.endCycle == readyMatch.recv_endCycle, "Why are they not equal? " + str(readyMatch.endCycle) + " != " + str(readyMatch.recv_endCycle)
         if readyMatch.fmu_in_use < self.nFMUs:
+            #print(str(readyMatch.endCycle) + " - " + str(readyMatch.fmu_in_use) + " - " + str(self.fmu_last_cycle_vector[readyMatch.fmu_in_use]))
             assert readyMatch.endCycle >= self.fmu_last_cycle_vector[readyMatch.fmu_in_use], "what? " + str(readyMatch.endCycle) + " < " + str(self.fmu_last_cycle_vector[readyMatch.fmu_in_use])
             self.fmu_last_cycle_vector[readyMatch.fmu_in_use] = readyMatch.endCycle;
         

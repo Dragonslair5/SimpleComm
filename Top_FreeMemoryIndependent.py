@@ -64,12 +64,25 @@ class TopFreeMemoryIndependent(Topology):
 
         # *******************************************************************************************************************************
 
+        print("\n***")
+        for i in range(len(valid_matchesQ)):
+            #print( str(valid_matchesQ[i].sep_getBaseCycle()) + " " + str(valid_matchesQ[i].endCycle) + " fmu: " + str(valid_matchesQ[i].fmu_in_use))
+            print(str(valid_matchesQ[i].id) + " " + str(valid_matchesQ[i].sep_getBaseCycle()))
+        print("***")
 
         # Check for not initialized matches, and initialize them
         for i in range(len(valid_matchesQ)):
             if not valid_matchesQ[i].initialized:
                 #valid_matchesQ[i].sep_initializeMatch(self.SimpleCommunicationCalculusInternode(valid_matchesQ[i].size));
                 valid_matchesQ[i].sep_initializeMatch(self.CommunicationCalculus_Bandwidth(valid_matchesQ[i].rankS, valid_matchesQ[i].rankR, valid_matchesQ[i].size)[0]);
+                print(str(valid_matchesQ[i].latency))
+
+
+        print("\n***")
+        for i in range(len(valid_matchesQ)):
+            #print( str(valid_matchesQ[i].sep_getBaseCycle()) + " " + str(valid_matchesQ[i].endCycle) + " fmu: " + str(valid_matchesQ[i].fmu_in_use))
+            print(str(valid_matchesQ[i].id) + " " + str(valid_matchesQ[i].sep_getBaseCycle()))
+        print("***")
 
 
         # find lowest cycle
@@ -166,7 +179,7 @@ class TopFreeMemoryIndependent(Topology):
         # If readyMatch is None, it does not exist... what happened?        
         assert readyMatch is not None, "ready match is not presented on matches queues"
 
-
+        print("S2 " + str(readyMatch.endCycle))
         #print("Processing contention complete.")
         return readyMatch;
 

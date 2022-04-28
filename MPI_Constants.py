@@ -272,8 +272,12 @@ class MQ_Match:
         assert self.recv_baseCycle >= 0, "This should have been initialized"
         assert self.initialized == False, "Cant initialize an already initialized match"
         latency = self.latency;
-        self.send_endCycle = self.send_baseCycle + latency + transmissionTime;
-        self.recv_endCycle = self.recv_baseCycle + latency + transmissionTime;
+        self.send_baseCycle = self.send_baseCycle + latency;
+        self.send_endCycle = self.send_baseCycle + transmissionTime;
+        
+        self.recv_baseCycle = self.recv_baseCycle + latency;
+        self.recv_endCycle = self.recv_baseCycle + transmissionTime;
+        self.endCycle = self.recv_endCycle;
         self.initialized = True;
 
     
@@ -300,12 +304,13 @@ class MQ_Match:
     
     def sep_move_RECV_after_SEND(self):
         assert self.still_solving_send == True, "Wtf?"
-        minToStart = self.send_endCycle;
+        minToStart = self.send_endCycle + self.latency;
         inc = minToStart - self.recv_baseCycle;
 
         if inc > 0:
             self.recv_baseCycle = self.recv_baseCycle + inc;
             self.recv_endCycle = self.recv_endCycle + inc;
+            self.endCycle = self.recv_endCycle;
         self.still_solving_send = False;
         
 

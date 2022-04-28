@@ -56,6 +56,9 @@ class MQ_CheckMatch:
                     if sendrecv.size < topology.eager_protocol_max_size:
                         baseCycle = sendrecv.baseCycle;
 
+                    original_send_basecycle = sendrecv.baseCycle;
+                    original_recv_basecycle = partner.baseCycle;
+
                     '''
                     #endCycle = baseCycle + SimpleCommunicationCalculus(sendrecv.size);
                     if sendrecv.rank == sendrecv.partner:
@@ -78,6 +81,9 @@ class MQ_CheckMatch:
                     # Eager Protocol
                     if partner.size < topology.eager_protocol_max_size:
                         baseCycle = partner.baseCycle;
+
+                    original_send_basecycle = partner.baseCycle;
+                    original_recv_basecycle = sendrecv.baseCycle;
 
                     '''
                     #endCycle = baseCycle + SimpleCommunicationCalculus(partner.size);
@@ -110,6 +116,8 @@ class MQ_CheckMatch:
                 #matchID = self.matchID + 1;
 
                 # Fulfilling individual information for SEND/RECV to be used by a topology that separates the occurrence of these two
+                match.send_original_baseCycle = original_send_basecycle;
+                match.recv_original_baseCycle = original_recv_basecycle;
                 if sendrecv.kind == MPIC_SEND:
                     match.send_baseCycle = sendrecv.baseCycle;
                     match.send_endCycle = -1;
