@@ -16,6 +16,7 @@ class TopFreeMemoryUnit(Topology):
 
         self.fmu_interleave = 0;
         self.fmu_last_cycle_vector = [0] * self.nFMUs;
+        self.fmu_congestion_time = [0] * self.nFMUs;
 
         self.fmu_circularBuffer : FMU_CircularBuffer;
         self.fmu_circularBuffer = FMU_CircularBuffer(self.nFMUs);
@@ -27,20 +28,32 @@ class TopFreeMemoryUnit(Topology):
 
         self.isThereConflict = None;
         self.chooseFMU = None;
+        self.update_fmu_last_cycle = None;
+        self.get_fmu_last_cycle = None;
         if configfile.fmu_contention_model == "STATIC":
             self.isThereConflict = self.isThereConflict_Static;
             self.chooseFMU = self.chooseFMU_static;
+            # ON / ON
+            self.update_fmu_last_cycle = self.update_fmu_last_cycle_TURNED_ON;
+            self.get_fmu_last_cycle = self.get_fmu_last_cycle_TUNED_ON;
         elif configfile.fmu_contention_model == "NO_CONFLICT":
             self.isThereConflict = self.isThereConflict_NoConflict;
             self.chooseFMU = self.chooseFMU_oracle;
+            # OFF / OFF
+            self.update_fmu_last_cycle = self.update_fmu_last_cycle_TURNED_OFF;
+            self.get_fmu_last_cycle = self.get_fmu_last_cycle_TUNED_OFF;
         elif configfile.fmu_contention_model == "INTERLEAVE":
             self.isThereConflict = self.isThereConflict_Interleave;
             self.chooseFMU = self.chooseFMU_interleave;
+            # ON / ON
+            self.update_fmu_last_cycle = self.update_fmu_last_cycle_TURNED_ON;
+            self.get_fmu_last_cycle = self.get_fmu_last_cycle_TUNED_ON;
         else:
             print( bcolors.FAIL + "ERROR: Unknown fmu contention model:  " + configfile.fmu_contention_model + bcolors.ENDC);
             sys.exit(1);
 
 
+    # Choose FMU Functions
     def chooseFMU_static(self, rank):
         return rank % self.nFMUs;
     
@@ -51,13 +64,29 @@ class TopFreeMemoryUnit(Topology):
     def chooseFMU_oracle(self, rank):
         self.fmu_interleave = self.fmu_interleave + 1;
         return self.fmu_interleave;
+    # *********************************************
 
 
-    #def isThereConflict(self, my_rank: int, partner_rank: int, fmu_in_usage_1 = None, fmu_in_usage_2= None) -> bool:
-    #    if my_rank == partner_rank:
-    #        return True;
+    # FMU LAST CYCLE VECTOR Functions
+    def get_fmu_last_cycle_TUNED_OFF(self, chosenFMU: int)->float:
+        return 0;
 
+    def get_fmu_last_cycle_TUNED_ON(self, chosenFMU: int)->float:
+        assert chosenFMU < self.nFMUs, "What? FMU " + str(chosenFMU) + " does not exist."
+        return self.fmu_last_cycle_vector[chosenFMU];
+
+    def update_fmu_last_cycle_TURNED_OFF(self, chosenFMU: int, endTime: float)-> None:
+        pass;
+
+    def update_fmu_last_cycle_TURNED_ON(self, chosenFMU: int, endTime: float)-> None:
+        assert chosenFMU < self.nFMUs, "What? FMU " + str(chosenFMU) + " does not exist."
+        assert self.fmu_last_cycle_vector[chosenFMU] <= endTime, "what? " + str(endTime) + " < " + str(self.fmu_last_cycle_vector[chosenFMU])
+        self.fmu_last_cycle_vector[chosenFMU] = endTime;
+    # *********************************************
         
+
+
+    # Conflict Functions        
     def isThereConflict_NoConflict(self, my_rank: int, partner_rank: int, fmu_in_usage_1 = None, fmu_in_usage_2= None) -> bool:
         if my_rank == partner_rank:
             return True;
@@ -66,8 +95,10 @@ class TopFreeMemoryUnit(Topology):
     def isThereConflict_Static(self, my_rank: int, partner_rank: int, fmu_in_usage_1 = None, fmu_in_usage_2= None) -> bool:
         if my_rank == partner_rank:
             return True;
-        if my_rank % self.nFMUs == partner_rank % self.nFMUs:
+        if fmu_in_usage_1 == fmu_in_usage_2:
             return True;
+        #if my_rank % self.nFMUs == partner_rank % self.nFMUs:
+        #    return True;
         return False;
 
     def isThereConflict_Interleave(self, my_rank: int, partner_rank: int, fmu_in_usage_1 = None, fmu_in_usage_2= None) -> bool:
@@ -76,6 +107,7 @@ class TopFreeMemoryUnit(Topology):
         if fmu_in_usage_1 == fmu_in_usage_2:
             return True;
         return False;
+    # *********************************************
 
 
 
@@ -89,12 +121,14 @@ class TopFreeMemoryUnit(Topology):
                 chosenFMU = self.chooseFMU(valid_matchesQ[i].rankR);
                 valid_matchesQ[i].fmu_in_use = chosenFMU;
                 if chosenFMU < self.nFMUs:
-                    minToStart = self.fmu_last_cycle_vector[chosenFMU] + valid_matchesQ[i].latency;
-                    print("fmuLast: " + str(self.fmu_last_cycle_vector[chosenFMU]) + " Lat: " + str(valid_matchesQ[i].latency))
-                    print(str(minToStart) + " [] " + str(valid_matchesQ[i].sep_getBaseCycle()))
+                    #minToStart = self.fmu_last_cycle_vector[chosenFMU] + valid_matchesQ[i].latency;
+                    minToStart = self.get_fmu_last_cycle(chosenFMU) + valid_matchesQ[i].latency;
+                    #print("fmuLast: " + str(self.fmu_last_cycle_vector[chosenFMU]) + " Lat: " + str(valid_matchesQ[i].latency))
+                    #print(str(minToStart) + " [] " + str(valid_matchesQ[i].sep_getBaseCycle()))
                     inc = minToStart - valid_matchesQ[i].sep_getBaseCycle();
                     if inc > 0:
                         valid_matchesQ[i].sep_incrementCycle(inc);
+                        self.fmu_congestion_time[chosenFMU] = self.fmu_congestion_time[chosenFMU] + inc;
 
 
 
@@ -120,11 +154,11 @@ class TopFreeMemoryUnit(Topology):
 
         # *******************************************************************************************************************************
 
-        print("\n***")
-        for i in range(len(valid_matchesQ)):
-            #print( str(valid_matchesQ[i].sep_getBaseCycle()) + " " + str(valid_matchesQ[i].endCycle) + " fmu: " + str(valid_matchesQ[i].fmu_in_use))
-            print(str(valid_matchesQ[i].id) + " " + str(valid_matchesQ[i].sep_getBaseCycle()))
-        print("***")
+        #print("\n***")
+        #for i in range(len(valid_matchesQ)):
+           #print( str(valid_matchesQ[i].sep_getBaseCycle()) + " " + str(valid_matchesQ[i].endCycle) + " fmu: " + str(valid_matchesQ[i].fmu_in_use))
+        #    print(str(valid_matchesQ[i].id) + " " + str(valid_matchesQ[i].sep_getBaseCycle()))
+        #print("***")
 
         # Check for not initialized matches, and initialize them
         self.initializeUnitializedMatches(valid_matchesQ);
@@ -143,11 +177,11 @@ class TopFreeMemoryUnit(Topology):
                         valid_matchesQ[i].sep_incrementCycle(inc);
          '''
 
-        print("\n***")
-        for i in range(len(valid_matchesQ)):
-            #print( str(valid_matchesQ[i].sep_getBaseCycle()) + " " + str(valid_matchesQ[i].endCycle) + " fmu: " + str(valid_matchesQ[i].fmu_in_use))
-            print(str(valid_matchesQ[i].id) + " " + str(valid_matchesQ[i].sep_getBaseCycle()))
-        print("***")
+        #print("\n***")
+        #for i in range(len(valid_matchesQ)):
+           #print( str(valid_matchesQ[i].sep_getBaseCycle()) + " " + str(valid_matchesQ[i].endCycle) + " fmu: " + str(valid_matchesQ[i].fmu_in_use))
+        #    print(str(valid_matchesQ[i].id) + " " + str(valid_matchesQ[i].sep_getBaseCycle()))
+        #print("***")
 
         # find lowest cycle
         readyMatch : MQ_Match
@@ -191,6 +225,8 @@ class TopFreeMemoryUnit(Topology):
 
                     if inc > 0:
                         valid_matchesQ[j].sep_incrementCycle(inc);
+                        if readyMatch.fmu_in_use == valid_matchesQ[j].fmu_in_use:
+                            self.fmu_congestion_time[readyMatch.fmu_in_use] = self.fmu_congestion_time[readyMatch.fmu_in_use] + inc;
 
             for j in range(0, len(invalid_matchesQ)):
                 
@@ -243,10 +279,11 @@ class TopFreeMemoryUnit(Topology):
 
         
         assert readyMatch.endCycle == readyMatch.recv_endCycle, "Why are they not equal? " + str(readyMatch.endCycle) + " != " + str(readyMatch.recv_endCycle)
-        if readyMatch.fmu_in_use < self.nFMUs:
+        self.update_fmu_last_cycle(readyMatch.fmu_in_use, readyMatch.endCycle);
+        #if readyMatch.fmu_in_use < self.nFMUs:
             #print(str(readyMatch.endCycle) + " - " + str(readyMatch.fmu_in_use) + " - " + str(self.fmu_last_cycle_vector[readyMatch.fmu_in_use]))
-            assert readyMatch.endCycle >= self.fmu_last_cycle_vector[readyMatch.fmu_in_use], "what? " + str(readyMatch.endCycle) + " < " + str(self.fmu_last_cycle_vector[readyMatch.fmu_in_use])
-            self.fmu_last_cycle_vector[readyMatch.fmu_in_use] = readyMatch.endCycle;
+        #    assert readyMatch.endCycle >= self.fmu_last_cycle_vector[readyMatch.fmu_in_use], "what? " + str(readyMatch.endCycle) + " < " + str(self.fmu_last_cycle_vector[readyMatch.fmu_in_use])
+        #    self.fmu_last_cycle_vector[readyMatch.fmu_in_use] = readyMatch.endCycle;
         
 
 

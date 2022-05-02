@@ -409,6 +409,11 @@ class SimpleCommEngine:
             isinstance(self.MQ.topology, TopFreeMemoryUnit)
         ):
             biggest_buffer_size = self.MQ.topology.fmu_circularBuffer.biggest_buffer_size;
+            print("fmu_contention_time:", end='')
+            print(str(self.MQ.topology.fmu_congestion_time[0]), end='');
+            for i in range(1, self.MQ.topology.nFMUs):
+                print(","+str(self.MQ.topology.fmu_congestion_time[i]), end='')
+            print("");
         print("biggest_buffer_size:"+str(biggest_buffer_size));
         hybrid_pivot_value = -1;
         proportion_fmu_usage = 0.0;
