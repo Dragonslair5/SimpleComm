@@ -11,6 +11,9 @@ from Col_Allreduce import *
 from Col_Alltoall import *
 from Col_Alltoallv import *
 
+from Col_Bcast_Rank import *
+from Col_Barrier_Rank import *
+
 
 
 
@@ -58,12 +61,34 @@ class Rank:
         self.amountOfDataOnCommunication = 0;
         self.amountOfCommunications = 0;
         self.largestDataOnASingleCommunication = 0;
-
+        
 
         #self.dict_mpi_overhead = {key:value for key, value in MPI_Operations.__dict__.items() if not key.startswith('__') and not callable(key)}
         self.dict_mpi_overhead = {key:value for key, value in MPI_Operations.__dict__.items() if key.startswith('MPI_')}
         self.dict_mpi_overhead = dict.fromkeys(self.dict_mpi_overhead, 0);
-        
+
+        # **********************   Collective Algorithms   **********************
+        # Bcast
+        self.col_bcast = None;
+        if configfile.CA_Bcast == "binomial_tree":
+            self.col_bcast = Col_Bcast.binomial_tree;
+        else:
+            self.printErrorAndQuit("ERROR: Unknown Bcast algorithm " + configfile.CA_Bcast);
+        # Barrier
+        self.col_barrier = None;
+        if configfile.CA_Barrier == "basic_linear":
+            self.col_barrier = Col_Barrier.basic_linear;
+        else:
+            self.printErrorAndQuit("ERROR: Unknown Barrier algorithm " + configfile.CA_Barrier);
+        # ***********************************************************************
+
+
+
+
+    def printErrorAndQuit(self, error_message: str):
+        print( bcolors.FAIL + error_message + bcolors.ENDC);
+        sys.exit(1);
+
 
 
     def includeHaltedTime(self, begin, end, operation_ID):
@@ -175,6 +200,13 @@ class Rank:
             sr = SendRecv(MPIC_RECV, self.rank, source, size, self.cycle, MPI_Operations.MPI_RECV, "recv", tag=tag);
             self.current_operation = "recv(" + str(source) + ")-" + str(self.index);
             return sr;
+
+
+
+
+
+
+        # Collectives
         if(operation == "bcast"):
             self.current_operation = "bcast-" + str(self.index);
             self.state = Rank.S_COMMUNICATING;
@@ -225,6 +257,12 @@ class Rank:
                 recv_count.append(int(workload[4 + num_ranks + i]));
             alltoallv = MQ_Alltoallv_entry(self.rank, send_datatype, recv_datatype, send_count, recv_count, self.cycle);
             return alltoallv;
+        # ***
+        
+        
+        
+        
+        
         if(operation == "finalize"):
             self.current_operation = "finalize-" + str(self.index);
             #self.state = Rank.S_ENDED;
