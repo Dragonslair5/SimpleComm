@@ -154,11 +154,11 @@ class TopFreeMemoryUnit(Topology):
 
         # *******************************************************************************************************************************
 
-        #print("\n***")
-        #for i in range(len(valid_matchesQ)):
+        print("\n*** " + str(len(valid_matchesQ)))
+        for i in range(len(valid_matchesQ)):
            #print( str(valid_matchesQ[i].sep_getBaseCycle()) + " " + str(valid_matchesQ[i].endCycle) + " fmu: " + str(valid_matchesQ[i].fmu_in_use))
-        #    print(str(valid_matchesQ[i].id) + " " + str(valid_matchesQ[i].sep_getBaseCycle()))
-        #print("***")
+            print(str(valid_matchesQ[i].id) + " " + str(valid_matchesQ[i].sep_getBaseCycle()))
+        print("***")
 
         # Check for not initialized matches, and initialize them
         self.initializeUnitializedMatches(valid_matchesQ);

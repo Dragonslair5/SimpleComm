@@ -15,8 +15,9 @@ class Col_Barrier:
                      rank_offset = 0)->list:
 
         
-        operation_origin="barrier"
-        sr_list = []
+        operation_origin="barrier";
+        sr_list: typing.List[SendRecv];
+        sr_list = [];
 
         if my_rank == 0:
             for rank in range(1, num_ranks):
@@ -36,4 +37,14 @@ class Col_Barrier:
             sr_list.append(sr);
 
 
-        return sr_list;
+        layered_list = [];
+        layered_list.append([]);
+
+        for i in range(len(sr_list)):
+            col_id = sr_list[i].col_id;
+            if len(layered_list) < col_id:
+                layered_list.append([])
+            layered_list[col_id-1].append(sr_list[i]);
+
+
+        return layered_list;

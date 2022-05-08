@@ -117,7 +117,7 @@ class SimpleCommEngine:
             #    print( bcolors.OKBLUE + "Rank-" + str(rank) + bcolors.ENDC);
             #    print(trace);
 
-            aux_rank = Rank(rank-1, trace, self.config);
+            aux_rank = Rank(nRanks, rank-1, trace, self.config);
 
             self.list_ranks.append(aux_rank);
 
@@ -132,7 +132,17 @@ class SimpleCommEngine:
         # Step forward
         for ri in range(len(self.list_ranks)):
             # Try to progress on simulation (step)
-            operation = self.list_ranks[ri].step(len(self.list_ranks));
+            #operation = self.list_ranks[ri].step(len(self.list_ranks));
+            
+            sr_list = self.list_ranks[ri].step(len(self.list_ranks));
+
+            if sr_list is not None:
+                if isinstance(sr_list, SendRecv):
+                    self.MQ.includeSendRecv(sr_list);
+                else:
+                    while(sr_list):
+                        self.MQ.includeSendRecv(sr_list.pop(0)); 
+            '''
             if operation is not None:
                 if isinstance(operation, SendRecv):
                     self.MQ.includeSendRecv(operation);
@@ -148,6 +158,7 @@ class SimpleCommEngine:
                     self.MQ.include_Alltoall(operation, len(self.list_ranks));
                 elif isinstance(operation, MQ_Alltoallv_entry):
                     self.MQ.include_Alltoallv(operation, len(self.list_ranks));
+            '''
             if self.list_ranks[ri].state == Rank.S_ENDED:
                 END = END + 1
 
@@ -192,6 +203,10 @@ class SimpleCommEngine:
             if match.size > self.list_ranks[match.rankS].largestDataOnASingleCommunication:
                 self.list_ranks[match.rankS].largestDataOnASingleCommunication = match.size;
             
+            # Collective
+            if MPI_Operations.isCollectiveOperation(match.send_operation_ID):
+                self.list_ranks[match.rankS].concludeCollectiveSendRecv();
+
 
             # ********* RECV
             if match.blocking_recv:
@@ -213,6 +228,10 @@ class SimpleCommEngine:
             self.list_ranks[match.rankR].amountOfDataOnCommunication = self.list_ranks[match.rankR].amountOfDataOnCommunication + match.size
             if match.size > self.list_ranks[match.rankR].largestDataOnASingleCommunication:
                 self.list_ranks[match.rankR].largestDataOnASingleCommunication = match.size;
+
+            # Collective
+            if MPI_Operations.isCollectiveOperation(match.recv_operation_ID):
+                self.list_ranks[match.rankR].concludeCollectiveSendRecv();
 
             #del match;
 

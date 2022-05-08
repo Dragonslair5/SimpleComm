@@ -2,13 +2,9 @@
 from CollectiveOperationsQueue import *
 from Top_FreeMemoryIndependent import *
 from Top_FreeMemoryIndependentInterleaving import *
-from Top_FreeMemoryUnit import TopFreeMemoryUnit
-from Top_NoContention import *
+from Top_FreeMemoryUnit import *
 from Topology import *
-from Top_CircuitSwitchedFreeMemory import *
-from Top_CircuitSwitchedSingleChannel import *
 from Top_Kahuna import *
-from Top_SharedSingleChannel import *
 from Top_Hybrid import *
 from Rank import *
 from CheckMatch import *
@@ -25,24 +21,16 @@ class MessageQueue:
 
         # Communication/Contention Topology
 
-        if   configfile.topology == "SC_SHARED":
-            self.topology = TopSharedSingleChannel(numRanks, configfile);
-        elif configfile.topology == "KAHUNA": # *** KAHUNA
+        if configfile.topology == "KAHUNA": # *** KAHUNA
             self.topology = TopKahuna(numRanks, configfile);
         elif configfile.topology == "HYBRID": # *** HYBRID
             self.topology = TopHybrid(numRanks, configfile);
-        elif configfile.topology == "SC_CS":
-            self.topology = TopCircuitSwitchedSingleChannel(numRanks, configfile);
-        elif configfile.topology == "FM_CS":
-            self.topology = TopCircuitSwitchedFreeMemory(numRanks, configfile);
         elif configfile.topology == "FREE_MEMORY_INDEPENDENT": # *** FMU
             self.topology = TopFreeMemoryIndependent(numRanks, configfile);
         elif configfile.topology == "FREE_MEMORY_INDEPENDENT_INTERLEAVING": # *** FMU interleaving
             self.topology = TopFreeMemoryIndependentInterleaving(numRanks, configfile);
         elif configfile.topology == "FMU": # *** FMU
             self.topology = TopFreeMemoryUnit(numRanks, configfile);
-        elif configfile.topology == "NO_CONTENTION":
-            self.topology = TopNoContention(numRanks, configfile);
         else:
             print( bcolors.FAIL + "ERROR: Unknown topology " + configfile.topology + bcolors.ENDC);
             sys.exit(1);
@@ -97,6 +85,8 @@ class MessageQueue:
             else:
                 print( bcolors.FAIL + "ERROR: Unknown SendRecv of kind" + str(sendrecv.kind) + bcolors.ENDC);
                 sys.exit(1);
+        
+        print("senQ: " + str(len(self.sendQ)) + " recvQ: " + str(len(self.recvQ)) + " matchQ: " + str(len(self.matchQ)) )
 
 
     def include_Bcast(self, bcast_entry, numRanks) -> None:

@@ -187,6 +187,11 @@ class MPI_Operations:
         sys.exit(1);
 
 
+    @staticmethod
+    def isCollectiveOperation(ID: int)->bool:
+        if ID > 99:
+            return True;
+        return False;
 
 
 
