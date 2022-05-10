@@ -132,13 +132,8 @@ class TopKahuna(Topology):
 
 
     def processContention(self, matchQ: typing.List[MQ_Match], col_matchQ: typing.List[CollectiveOperationQueueEntry], currentPosition)-> MQ_Match:
-        
-        valid_matchesQ : list[MQ_Match]; # For valid matches
-        valid_matchesQ = []
-        invalid_matchesQ : list[MQ_Match]; # For invalid matches
-        invalid_matchesQ = []
 
-        valid_matchesQ, invalid_matchesQ = self.separateValidAndInvalidMatches(matchQ, col_matchQ, currentPosition);
+        valid_matchesQ = matchQ;
 
         times: int;
         times = 0;
@@ -173,21 +168,6 @@ class TopKahuna(Topology):
                 # If readyMatch is None, it does not exist... what happened?        
                 assert readyMatch is not None, "ready match is not presented on matches queues"
                 # ---
-
-                for j in range(0, len(invalid_matchesQ)):
-                    if (
-                       (readyMatch.rankS == invalid_matchesQ[j].rankS) or
-                       (readyMatch.rankS == invalid_matchesQ[j].rankR) or
-                       (readyMatch.rankR == invalid_matchesQ[j].rankS) or
-                       (readyMatch.rankR == invalid_matchesQ[j].rankR)
-                    ):
-                        minToStart = readyMatch.endCycle + invalid_matchesQ[j].latency;
-                        inc = minToStart - invalid_matchesQ[j].baseCycle;
-                               
-                        if inc >= 0:
-                            invalid_matchesQ[j].baseCycle = invalid_matchesQ[j].baseCycle + inc;
-                            invalid_matchesQ[j].original_baseCycle = invalid_matchesQ[j].original_baseCycle + inc;
-                            invalid_matchesQ[j].endCycle = invalid_matchesQ[j].endCycle + inc;
                         
                 #print("")
                 return readyMatch;

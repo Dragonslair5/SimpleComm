@@ -47,6 +47,7 @@ class Rank:
         self.current_operation = "";
         self.simulateComputation = configfile.computation;
         self.processing_speed = configfile.processing_speed;
+        self.i_am_blocked_by_standard_send_or_recv = False;
         
         # Non-blocking operation
         self.iSendRecvQ = [];
@@ -171,13 +172,47 @@ class Rank:
 
     def concludeCollectiveSendRecv(self):
         #print("down Rank: " + str(self.rank) + " Counter: " + str(self.counter_waitingCollective))
-        #assert self.counter_waitingCollective > 0, "Wtf?"
+        assert self.counter_waitingCollective > 0, "Wtf?"
         self.counter_waitingCollective = self.counter_waitingCollective - 1;
-        print("down Rank: " + str(self.rank) + " Counter: " + str(self.counter_waitingCollective))
+        #print("down Rank: " + str(self.rank) + " Counter: " + str(self.counter_waitingCollective))
+
+    def canGoToNormal(self)->bool:
+        if self.collective_sr_list is None:
+            return True;
+        return False;
 
     def step(self, num_ranks):
-        if self.state == Rank.S_ENDED or self.state == Rank.S_COMMUNICATING:
+        #if self.state == Rank.S_ENDED or self.state == Rank.S_COMMUNICATING:
+        #    return None;
+        if self.state == Rank.S_ENDED:
             return None;
+        if self.state == Rank.S_COMMUNICATING:
+            if self.counter_waitingCollective != 0:
+                return None;
+            if (self.collective_sr_list != None):
+                if (len(self.collective_sr_list) > 0):
+                    self.counter_waitingCollective = len(self.collective_sr_list[0]);
+                    #print("up Rank: " + str(self.rank) + " Counter: " + str(self.counter_waitingCollective))
+
+                    # Grab next bunch of SendRecv from collective
+                    sr_list: typing.List[SendRecv];
+                    sr_list = self.collective_sr_list.pop(0);
+                    # Update baseCycle
+                    for i in range(len(sr_list)):
+                        sr_list[i].baseCycle = self.cycle;
+                    
+                    #print("Rank " + str(self.rank) + " sending " + str(len(sr_list)) + " SR on " + str(self.cycle))
+
+                    return sr_list;
+                #print("Rank " + str(self.rank) +" Going to normal")
+                self.collective_sr_list = None;
+                self.state = Rank.S_NORMAL;
+                if self.shallEnd:
+                    self.state = Rank.S_ENDED;
+                    return None;
+            else:
+                    return None; # This is called when this rank is blocked by an usual MPI_Send on MPI_Recv.
+
         if self.state == Rank.S_WAITING:
             if(self.check_iSendRecvConclusion(self.waitingTag)):
                 self.state = Rank.S_NORMAL;
@@ -185,19 +220,31 @@ class Rank:
         if self.shallEnd and (self.collective_sr_list is None):
             self.state = Rank.S_ENDED;
             return None;
-        if self.counter_waitingCollective != 0:
-            print("Dae counter: " + str(self.counter_waitingCollective))
-            return None;
-        if (self.collective_sr_list != None): 
-            if (len(self.collective_sr_list[0]) > 0):
-                self.counter_waitingCollective = len(self.collective_sr_list[0]);
-                print("up Rank: " + str(self.rank) + " Counter: " + str(self.counter_waitingCollective))
-                return self.collective_sr_list.pop(0);
-            self.collective_sr_list = None;
-            self.state = Rank.S_NORMAL;
-            if self.shallEnd:
-                self.state = Rank.S_ENDED;
-                return None;
+        #if self.counter_waitingCollective != 0:
+        #    print("Dae counter: " + str(self.counter_waitingCollective))
+        #    return None;
+        #if (self.collective_sr_list != None):
+        #    if (len(self.collective_sr_list[0]) > 0):
+        #        self.counter_waitingCollective = len(self.collective_sr_list[0]);
+        #        print("up Rank: " + str(self.rank) + " Counter: " + str(self.counter_waitingCollective))
+        #        return self.collective_sr_list.pop(0);
+        #    self.collective_sr_list = None;
+        #    self.state = Rank.S_NORMAL;
+        #    if self.shallEnd:
+        #        self.state = Rank.S_ENDED;
+        #        return None;
+
+
+
+        # ********************************************
+        #  ____ _____ _____ ____  
+        # / ___|_   _| ____|  _ \ 
+        # \___ \ | | |  _| | |_) |
+        #  ___) || | | |___|  __/ 
+        # |____/ |_| |_____|_|    
+        # ********************************************
+
+
         # Grab workload and increment index
         workload = self.trace[self.index];
         operation = workload[1];
@@ -222,6 +269,7 @@ class Rank:
             size = int(workload[4]) * datatype;
             sr = SendRecv(MPIC_SEND, self.rank, target, size, self.cycle, MPI_Operations.MPI_SEND, "send", tag=tag);
             self.current_operation = "send(" + str(target) + ")-" + str(self.index);
+            self.i_am_blocked_by_standard_send_or_recv = True;
             return sr;
         if(operation == "recv"):
             self.state = Rank.S_COMMUNICATING;
@@ -231,6 +279,7 @@ class Rank:
             size = int(workload[4]) * datatype;
             sr = SendRecv(MPIC_RECV, self.rank, source, size, self.cycle, MPI_Operations.MPI_RECV, "recv", tag=tag);
             self.current_operation = "recv(" + str(source) + ")-" + str(self.index);
+            self.i_am_blocked_by_standard_send_or_recv = True;
             return sr;
 
 
@@ -253,7 +302,7 @@ class Rank:
             
             self.collective_sr_list = self.col_barrier(self.nRanks, self.rank, self.cycle, rank_offset=0);
             self.counter_waitingCollective = len(self.collective_sr_list[0]);
-            print("up Rank: " + str(self.rank) + " Counter: " + str(self.counter_waitingCollective))
+            #print("up Rank: " + str(self.rank) + " Counter: " + str(self.counter_waitingCollective))
             return self.collective_sr_list.pop(0);
 
             #barrier = MQ_Barrier_entry(self.rank, self.cycle);
@@ -311,7 +360,7 @@ class Rank:
 
             self.collective_sr_list = self.col_barrier(self.nRanks, self.rank, self.cycle, rank_offset=0);
             self.counter_waitingCollective = len(self.collective_sr_list[0]);
-            print("up Rank: " + str(self.rank) + " Counter: " + str(self.counter_waitingCollective))
+            #print("up Rank: " + str(self.rank) + " Counter: " + str(self.counter_waitingCollective) + " ColLength: " + str(len(self.collective_sr_list)))
             return self.collective_sr_list.pop(0);
             
             barrier = MQ_Barrier_entry(self.rank, self.cycle);

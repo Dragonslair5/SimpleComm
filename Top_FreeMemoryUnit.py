@@ -135,47 +135,22 @@ class TopFreeMemoryUnit(Topology):
 
     def processContention(self, matchQ, col_matchQ, currentPosition) -> MQ_Match:
 
-        # We separate the several matches
-        valid_matchesQ : list[MQ_Match]; # For valid matches
-        valid_matchesQ = []
-        invalid_matchesQ : list[MQ_Match]; # For invalid matches
-        invalid_matchesQ = []
+        valid_matchesQ = matchQ;
 
-        ###[1] Find the valid matches
-        # Valid matches are the ones that:
-        #       1) match their position on the "currentPosition" tracker of the messagequeue 
-        #       OR
-        #       2) the ones that are untrackable (negative tag)
-        # We separate the matches on two arrays, onde for the valid ones (valid_matchesQ)
-        # and another for the invalid ondes (invalid_matchesQ)
-        valid_matchesQ, invalid_matchesQ = self.separateValidAndInvalidMatches(matchQ, col_matchQ, currentPosition);
+        #print("Valid: " + str(len(valid_matchesQ)) + " Invalid: " + str(len(invalid_matchesQ)))
         # We might be on a deadlock if there is no valid match on this point
         assert len(valid_matchesQ) > 0, "No valid Match was found"
 
         # *******************************************************************************************************************************
 
-        print("\n*** " + str(len(valid_matchesQ)))
-        for i in range(len(valid_matchesQ)):
-           #print( str(valid_matchesQ[i].sep_getBaseCycle()) + " " + str(valid_matchesQ[i].endCycle) + " fmu: " + str(valid_matchesQ[i].fmu_in_use))
-            print(str(valid_matchesQ[i].id) + " " + str(valid_matchesQ[i].sep_getBaseCycle()))
-        print("***")
+        #print("\n*** " + str(len(valid_matchesQ)))
+        #for i in range(len(valid_matchesQ)):
+        #   #print( str(valid_matchesQ[i].sep_getBaseCycle()) + " " + str(valid_matchesQ[i].endCycle) + " fmu: " + str(valid_matchesQ[i].fmu_in_use))
+        #    print(str(valid_matchesQ[i].id) + " " + str(valid_matchesQ[i].sep_getBaseCycle()))
+        #print("***")
 
         # Check for not initialized matches, and initialize them
         self.initializeUnitializedMatches(valid_matchesQ);
-        '''
-        for i in range(len(valid_matchesQ)):
-            if not valid_matchesQ[i].initialized:
-                #valid_matchesQ[i].sep_initializeMatch(self.SimpleCommunicationCalculusInternode(valid_matchesQ[i].size));
-                valid_matchesQ[i].sep_initializeMatch(self.CommunicationCalculus_Bandwidth(valid_matchesQ[i].rankS, valid_matchesQ[i].rankR, valid_matchesQ[i].size)[0]);
-                #chosenFMU = self.fmu_interleave % self.nFMUs;
-                chosenFMU = self.chooseFMU(valid_matchesQ[i].rankR);
-                valid_matchesQ[i].fmu_in_use = chosenFMU;
-                if chosenFMU < self.nFMUs:
-                    minToStart = self.fmu_last_cycle_vector[chosenFMU] + valid_matchesQ[i].latency;
-                    inc = minToStart - valid_matchesQ[i].sep_getBaseCycle();
-                    if inc > 0:
-                        valid_matchesQ[i].sep_incrementCycle(inc);
-         '''
 
         #print("\n***")
         #for i in range(len(valid_matchesQ)):
@@ -227,28 +202,6 @@ class TopFreeMemoryUnit(Topology):
                         valid_matchesQ[j].sep_incrementCycle(inc);
                         if readyMatch.fmu_in_use == valid_matchesQ[j].fmu_in_use:
                             self.fmu_congestion_time[readyMatch.fmu_in_use] = self.fmu_congestion_time[readyMatch.fmu_in_use] + inc;
-
-            for j in range(0, len(invalid_matchesQ)):
-                
-                partner_rank = None;
-                if invalid_matchesQ[j].still_solving_send:
-                    partner_rank = invalid_matchesQ[j].rankS;
-                else:
-                    partner_rank = invalid_matchesQ[j].rankR;
-                
-
-                # Only check if ranks are equal.
-                # As invalid matches still do not have an assigned FMU, 
-                # We treat delays due FMU on initialization using fmu_last_cycle_vector
-                if (
-                               (rank_in_usage == partner_rank) 
-                ):
-                    minToStart = readyMatch.sep_getEndCycle() + invalid_matchesQ[j].latency;
-                    inc = minToStart - invalid_matchesQ[j].sep_getBaseCycle();
-
-                    if inc > 0:
-                        invalid_matchesQ[j].sep_incrementCycle(inc);
-
 
             if readyMatch.still_solving_send:
                 readyMatch.sep_move_RECV_after_SEND();

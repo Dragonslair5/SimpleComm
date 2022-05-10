@@ -192,8 +192,9 @@ class SimpleCommEngine:
                 if match.send_endCycle > self.list_ranks[match.rankS].cycle:
                     self.list_ranks[match.rankS].includeHaltedTime(self.list_ranks[match.rankS].cycle, match.send_endCycle, match.send_operation_ID);
                     self.list_ranks[match.rankS].cycle = match.send_endCycle;
-                if self.MQ.blockablePendingMessage[match.rankS] == 0:
+                if self.MQ.blockablePendingMessage[match.rankS] == 0 and self.list_ranks[match.rankS].canGoToNormal() and self.list_ranks[match.rankS].i_am_blocked_by_standard_send_or_recv:
                     self.list_ranks[match.rankS].state = Rank.S_NORMAL;
+                    self.list_ranks[match.rankS].i_am_blocked_by_standard_send_or_recv = False;
             else:
                 self.list_ranks[match.rankS].include_iSendRecvConclusion(match.tag, match.send_endCycle, match.send_operation_ID);
             
@@ -218,8 +219,9 @@ class SimpleCommEngine:
                 if match.recv_endCycle > self.list_ranks[match.rankR].cycle:
                     self.list_ranks[match.rankR].includeHaltedTime(self.list_ranks[match.rankR].cycle, match.recv_endCycle, match.recv_operation_ID);
                     self.list_ranks[match.rankR].cycle = match.recv_endCycle;
-                if self.MQ.blockablePendingMessage[match.rankR] == 0:
+                if self.MQ.blockablePendingMessage[match.rankR] == 0 and self.list_ranks[match.rankR].canGoToNormal() and self.list_ranks[match.rankR].i_am_blocked_by_standard_send_or_recv:
                     self.list_ranks[match.rankR].state = Rank.S_NORMAL;
+                    self.list_ranks[match.rankR].i_am_blocked_by_standard_send_or_recv = False;
             else:
                 self.list_ranks[match.rankR].include_iSendRecvConclusion(match.tag, match.recv_endCycle, match.recv_operation_ID);
             

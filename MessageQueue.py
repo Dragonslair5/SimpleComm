@@ -86,7 +86,7 @@ class MessageQueue:
                 print( bcolors.FAIL + "ERROR: Unknown SendRecv of kind" + str(sendrecv.kind) + bcolors.ENDC);
                 sys.exit(1);
         
-        print("senQ: " + str(len(self.sendQ)) + " recvQ: " + str(len(self.recvQ)) + " matchQ: " + str(len(self.matchQ)) )
+        #print("senQ: " + str(len(self.sendQ)) + " recvQ: " + str(len(self.recvQ)) + " matchQ: " + str(len(self.matchQ)) )
 
 
     def include_Bcast(self, bcast_entry, numRanks) -> None:
@@ -365,7 +365,8 @@ class MessageQueue:
         receiving_message = ") [" + earliest_match.recv_origin + "] R:(";
 
         self.op_message = self.op_message + sending_message + str(earliest_match.rankS) + receiving_message + str(earliest_match.rankR) + ") size: " + str(earliest_match.size) + " Bytes" + " Ending in cycle: " + str(earliest_match.endCycle)
-
+        if isinstance(self.topology, TopFreeMemoryUnit):
+            self.op_message = self.op_message + " fmu: " + str(earliest_match.fmu_in_use);
 
         if not self.topology.independent_send_recv:
             earliest_match.send_endCycle = earliest_match.endCycle;
