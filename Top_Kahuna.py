@@ -131,7 +131,7 @@ class TopKahuna(Topology):
         return None;
 
 
-    def processContention(self, matchQ: typing.List[MQ_Match], col_matchQ: typing.List[CollectiveOperationQueueEntry], currentPosition)-> MQ_Match:
+    def processContention(self, matchQ: typing.List[MQ_Match])-> MQ_Match:
 
         valid_matchesQ = matchQ;
 
@@ -160,11 +160,11 @@ class TopKahuna(Topology):
                     if id == matchQ[j].id:
                         readyMatch = matchQ.pop(j)
                         break;
-                if readyMatch is None:
-                    for j in range(0, len(col_matchQ)):
-                        readyMatch = col_matchQ[j].getMatchByID(id);
-                        if readyMatch is not None:
-                            break;
+                #if readyMatch is None:
+                #    for j in range(0, len(col_matchQ)):
+                #        readyMatch = col_matchQ[j].getMatchByID(id);
+                #        if readyMatch is not None:
+                #            break;
                 # If readyMatch is None, it does not exist... what happened?        
                 assert readyMatch is not None, "ready match is not presented on matches queues"
                 # ---

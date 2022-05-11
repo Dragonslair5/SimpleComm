@@ -106,7 +106,7 @@ class MQ_CheckMatch:
 
                 # Create the match and put it on the Matching Queue
                 #print("Match " + str())
-                assert sendrecv.col_id == partner.col_id, "SEND and RECV have different col_id"
+                #assert sendrecv.col_id == partner.col_id, "SEND and RECV have different col_id"
                 if sendrecv.kind == MPIC_SEND:
                     match = MQ_Match(matchID, sendrecv.rank, partner.rank, sendrecv.size, baseCycle, endCycle, tag = partner.tag, blocking_send=sendrecv.blocking, blocking_recv=partner.blocking, send_origin=sendrecv.operation_origin, send_operation_ID=sendrecv.operation_origin_ID, recv_origin=partner.operation_origin, recv_operation_ID=partner.operation_origin_ID, positionS=sendrecv.queue_position, positionR=partner.queue_position, bandwidth=bandwidth, latency=latency, col_id=sendrecv.col_id);
                 else:

@@ -4,15 +4,13 @@ import sys
 from tp_utils import *
 from MPI_Constants import *
 from SendRecv import *
-from Col_Bcast import *
-from Col_Barrier import *
-from Col_Reduce import *
-from Col_Allreduce import *
-from Col_Alltoall import *
-from Col_Alltoallv import *
 
 from Col_Bcast_Rank import *
 from Col_Barrier_Rank import *
+from Col_Allreduce_Rank import *
+from Col_Alltoall_Rank import *
+from Col_Alltoallv_Rank import *
+from Col_Reduce_Rank import *
 
 
 
@@ -82,18 +80,44 @@ class Rank:
         self.collective_sr_list = None;
 
         # **********************   Collective Algorithms   **********************
-        # Bcast
-        self.col_bcast = None;
-        if configfile.CA_Bcast == "binomial_tree":
-            self.col_bcast = Col_Bcast.binomial_tree;
-        else:
-            self.printErrorAndQuit("ERROR: Unknown Bcast algorithm " + configfile.CA_Bcast);
         # Barrier
         self.col_barrier = None;
         if configfile.CA_Barrier == "basic_linear":
             self.col_barrier = Col_Barrier.basic_linear;
         else:
             self.printErrorAndQuit("ERROR: Unknown Barrier algorithm " + configfile.CA_Barrier);
+        # Bcast
+        self.col_bcast = None;
+        if configfile.CA_Bcast == "binomial_tree":
+            self.col_bcast = Col_Bcast.binomial_tree;
+        else:
+            self.printErrorAndQuit("ERROR: Unknown Bcast algorithm " + configfile.CA_Bcast);
+        # Reduce
+        self.col_reduce = None;
+        if configfile.CA_Reduce == "alltoroot":
+            self.col_reduce = Col_Reduce.allToRoot;
+        else:
+            self.printErrorAndQuit("ERROR: Unknown Reduce algorithm " + configfile.CA_Reduce);
+        # Allreduce
+        self.col_allreduce = None;
+        if configfile.CA_Allreduce == "reduce_bcast":
+            self.col_allreduce = Col_AllReduce.reduce_bcast;
+        else:
+            self.printErrorAndQuit("ERROR: Unknown Allreduce algorithm " + configfile.CA_Allreduce);
+        # Alltoall
+        self.col_alltoall = None;
+        if configfile.CA_Alltoall == "basic_linear":
+            self.col_alltoall = Col_Alltoall.basic_linear_or_ring;
+        else:
+            self.printErrorAndQuit("ERROR: Unknown Alltoall algorithm " + configfile.CA_Alltoall);
+        # Alltoallv
+        self.col_alltoallv = None;
+        if configfile.CA_Alltoallv == "nbc_like_simgrid":
+            self.col_alltoallv = Col_Alltoallv.nbc_like_simgrid;
+        elif configfile.CA_Alltoallv == "nbc_improved":
+            self.col_alltoallv = Col_Alltoallv.improved_nbc_like_simgrid;
+        else:
+            self.printErrorAndQuit("ERROR: Unknown Alltoallv algorithm " + configfile.CA_Alltoallv);
         # ***********************************************************************
 
 
@@ -294,8 +318,16 @@ class Rank:
             root = int(workload[3]);
             datatype = getDataTypeSize(int(workload[4]));
             size = int(workload[2]) * datatype;
-            bc = MQ_Bcast_entry(self.rank, root, size, self.cycle);
-            return bc;
+            #bc = MQ_Bcast_entry(self.rank, root, size, self.cycle);
+            #return bc;
+            #self.collective_sr_list = self.col_barrier(self.nRanks, self.rank, self.cycle, rank_offset=0);
+            self.collective_sr_list = self.col_bcast(self.nRanks, self.rank, root, size, self.cycle, rank_offset=0);
+            self.counter_waitingCollective = len(self.collective_sr_list[0]);
+            #print("up Rank: " + str(self.rank) + " Counter: " + str(self.counter_waitingCollective))
+            return self.collective_sr_list.pop(0);
+
+            
+
         if(operation == "barrier"):
             self.current_operation = "barrier-" + str(self.index);
             self.state = Rank.S_COMMUNICATING;
@@ -316,15 +348,24 @@ class Rank:
             root = int(workload[4]);
             datatype = getDataTypeSize(int(workload[5]));
             size = int(workload[2]) * datatype;
-            reduce = MQ_Reduce_entry(self.rank, root, size, self.cycle);
-            return reduce;
+            #reduce = MQ_Reduce_entry(self.rank, root, size, self.cycle);
+            #return reduce;
+            self.collective_sr_list = self.col_reduce(self.nRanks, self.rank, size, root, self.cycle, rank_offset=0);
+            self.counter_waitingCollective = len(self.collective_sr_list[0]);
+            #print("up Rank: " + str(self.rank) + " Counter: " + str(self.counter_waitingCollective))
+            return self.collective_sr_list.pop(0);
+
         if(operation == "allreduce"):
             self.current_operation = "allreduce-"+str(self.index);
             self.state = Rank.S_COMMUNICATING;
             datatype = getDataTypeSize(int(workload[4]));
             size = int(workload[2]) * datatype;
-            allreduce = MQ_Allreduce_entry(self.rank, size, self.cycle);
-            return allreduce;
+            #allreduce = MQ_Allreduce_entry(self.rank, size, self.cycle);
+            #return allreduce;
+            self.collective_sr_list = self.col_allreduce(self.nRanks, self.rank, size, self.cycle, rank_offset=0);
+            self.counter_waitingCollective = len(self.collective_sr_list[0]);
+            #print("up Rank: " + str(self.rank) + " Counter: " + str(self.counter_waitingCollective))
+            return self.collective_sr_list.pop(0);
         if(operation == "alltoall"):
             self.current_operation = "alltoall-" + str(self.index);
             self.state = Rank.S_COMMUNICATING;
@@ -332,8 +373,12 @@ class Rank:
             recv_datatype = getDataTypeSize(int(workload[5]));
             send_size = int(workload[2]) * send_datatype;
             recv_size = int(workload[3]) * recv_datatype;
-            alltoall = MQ_Alltoall_entry(self.rank, send_size, recv_size, self.cycle);
-            return alltoall;
+            #alltoall = MQ_Alltoall_entry(self.rank, send_size, recv_size, self.cycle);
+            #return alltoall;
+            self.collective_sr_list = self.col_alltoall(self.nRanks, self.rank, send_size, recv_size, self.cycle, rank_offset=0);
+            self.counter_waitingCollective = len(self.collective_sr_list[0]);
+            #print("up Rank: " + str(self.rank) + " Counter: " + str(self.counter_waitingCollective))
+            return self.collective_sr_list.pop(0);
         if(operation == "alltoallv"): # alltoallv <send count> [send vector] <recv count> [recv vector] <recv datatype> <send datatype>
             self.current_operation = "alltoallv-" + str(self.index);
             self.state = Rank.S_COMMUNICATING;
@@ -344,8 +389,12 @@ class Rank:
             for i in range(num_ranks):
                 send_count.append(int(workload[3 + i]));
                 recv_count.append(int(workload[4 + num_ranks + i]));
-            alltoallv = MQ_Alltoallv_entry(self.rank, send_datatype, recv_datatype, send_count, recv_count, self.cycle);
-            return alltoallv;
+            #alltoallv = MQ_Alltoallv_entry(self.rank, send_datatype, recv_datatype, send_count, recv_count, self.cycle);
+            #return alltoallv;
+            self.collective_sr_list = self.col_alltoallv(self.nRanks, self.rank, send_datatype, recv_datatype, send_count, recv_count, self.cycle, rank_offset=0);
+            self.counter_waitingCollective = len(self.collective_sr_list[0]);
+            #print("up Rank: " + str(self.rank) + " Counter: " + str(self.counter_waitingCollective))
+            return self.collective_sr_list.pop(0);
         # ***
         
         

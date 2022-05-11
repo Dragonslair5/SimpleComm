@@ -5,30 +5,35 @@ from SendRecv import *
 from CollectiveUtils import *
 
 
-
-class Col_Bcast:
-
-    #def __init__ (self, num_ranks: int):
-    #    self.num_ranks = num_ranks;
+class Col_AllReduce:
 
 
-    # * Using MPI_Send
+
     @staticmethod
-    def binomial_tree(num_ranks: int, 
-                            my_rank: int, 
-                            root: int,
-                            size: int,
-                            baseCycle: float, 
-                            rank_offset = 0)->list:
+    def reduce_bcast(num_ranks: int,
+                     my_rank:int,
+                     size:int,
+                     baseCycle: float, 
+                     rank_offset = 0)->list:
 
-        operation_origin="bcast";              
-        sr_list: list[SendRecv]
+        
+        operation_origin="allreduce";
+        sr_list: typing.List[SendRecv];
         sr_list = [];
 
+        # [1] Reduce
+        # Current rank to rank 0 (reduce)
+        if my_rank == 0:
+            for source_rank in range(1, num_ranks):
+                sr = sr = SendRecv(MPIC_RECV, 0, source_rank, size, baseCycle, MPI_Operations.MPI_ALLREDUCE, operation_origin=operation_origin, tag=MPIC_COLL_TAG_ALLREDUCE, col_id=1);
+        else:
+            sr = SendRecv(MPIC_SEND, my_rank, 0, size, baseCycle, MPI_Operations.MPI_ALLREDUCE, operation_origin=operation_origin, tag=MPIC_COLL_TAG_ALLREDUCE, col_id=1);
+
+        # [2] Binomial tree bcast
+        root = 0;
+        col_id = 2;
+
         mask = 0x1;
-
-        col_id = 1;
-
         if my_rank >= root:
             relative_rank = my_rank - root;
         else:
@@ -60,5 +65,3 @@ class Col_Bcast:
             mask = mask >> 1;
 
         return CollectiveUtils.layer_my_SendRecvList(sr_list=sr_list);
-
-        #return sr_list;

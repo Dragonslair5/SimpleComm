@@ -77,7 +77,7 @@ class Topology(ABC):
     '''
 
     @abstractmethod
-    def processContention(self, matchQ, col_matchQ, currentPosition) -> MQ_Match:
+    def processContention(self, matchQ) -> MQ_Match:
         pass;
 
     

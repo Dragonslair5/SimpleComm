@@ -2,6 +2,7 @@ import sys
 from tp_utils import *
 from MPI_Constants import *
 from SendRecv import *
+from CollectiveUtils import *
 
 
 class Col_Barrier:
@@ -35,6 +36,9 @@ class Col_Barrier:
             sr_list.append(sr);
             sr = SendRecv(MPIC_RECV, my_rank, 0, 0, baseCycle, MPI_Operations.MPI_BARRIER, operation_origin=operation_origin, tag=MPIC_COLL_TAG_BARRIER, blocking=True, col_id=2);
             sr_list.append(sr);
+
+
+        return CollectiveUtils.layer_my_SendRecvList(sr_list=sr_list);
 
 
         layered_list = [];

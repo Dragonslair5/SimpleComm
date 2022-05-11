@@ -133,7 +133,7 @@ class TopFreeMemoryUnit(Topology):
 
 
 
-    def processContention(self, matchQ, col_matchQ, currentPosition) -> MQ_Match:
+    def processContention(self, matchQ) -> MQ_Match:
 
         valid_matchesQ = matchQ;
 
@@ -247,11 +247,11 @@ class TopFreeMemoryUnit(Topology):
             if readyMatchID == matchQ[j].id:
                readyMatch = matchQ.pop(j)
                break;
-        if readyMatch is None:
-            for j in range(0, len(col_matchQ)):
-                readyMatch = col_matchQ[j].getMatchByID(readyMatchID);
-                if readyMatch is not None:
-                    break;
+        #if readyMatch is None:
+        #    for j in range(0, len(col_matchQ)):
+        #        readyMatch = col_matchQ[j].getMatchByID(readyMatchID);
+        #        if readyMatch is not None:
+        #            break;
         # If readyMatch is None, it does not exist... what happened?        
         assert readyMatch is not None, "ready match is not presented on matches queues"
 

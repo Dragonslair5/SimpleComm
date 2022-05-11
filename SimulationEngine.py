@@ -166,9 +166,6 @@ class SimpleCommEngine:
             self.ended = True;
             return END;
 
-        # Process Collective Operations
-        self.MQ.processCollectiveOperations(self.config);
-
         # Process MatchQueue
         match: MQ_Match;
         match = self.MQ.processMatchQueue(self.list_ranks);

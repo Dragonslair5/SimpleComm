@@ -1,5 +1,3 @@
-#from email.message import Message
-from CollectiveOperationsQueue import *
 from Top_FreeMemoryIndependent import *
 from Top_FreeMemoryIndependentInterleaving import *
 from Top_FreeMemoryUnit import *
@@ -23,12 +21,12 @@ class MessageQueue:
 
         if configfile.topology == "KAHUNA": # *** KAHUNA
             self.topology = TopKahuna(numRanks, configfile);
-        elif configfile.topology == "HYBRID": # *** HYBRID
-            self.topology = TopHybrid(numRanks, configfile);
-        elif configfile.topology == "FREE_MEMORY_INDEPENDENT": # *** FMU
-            self.topology = TopFreeMemoryIndependent(numRanks, configfile);
-        elif configfile.topology == "FREE_MEMORY_INDEPENDENT_INTERLEAVING": # *** FMU interleaving
-            self.topology = TopFreeMemoryIndependentInterleaving(numRanks, configfile);
+        #elif configfile.topology == "HYBRID": # *** HYBRID
+        #    self.topology = TopHybrid(numRanks, configfile);
+        #elif configfile.topology == "FREE_MEMORY_INDEPENDENT": # *** FMU
+        #    self.topology = TopFreeMemoryIndependent(numRanks, configfile);
+        #elif configfile.topology == "FREE_MEMORY_INDEPENDENT_INTERLEAVING": # *** FMU interleaving
+        #    self.topology = TopFreeMemoryIndependentInterleaving(numRanks, configfile);
         elif configfile.topology == "FMU": # *** FMU
             self.topology = TopFreeMemoryUnit(numRanks, configfile);
         else:
@@ -44,22 +42,14 @@ class MessageQueue:
         self.matchQ: list[MQ_Match];
         self.matchQ = [];
         self.matchID = 0; # Counter for setting match ID when creating a MATCH
-        self.col_matchQ: list[CollectiveOperationQueueEntry];
-        self.col_matchQ = [];
 
         self.indexAcumulator = [0] * numRanks; # To increment index when including SEND/RECV
         self.currentPosition = [0] * numRanks; # Position for consuming SEND/RECV Matches
         
-        # A queue for each collective operation
-        self.bcastQ = [];
-        self.barrierQ = [];
-        self.reduceQ = [];
-        self.allreduceQ = [];
-        self.alltoallQ = [];
-        self.alltoallvQ = [];
-        
-
         self.blockablePendingMessage = [0] * numRanks;
+
+        # TODO: DELETE THIS
+        #self.col_matchQ = []
 
         
         
@@ -87,218 +77,6 @@ class MessageQueue:
                 sys.exit(1);
         
         #print("senQ: " + str(len(self.sendQ)) + " recvQ: " + str(len(self.recvQ)) + " matchQ: " + str(len(self.matchQ)) )
-
-
-    def include_Bcast(self, bcast_entry, numRanks) -> None:
-        
-        #bcast_index = 0;
-        # Check if entry for this bcast is already created
-        if len(self.bcastQ) > 0: #might be
-            for i in range(len(self.bcastQ)):
-                if self.bcastQ[i].root == bcast_entry.root:
-                    self.bcastQ[i].incEntry(bcast_entry);
-                    return None;        
-        # Creating a new bcast entry
-        root = bcast_entry.root;
-        size = bcast_entry.size;
-        mqBcast = MQ_Bcast(numRanks, root, size);
-        mqBcast.incEntry(bcast_entry);
-        self.bcastQ.append(mqBcast);
-        return None;
-
-    def include_Barrier(self, barrier_entry, numRanks) -> None:
-
-        # TODO: Expand to multiple communicators
-        # Considering only 1 for now
-        if len(self.barrierQ) == 0:
-            barrier = MQ_Barrier(numRanks);
-            self.barrierQ.append(barrier);
-
-        self.barrierQ[0].incEntry(barrier_entry);
-        return None;
-    
-    
-    def include_Reduce(self, reduce_entry, numRanks) -> None:
-        
-        root = reduce_entry.root;
-        size = reduce_entry.size;
-        
-        # TODO: Expand to multiple communicators
-        # Considering only 1 for now
-        if len(self.reduceQ) == 0:
-            reduce = MQ_Reduce(numRanks, root, size);
-            self.reduceQ.append(reduce);
-
-        self.reduceQ[0].incEntry(reduce_entry);
-        return None;
-
-
-    def include_Allreduce(self, allreduce_entry, numRanks) -> None:
-        size = allreduce_entry.size;
-
-        # TODO: Expand to multiple communicators
-        # Considering only 1 for now
-        if len(self.allreduceQ) == 0:
-            allreduce = MQ_Allreduce(numRanks, size);
-            self.allreduceQ.append(allreduce);
-
-        self.allreduceQ[0].incEntry(allreduce_entry);
-        return None;
-
-    def include_Alltoall(self, alltoall_entry: MQ_Alltoall_entry, numRanks) -> None:
-        sendsize = alltoall_entry.sendsize;
-        recvsize = alltoall_entry.recvsize;
-        
-        # TODO: Expand to multiple communicators
-        # Considering only 1 for now
-        if len(self.alltoallQ) == 0:
-            alltoall = MQ_Alltoall(numRanks, recvsize, sendsize);
-            self.alltoallQ.append(alltoall);
-
-        self.alltoallQ[0].incEntry(alltoall_entry);
-        return None;
-
-    def include_Alltoallv(self, alltoallv_entry: MQ_Alltoallv_entry, numRanks) -> None:
-
-        # TODO: Expand to multiple communicators
-        # Considering only 1 for now
-        if len(self.alltoallvQ) == 0:
-            alltoallv = MQ_Alltoallv(numRanks);
-            self.alltoallvQ.append(alltoallv);
-
-        self.alltoallvQ[0].incEntry(alltoallv_entry);
-        return None;
-
-
-    def processCollectiveOperations(self, config: SimpleCommConfiguration) -> None:
-
-        # ******************************************************************
-        # bcast (broadcast)
-        removal_indexes = []
-        for bi in range(len(self.bcastQ)):
-            if self.bcastQ[bi].isReady():
-                sr_list = self.bcastQ[bi].process(config.CA_Bcast);
-                self.op_message = self.op_message + " bcast";
-                colMQ = CollectiveOperationQueueEntry(self.blockablePendingMessage, self.indexAcumulator, self.matchID, self.topology);
-                #print(sr_list)
-                while len(sr_list) > 0:
-                    sr = sr_list.pop(0);
-                    colMQ.includeSendRecv(sr);
-                    #self.includeSendRecv(sr);
-                removal_indexes.append(bi);
-                self.matchID = colMQ.getMatchID();
-                self.col_matchQ.append(colMQ);
-        
-
-        for i in range(len(removal_indexes)-1, -1, -1):
-            #print("Removing " + str(removal_indexes[i]) )
-            del self.bcastQ[removal_indexes[i]]
-            #self.bcastQ.del(removal_indexes[i]);
-
-        # ******************************************************************
-        # barrier (barrier)
-        removal_indexes = []
-        for bi in range(len(self.barrierQ)):
-            if self.barrierQ[bi].isReady():
-                sr_list = self.barrierQ[bi].process(config.CA_Barrier);
-                self.op_message = self.op_message + " barrier";
-                colMQ = CollectiveOperationQueueEntry(self.blockablePendingMessage, self.indexAcumulator, self.matchID, self.topology);
-                while len(sr_list) > 0:
-                    sr = sr_list.pop(0);
-                    colMQ.includeSendRecv(sr);
-                    #self.includeSendRecv(sr);
-                removal_indexes.append(bi);
-                self.matchID = colMQ.getMatchID();
-                self.col_matchQ.append(colMQ);
-
-        for i in range(len(removal_indexes)-1, -1, -1):
-            #print("Removing " + str(removal_indexes[i]) )
-            del self.barrierQ[removal_indexes[i]]
-
-        # ******************************************************************
-        # reduce (reduce)
-        removal_indexes = []
-        for ri in range(len(self.reduceQ)):
-            if self.reduceQ[ri].isReady():
-                sr_list = self.reduceQ[ri].process(config.CA_Reduce);
-                self.op_message = self.op_message + " reduce";
-                colMQ = CollectiveOperationQueueEntry(self.blockablePendingMessage, self.indexAcumulator, self.matchID, self.topology);
-                while len(sr_list) > 0:
-                    sr = sr_list.pop(0);
-                    colMQ.includeSendRecv(sr);
-                    #self.includeSendRecv(sr);
-                removal_indexes.append(ri);
-                self.matchID = colMQ.getMatchID();
-                self.col_matchQ.append(colMQ);
-        
-        for i in range(len(removal_indexes)-1, -1, -1):
-            #print("Removing " + str(removal_indexes[i]) )
-            del self.reduceQ[removal_indexes[i]]
-
-        # ******************************************************************
-        # allreduce (allreduce)
-        removal_indexes = []
-        for ri in range(len(self.allreduceQ)):
-            if self.allreduceQ[ri].isReady():
-                sr_list = self.allreduceQ[ri].process(config.CA_Allreduce);
-                self.op_message = self.op_message + " allreduce";
-                colMQ = CollectiveOperationQueueEntry(self.blockablePendingMessage, self.indexAcumulator, self.matchID, self.topology);
-                while len(sr_list) > 0:
-                    sr = sr_list.pop(0);
-                    #print(sr)
-                    colMQ.includeSendRecv(sr);
-                    #self.includeSendRecv(sr);
-                removal_indexes.append(ri);
-                self.matchID = colMQ.getMatchID();
-                self.col_matchQ.append(colMQ);
-        
-        for i in range(len(removal_indexes)-1, -1, -1):
-            #print("Removing " + str(removal_indexes[i]) )
-            del self.allreduceQ[removal_indexes[i]]
-
-        # ******************************************************************
-        # alltoall (alltoall)
-        removal_indexes = []
-        for ai in range(len(self.alltoallQ)):
-            if self.alltoallQ[ai].isReady():
-                sr_list = self.alltoallQ[ai].process(config.CA_Alltoall);
-                self.op_message = self.op_message + " alltoall";
-                colMQ = CollectiveOperationQueueEntry(self.blockablePendingMessage, self.indexAcumulator, self.matchID, self.topology);
-                while len(sr_list) > 0:
-                    sr = sr_list.pop(0);
-                    #print(sr)
-                    colMQ.includeSendRecv(sr);
-                    #self.includeSendRecv(sr);
-                removal_indexes.append(ai);
-                self.matchID = colMQ.getMatchID();
-                self.col_matchQ.append(colMQ);
-        
-        for i in range(len(removal_indexes)-1, -1, -1):
-            #print("Removing " + str(removal_indexes[i]) )
-            del self.alltoallQ[removal_indexes[i]]
-
-        # ******************************************************************
-        # alltoallv (alltoallv)
-        removal_indexes = []
-        for ai in range(len(self.alltoallvQ)):
-            if self.alltoallvQ[ai].isReady():
-                sr_list = self.alltoallvQ[ai].process(config.CA_Alltoallv);
-                self.op_message = self.op_message + " alltoallv";
-                colMQ = CollectiveOperationQueueEntry(self.blockablePendingMessage, self.indexAcumulator, self.matchID, self.topology);
-                while len(sr_list) > 0:
-                    sr = sr_list.pop(0);
-                    #print(sr)
-                    colMQ.includeSendRecv(sr);
-                    #self.includeSendRecv(sr);
-                removal_indexes.append(ai);
-                self.matchID = colMQ.getMatchID();
-                self.col_matchQ.append(colMQ);
-        
-        for i in range(len(removal_indexes)-1, -1, -1):
-            #print("Removing " + str(removal_indexes[i]) )
-            del self.alltoallvQ[removal_indexes[i]]
-
-
 
     
 
@@ -340,13 +118,13 @@ class MessageQueue:
         #self.processContention(len(list_ranks), self.matchQ, earliest_match, "SC_CC");
         #self.processContention(len(list_ranks), self.matchQ, earliest_match, "SC_FATPIPE");
         earliest_match : MQ_Match;
-        earliest_match = self.topology.processContention(self.matchQ, self.col_matchQ, self.currentPosition);
+        earliest_match = self.topology.processContention(self.matchQ);
 
         assert earliest_match is not None, "No match was found on MessageQueue"
 
-        if len(self.col_matchQ) > 0:
-            if self.col_matchQ[0].isEmpty():
-                del self.col_matchQ[0];
+        #if len(self.col_matchQ) > 0:
+        #    if self.col_matchQ[0].isEmpty():
+        #        del self.col_matchQ[0];
 
 
         # Increment position on the queue
