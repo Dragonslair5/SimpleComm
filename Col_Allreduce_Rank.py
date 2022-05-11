@@ -8,7 +8,9 @@ from CollectiveUtils import *
 class Col_AllReduce:
 
 
-
+    # Based on SimGrid
+    # allreduce__default (smpi_default_selector.cpp)
+    # [1](reduce->0)   [2](0->bcast)
     @staticmethod
     def reduce_bcast(num_ranks: int,
                      my_rank:int,
@@ -26,8 +28,11 @@ class Col_AllReduce:
         if my_rank == 0:
             for source_rank in range(1, num_ranks):
                 sr = sr = SendRecv(MPIC_RECV, 0, source_rank, size, baseCycle, MPI_Operations.MPI_ALLREDUCE, operation_origin=operation_origin, tag=MPIC_COLL_TAG_ALLREDUCE, col_id=1);
+                sr_list.append(sr)
         else:
             sr = SendRecv(MPIC_SEND, my_rank, 0, size, baseCycle, MPI_Operations.MPI_ALLREDUCE, operation_origin=operation_origin, tag=MPIC_COLL_TAG_ALLREDUCE, col_id=1);
+            sr_list.append(sr)
+
 
         # [2] Binomial tree bcast
         root = 0;
@@ -63,5 +68,8 @@ class Col_AllReduce:
                 col_id = col_id + 1;
                 sr_list.append(sr);
             mask = mask >> 1;
+
+        
+        #print("My Rank: " + str(my_rank) + " SR: " + str(len(sr_list)))
 
         return CollectiveUtils.layer_my_SendRecvList(sr_list=sr_list);
