@@ -1,5 +1,3 @@
-from Top_FreeMemoryIndependent import *
-from Top_FreeMemoryIndependentInterleaving import *
 from Top_FreeMemoryUnit import *
 from Topology import *
 from Top_Kahuna import *
@@ -23,10 +21,6 @@ class MessageQueue:
             self.topology = TopKahuna(numRanks, configfile);
         #elif configfile.topology == "HYBRID": # *** HYBRID
         #    self.topology = TopHybrid(numRanks, configfile);
-        #elif configfile.topology == "FREE_MEMORY_INDEPENDENT": # *** FMU
-        #    self.topology = TopFreeMemoryIndependent(numRanks, configfile);
-        #elif configfile.topology == "FREE_MEMORY_INDEPENDENT_INTERLEAVING": # *** FMU interleaving
-        #    self.topology = TopFreeMemoryIndependentInterleaving(numRanks, configfile);
         elif configfile.topology == "FMU": # *** FMU
             self.topology = TopFreeMemoryUnit(numRanks, configfile);
         else:

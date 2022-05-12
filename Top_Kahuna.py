@@ -1,5 +1,4 @@
 from Topology import *
-from CollectiveOperationsQueue import *
 
 
 class TopKahuna(Topology):

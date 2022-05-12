@@ -343,8 +343,7 @@ class SimpleCommEngine:
         halted_time_percentage = (halted_time / total_time) * 100;
         print("halted_time_percentage:" + "{:.2f}".format(halted_time_percentage) )
         biggest_buffer_size = 0;
-        if (isinstance(self.MQ.topology, TopFreeMemoryIndependent) or
-            isinstance(self.MQ.topology, TopHybrid) or
+        if (isinstance(self.MQ.topology, TopHybrid) or
             isinstance(self.MQ.topology, TopFreeMemoryUnit)
         ):
             biggest_buffer_size = self.MQ.topology.fmu_circularBuffer.biggest_buffer_size;
@@ -354,7 +353,7 @@ class SimpleCommEngine:
         if isinstance(self.MQ.topology, TopHybrid):
             hybrid_pivot_value = self.MQ.topology.pivotValue;
             proportion_fmu_usage = (self.MQ.topology.total_messages_fmu / self.MQ.topology.total_messages) * 100;
-        if isinstance(self.MQ.topology, TopFreeMemoryIndependent):
+        if isinstance(self.MQ.topology, TopFreeMemoryUnit):
             proportion_fmu_usage = 100.0
         print("hybrid_pivot_value:"+str(int(hybrid_pivot_value)));
         print("proportion_fmu_usage:"+str(proportion_fmu_usage))
@@ -422,8 +421,7 @@ class SimpleCommEngine:
         halted_time_percentage = (halted_time / total_time) * 100;
         print("halted_time_percentage:" + "{:.2f}".format(halted_time_percentage) )
         biggest_buffer_size = 0;
-        if (isinstance(self.MQ.topology, TopFreeMemoryIndependent) or
-            isinstance(self.MQ.topology, TopHybrid) or
+        if (isinstance(self.MQ.topology, TopHybrid) or
             isinstance(self.MQ.topology, TopFreeMemoryUnit)
         ):
             biggest_buffer_size = self.MQ.topology.fmu_circularBuffer.biggest_buffer_size;
@@ -438,7 +436,7 @@ class SimpleCommEngine:
         if isinstance(self.MQ.topology, TopHybrid):
             hybrid_pivot_value = self.MQ.topology.pivotValue;
             proportion_fmu_usage = (self.MQ.topology.total_messages_fmu / self.MQ.topology.total_messages) * 100;
-        if isinstance(self.MQ.topology, TopFreeMemoryIndependent):
+        if isinstance(self.MQ.topology, TopFreeMemoryUnit):
             proportion_fmu_usage = 100.0
         print("hybrid_pivot_value:"+str(int(hybrid_pivot_value)));
         print("proportion_fmu_usage:"+str(proportion_fmu_usage))
