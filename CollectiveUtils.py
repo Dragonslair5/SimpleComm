@@ -9,18 +9,7 @@ from Col_Bcast_Rank import *
 
 
 
-
-#class CollectiveAlgorithms(Col_Bcast):
-
-
-
-#    def __init__(self, nRanks: int, my_rank: int)
-
-
-
 class CollectiveUtils:
-
-
 
     @staticmethod
     def layer_my_SendRecvList(sr_list: typing.List[SendRecv]):

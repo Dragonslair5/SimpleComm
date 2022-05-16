@@ -30,6 +30,9 @@ class SimpleCommConfiguration:
         else:
             self.print_communication_trace = False;
 
+        self.booster_factor = int(config["Simulation"].getint("booster_factor", "1"));
+        assert self.booster_factor >= 0, "Booster factor can not be negative -> " + str(self.booster_factor);
+
 
         self.topology = config["TOPOLOGY"].get("topology", "KAHUNA");
 
@@ -324,7 +327,7 @@ class MQ_Match:
 
     
     def getUpperCycle(self) -> float:
-        assert self.solvedCycle <= self.endCycle, "solvedCycle cannot be higher than endCycle";
+        assert self.solvedCycle <= self.endCycle, "solvedCycle cannot be higher than endCycle " + str(self.solvedCycle) + " > " + str(self.endCycle);
         if self.solvedCycle != -1:
             return self.solvedCycle;
         else:

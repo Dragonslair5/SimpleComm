@@ -329,6 +329,8 @@ class SimpleCommEngine:
             return None;
         if self.print_communication_trace:
             print("#");
+        print("topology:"+self.config.topology)
+        print("booster_factor:"+str(self.config.booster_factor))
         biggestCycle = self.list_ranks[0].cycle;
         for ri in range(1, len(self.list_ranks)):
             if self.list_ranks[ri].cycle > biggestCycle:
@@ -407,6 +409,9 @@ class SimpleCommEngine:
             return None;
 
         print("", end= '\r', flush=True);
+        print("topology:"+self.config.topology)
+        print("booster_factor:"+str(self.config.booster_factor))
+
         biggestCycle = self.list_ranks[0].cycle;
         for ri in range(1, len(self.list_ranks)):
             if self.list_ranks[ri].cycle > biggestCycle:

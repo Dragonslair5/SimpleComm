@@ -67,6 +67,10 @@ class Rank:
         self.dict_mpi_overhead = {key:value for key, value in MPI_Operations.__dict__.items() if key.startswith('MPI_')}
         self.dict_mpi_overhead = dict.fromkeys(self.dict_mpi_overhead, 0);
 
+        # Modifiers
+        self.boosterFactor = configfile.booster_factor;
+
+
         # ***********
         #   ____      _ _           _   _                
         #  / ___|___ | | | ___  ___| |_(_)_   _____  ___ 
@@ -120,7 +124,18 @@ class Rank:
             self.printErrorAndQuit("ERROR: Unknown Alltoallv algorithm " + configfile.CA_Alltoallv);
         # ***********************************************************************
 
-
+        #self.boosterFactor = 14000000;
+        #self.boosterFactor = 350000
+        #self.boosterFactor = 140000;
+        #self.boosterFactor = 1;
+        #self.boosterFactor = 500000;
+        #self.boosterFactor = 4200000
+        #self.boosterFactor = 420000
+        #self.boosterFactor = 28000000
+        #self.boosterFactor = 280000000
+        #self.boosterFactor = 2800000000
+        #self.boosterFactor = 10000
+        #self.boosterFactor = 7000
 
 
     def printErrorAndQuit(self, error_message: str):
@@ -290,7 +305,9 @@ class Rank:
             target=int(workload[2]);
             tag = int(workload[3]);
             datatype = getDataTypeSize(int(workload[5]));
-            size = int(workload[4]) * datatype;
+            #size = int(workload[4]) * datatype;
+            size = int(workload[4]) * datatype * self.boosterFactor;
+            #print(size)
             sr = SendRecv(MPIC_SEND, self.rank, target, size, self.cycle, MPI_Operations.MPI_SEND, "send", tag=tag);
             self.current_operation = "send(" + str(target) + ")-" + str(self.index);
             self.i_am_blocked_by_standard_send_or_recv = True;
@@ -300,7 +317,8 @@ class Rank:
             source=int(workload[2]);
             tag = int(workload[3]);
             datatype = getDataTypeSize(int(workload[5]));
-            size = int(workload[4]) * datatype;
+            #size = int(workload[4]) * datatype;
+            size = int(workload[4]) * datatype * self.boosterFactor;
             sr = SendRecv(MPIC_RECV, self.rank, source, size, self.cycle, MPI_Operations.MPI_RECV, "recv", tag=tag);
             self.current_operation = "recv(" + str(source) + ")-" + str(self.index);
             self.i_am_blocked_by_standard_send_or_recv = True;
@@ -317,7 +335,7 @@ class Rank:
             self.state = Rank.S_COMMUNICATING;
             root = int(workload[3]);
             datatype = getDataTypeSize(int(workload[4]));
-            size = int(workload[2]) * datatype;
+            size = int(workload[2]) * datatype * self.boosterFactor;
             #bc = MQ_Bcast_entry(self.rank, root, size, self.cycle);
             #return bc;
             #self.collective_sr_list = self.col_barrier(self.nRanks, self.rank, self.cycle, rank_offset=0);
@@ -347,7 +365,7 @@ class Rank:
             #root = int(workload[3]);
             root = int(workload[4]);
             datatype = getDataTypeSize(int(workload[5]));
-            size = int(workload[2]) * datatype;
+            size = int(workload[2]) * datatype * self.boosterFactor;
             #reduce = MQ_Reduce_entry(self.rank, root, size, self.cycle);
             #return reduce;
             self.collective_sr_list = self.col_reduce(self.nRanks, self.rank, size, root, self.cycle, rank_offset=0);
@@ -359,7 +377,7 @@ class Rank:
             self.current_operation = "allreduce-"+str(self.index);
             self.state = Rank.S_COMMUNICATING;
             datatype = getDataTypeSize(int(workload[4]));
-            size = int(workload[2]) * datatype;
+            size = int(workload[2]) * datatype * self.boosterFactor;
             #allreduce = MQ_Allreduce_entry(self.rank, size, self.cycle);
             #return allreduce;
             self.collective_sr_list = self.col_allreduce(self.nRanks, self.rank, size, self.cycle, rank_offset=0);
@@ -371,8 +389,8 @@ class Rank:
             self.state = Rank.S_COMMUNICATING;
             send_datatype = getDataTypeSize(int(workload[4]));
             recv_datatype = getDataTypeSize(int(workload[5]));
-            send_size = int(workload[2]) * send_datatype;
-            recv_size = int(workload[3]) * recv_datatype;
+            send_size = int(workload[2]) * send_datatype * self.boosterFactor;
+            recv_size = int(workload[3]) * recv_datatype * self.boosterFactor;
             #alltoall = MQ_Alltoall_entry(self.rank, send_size, recv_size, self.cycle);
             #return alltoall;
             self.collective_sr_list = self.col_alltoall(self.nRanks, self.rank, send_size, recv_size, self.cycle, rank_offset=0);
@@ -382,8 +400,8 @@ class Rank:
         if(operation == "alltoallv"): # alltoallv <send count> [send vector] <recv count> [recv vector] <recv datatype> <send datatype>
             self.current_operation = "alltoallv-" + str(self.index);
             self.state = Rank.S_COMMUNICATING;
-            send_datatype = getDataTypeSize(int(workload[4+2*num_ranks]));
-            recv_datatype = getDataTypeSize(int(workload[5+2*num_ranks]));
+            send_datatype = getDataTypeSize(int(workload[4+2*num_ranks])) * self.boosterFactor;
+            recv_datatype = getDataTypeSize(int(workload[5+2*num_ranks])) * self.boosterFactor;
             send_count = [];
             recv_count = [];
             for i in range(num_ranks):
@@ -422,7 +440,7 @@ class Rank:
             target=int(workload[2]);
             tag = int(workload[3]);
             datatype = getDataTypeSize(int(workload[5]));
-            size = int(workload[4]) * datatype;
+            size = int(workload[4]) * datatype * self.boosterFactor;
             sr = SendRecv(MPIC_SEND, self.rank, target, size, self.cycle, MPI_Operations.MPI_ISEND, "isend", blocking = False, tag=tag);
             self.current_operation = "isend-(" + str(target) + ")-" + str(self.index);
             return sr;
@@ -431,7 +449,7 @@ class Rank:
             source=int(workload[2]);
             tag = int(workload[3]);
             datatype = getDataTypeSize(int(workload[5]));
-            size = int(workload[4]) * datatype;
+            size = int(workload[4]) * datatype * self.boosterFactor;
             sr = SendRecv(MPIC_RECV, self.rank, source, size, self.cycle, MPI_Operations.MPI_IRECV, "irecv", blocking = False, tag=tag);
             self.current_operation = "irecv(" + str(source) + ")-" + str(self.index);
             return sr;
