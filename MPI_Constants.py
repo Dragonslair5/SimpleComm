@@ -2,7 +2,7 @@ import configparser
 from os.path import exists
 import sys
 from tp_utils import *
-from math import *
+import math
 
 class SimpleCommConfiguration:
     def __init__(self, configfile: str) -> None:
@@ -327,7 +327,8 @@ class MQ_Match:
 
     
     def getUpperCycle(self) -> float:
-        assert self.solvedCycle <= self.endCycle, "solvedCycle cannot be higher than endCycle " + str(self.solvedCycle) + " > " + str(self.endCycle);
+        #assert self.solvedCycle <= self.endCycle, "solvedCycle cannot be higher than endCycle " + str(self.solvedCycle) + " > " + str(self.endCycle);
+        assert math.isclose(self.solvedCycle, self.endCycle) or self.solvedCycle < self.endCycle, "solvedCycle cannot be higher than endCycle " + str(self.solvedCycle) + " > " + str(self.endCycle);
         if self.solvedCycle != -1:
             return self.solvedCycle;
         else:
@@ -336,31 +337,35 @@ class MQ_Match:
     def includeTransmittedData(self, length, bw_factor, data_size):
         self.transmitted_data.append([length, bw_factor, data_size]);
         #print(str(data_size) + " / " + str(self.size + 16))
-        self.data_sent = self.data_sent + trunc(data_size);
+        self.data_sent = self.data_sent + math.trunc(data_size);
         #print("<" + str(self.id) + "> " + str(self.data_sent) + "/" +str(self.size+16))   
         #print(self.transmitted_data)
         #print(self)
         #print("Truncated: " + str(trunc(self.data_sent)) + "  Raw: " + str(self.data_sent))
-        assert trunc(self.data_sent) <= (self.size+16), str(trunc(self.data_sent)) + " > " + str(self.size + 16)
+        #assert math.trunc(self.data_sent) <= ((self.size+16)*1.01), str(math.trunc(self.data_sent)) + " > " + str((self.size + 16)*1.01)
+        # We allow a 1 byte exceed on communication
+        assert math.isclose(math.trunc(self.data_sent) , (self.size+16), abs_tol=1) or math.trunc(self.data_sent) < ((self.size+16)), str(math.trunc(self.data_sent)) + " > " + str((self.size + 16))
+        #if not (math.isclose(math.trunc(self.data_sent) , (self.size+16)) or math.trunc(self.data_sent) < ((self.size+16))):
+        #    print( "Oiaeee" + str(math.trunc(self.data_sent)) + " > " + str((self.size + 16)));
         #assert self.data_sent <= (self.size+16), str(self.data_sent) + " > " + str(self.size + 16)
 
-    @DeprecationWarning
-    def checkCorrectness(self):
-        size = 0
-        sending = 0;
-        willsend = 0
-        bw = 2500000000
-        if self.solvedCycle != -1:
-            size = size + (self.endCycle - self.solvedCycle) * bw
-            sending = (self.endCycle - self.solvedCycle) * bw;
-            size = size + (self.solvedCycle - self.baseCycle) * (bw/self.bw_factor)
-            willsend = (self.solvedCycle - self.baseCycle) * (bw/self.bw_factor)
-        else:
-            size = size + (self.endCycle - self.baseCycle) * (bw/self.bw_factor)
-            willsend = (self.endCycle - self.baseCycle) * (bw/self.bw_factor)
-        size = size + self.data_sent;
-
-        print("ID: " + str(self.id) + " size: " + str(self.size+16) + " sent: " + str(round(self.data_sent)) + " sending: " + str(round(sending)) + " willsend: " + str(round(willsend)) + " data: " + str(round(size)))
+    #@DeprecationWarning
+    #def checkCorrectness(self):
+    #    size = 0
+    #    sending = 0;
+    #    willsend = 0
+    #    bw = 2500000000
+    #    if self.solvedCycle != -1:
+    #        size = size + (self.endCycle - self.solvedCycle) * bw
+    #        sending = (self.endCycle - self.solvedCycle) * bw;
+    #        size = size + (self.solvedCycle - self.baseCycle) * (bw/self.bw_factor)
+    #        willsend = (self.solvedCycle - self.baseCycle) * (bw/self.bw_factor)
+    #    else:
+    #        size = size + (self.endCycle - self.baseCycle) * (bw/self.bw_factor)
+    #        willsend = (self.endCycle - self.baseCycle) * (bw/self.bw_factor)
+    #    size = size + self.data_sent;
+    #
+    #    print("ID: " + str(self.id) + " size: " + str(self.size+16) + " sent: " + str(round(self.data_sent)) + " sending: " + str(round(sending)) + " willsend: " + str(round(willsend)) + " data: " + str(round(size)))
 
     def __str__ (self):
 #        return "[(" + str(self.positionS) + ")S:" + str(self.rankS) + " (" + str(self.positionR) + ")R:" + str(self.rankR) + "] (base: " + str(self.baseCycle) + " solved: " + str(self.solvedCycle) + " end: " + str(self.endCycle) + ")" + " lat: " + str(self.latency) +  " ID: " + str(self.id) + " col_id: " + str(self.col_id) + " bw_factor: " + str(self.bw_factor) + " originalBaseCycle: " + str(self.original_baseCycle) +" duration: " + str(self.endCycle - self.original_baseCycle) + " size: " + str(self.size+16) + " BW: " + str((self.size+16)/(self.endCycle - self.original_baseCycle))

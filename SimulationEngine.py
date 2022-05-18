@@ -2,7 +2,7 @@
 import sys
 
 from MessageQueue import *
-
+import math
 
 
 
@@ -180,12 +180,13 @@ class SimpleCommEngine:
 
             # ********* SEND
             if match.blocking_send:
-                assert match.send_original_baseCycle <= match.send_endCycle
+                assert math.isclose(match.send_original_baseCycle, match.send_endCycle) or match.send_original_baseCycle < match.send_endCycle
                 # Eager Protocol - skip this assert if Eager Protocol is used
                 if not self.MQ.topology.independent_send_recv and match.size >= self.config.eager_protocol_max_size:
                     # * 1.100 due to floating point imprecision (purely empirical value)
-                    assert self.list_ranks[match.rankS].cycle <= match.send_endCycle * 1.100, "Rank:" + str(match.rankS) + ": cycle " + str(self.list_ranks[match.rankS].cycle) + " cycle " + str(match.send_endCycle);
-                
+                    #assert self.list_ranks[match.rankS].cycle <= match.send_endCycle * 1.100, "Rank:" + str(match.rankS) + ": cycle " + str(self.list_ranks[match.rankS].cycle) + " cycle " + str(match.send_endCycle);
+                    assert math.isclose(self.list_ranks[match.rankS].cycle, match.send_endCycle, abs_tol=0.001) or self.list_ranks[match.rankS].cycle < match.send_endCycle, "Rank:" + str(match.rankS) + ": cycle " + str(self.list_ranks[match.rankS].cycle) + " cycle " + str(match.send_endCycle);
+
                 if match.send_endCycle > self.list_ranks[match.rankS].cycle:
                     self.list_ranks[match.rankS].includeHaltedTime(self.list_ranks[match.rankS].cycle, match.send_endCycle, match.send_operation_ID);
                     self.list_ranks[match.rankS].cycle = match.send_endCycle;
@@ -208,11 +209,12 @@ class SimpleCommEngine:
 
             # ********* RECV
             if match.blocking_recv:
-                assert match.recv_original_baseCycle <= match.recv_endCycle
+                #assert match.recv_original_baseCycle <= match.recv_endCycle
+                assert math.isclose(match.recv_original_baseCycle, match.recv_endCycle) or match.recv_original_baseCycle < match.recv_endCycle
                 if not self.MQ.topology.independent_send_recv:
                     # * 1.100 due to floating point imprecision (purely empirical value)
-                    assert self.list_ranks[match.rankR].cycle <= match.recv_endCycle  * 1.100, "Rank:" + str(match.rankR) + ": cycle " + str(self.list_ranks[match.rankR].cycle) + " cycle " + str(match.recv_endCycle);
-                
+                    #assert self.list_ranks[match.rankR].cycle <= match.recv_endCycle  * 1.100, "Rank:" + str(match.rankR) + ": cycle " + str(self.list_ranks[match.rankR].cycle) + " cycle " + str(match.recv_endCycle);
+                    assert math.isclose(self.list_ranks[match.rankR].cycle, match.recv_endCycle, abs_tol=0.001) or self.list_ranks[match.rankR].cycle < match.recv_endCycle, "Rank:" + str(match.rankR) + ": cycle " + str(self.list_ranks[match.rankR].cycle) + " cycle " + str(match.recv_endCycle);
                 if match.recv_endCycle > self.list_ranks[match.rankR].cycle:
                     self.list_ranks[match.rankR].includeHaltedTime(self.list_ranks[match.rankR].cycle, match.recv_endCycle, match.recv_operation_ID);
                     self.list_ranks[match.rankR].cycle = match.recv_endCycle;
