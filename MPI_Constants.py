@@ -344,7 +344,7 @@ class MQ_Match:
         #print("Truncated: " + str(trunc(self.data_sent)) + "  Raw: " + str(self.data_sent))
         #assert math.trunc(self.data_sent) <= ((self.size+16)*1.01), str(math.trunc(self.data_sent)) + " > " + str((self.size + 16)*1.01)
         # We allow a 1 byte exceed on communication
-        assert math.isclose(math.trunc(self.data_sent) , (self.size+16), abs_tol=1) or math.trunc(self.data_sent) < ((self.size+16)), str(math.trunc(self.data_sent)) + " > " + str((self.size + 16))
+        assert math.isclose(math.trunc(self.data_sent) , (self.size+16), abs_tol=1, rel_tol=0.01) or math.trunc(self.data_sent) < ((self.size+16)), str(math.trunc(self.data_sent)) + " > " + str((self.size + 16))
         #if not (math.isclose(math.trunc(self.data_sent) , (self.size+16)) or math.trunc(self.data_sent) < ((self.size+16))):
         #    print( "Oiaeee" + str(math.trunc(self.data_sent)) + " > " + str((self.size + 16)));
         #assert self.data_sent <= (self.size+16), str(self.data_sent) + " > " + str(self.size + 16)
