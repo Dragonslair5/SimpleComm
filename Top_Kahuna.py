@@ -6,11 +6,32 @@ class TopKahuna(Topology):
 
 
     def findReadyMatch(self, valid_matchesQ: typing.List[MQ_Match]) -> MQ_Match:
+        #for i in range(0, len(valid_matchesQ)):
+        #    #if valid_matchesQ[i].baseCycle == valid_matchesQ[i].endCycle:
+        #    if math.isclose(valid_matchesQ[i].baseCycle, valid_matchesQ[i].endCycle):
+        #        return valid_matchesQ[i];
+        #return None;
+
+        readies : typing.List[MQ_Match];
+        readies = []
         for i in range(0, len(valid_matchesQ)):
             #if valid_matchesQ[i].baseCycle == valid_matchesQ[i].endCycle:
             if math.isclose(valid_matchesQ[i].baseCycle, valid_matchesQ[i].endCycle):
-                return valid_matchesQ[i];
-        return None;
+                #return valid_matchesQ[i];
+                readies.append(valid_matchesQ[i]);
+        
+        if len(readies) == 0:
+            return None;
+        
+        lowestID = 0;
+        lowestCycle = readies[0].baseCycle;
+
+        for i in range(1, len(readies)):
+            if readies[i].baseCycle < lowestCycle:
+                lowestID = i;
+                lowestCycle = readies[i].baseCycle;
+        
+        return readies[lowestID];
 
 
     def findWindow(self, valid_matchesQ: typing.List[MQ_Match]) -> typing.Tuple[float, float]:

@@ -7,7 +7,7 @@ from FMU_CircularBuffer import *
 class Contention_FlexibleMemoryUnit:
 
 
-    def __init__(self, nRanks, configfile: SimpleCommConfiguration):
+    def __init__(self, nRanks: int, configfile: SimpleCommConfiguration):
 
 
         self.nRanks = nRanks;
@@ -15,6 +15,9 @@ class Contention_FlexibleMemoryUnit:
         self.independent_send_recv = True;
         self.eager_protocol_max_size = configfile.eager_protocol_max_size;
 
+        #Override (?)(on topology version of this, it is an override)
+        self.interLatency = configfile.fmu_latency;
+        self.interBandwidth = configfile.fmu_bandwidth;
 
         self.nFMUs = configfile.number_of_FMUs;
         assert self.nFMUs > 0, "Number of Free Memory Units needs to be at least 1 when using FMUs topology"
@@ -24,10 +27,6 @@ class Contention_FlexibleMemoryUnit:
 
         self.fmu_circularBuffer : FMU_CircularBuffer;
         self.fmu_circularBuffer = FMU_CircularBuffer(self.nFMUs);
-
-        #Override (?)(on topology version of this, it is an override)
-        self.interLatency = configfile.fmu_latency;
-        self.interBandwidth = configfile.fmu_bandwidth;
 
         self.isThereConflict = None;
         self.chooseFMU = None;

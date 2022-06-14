@@ -19,8 +19,8 @@ class MessageQueue:
 
         if configfile.topology == "KAHUNA": # *** KAHUNA
             self.topology = TopKahuna(numRanks, configfile);
-        #elif configfile.topology == "HYBRID": # *** HYBRID
-        #    self.topology = TopHybrid(numRanks, configfile);
+        elif configfile.topology == "HYBRID": # *** HYBRID
+            self.topology = TopHybrid(numRanks, configfile);
         elif configfile.topology == "FMU": # *** FMU
             self.topology = TopFreeMemoryUnit(numRanks, configfile);
         else:
