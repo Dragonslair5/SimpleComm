@@ -232,11 +232,16 @@ class TopHybrid(Topology):
         
         # ****************************************************************************
 
-        #readyMatchID: int;
-        #readyMatchID = None;
         readyMatch : MQ_Match;
         readyMatch = None;
 
+
+        # 4 cases
+        #   1 - Only Network
+        #   2 - Only FMU
+        #   3 - lowest is from FMU
+        #   4 - lowest is from Network
+        #       4.1 - TODO: Network should stop if its lowest meets the FMU lowest
         if lowest_cycle_fmu == None:
             #readyMatchID = self.Contention_Kahuna(network_matchesQ, invalid_matchesQ, -1);
             readyMatch = self.top_kahuna.processContention(network_matchesQ);
@@ -260,6 +265,7 @@ class TopHybrid(Topology):
 
         assert readyMatch is not None, "what?"
 
+        # Remove the readyMatch from matchQ of the Message Queue
         readyMatchID = readyMatch.id;
         readyMatch = None;
         for i in range(len(matchQ)):

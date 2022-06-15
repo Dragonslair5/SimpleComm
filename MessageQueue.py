@@ -42,11 +42,6 @@ class MessageQueue:
         
         self.blockablePendingMessage = [0] * numRanks;
 
-        # TODO: DELETE THIS
-        #self.col_matchQ = []
-
-        
-        
 
     
     def includeSendRecv(self, sendrecv: SendRecv):
