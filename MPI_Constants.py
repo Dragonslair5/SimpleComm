@@ -32,6 +32,8 @@ class SimpleCommConfiguration:
 
         self.booster_factor = int(config["Simulation"].getint("booster_factor", "1"));
         assert self.booster_factor >= 0, "Booster factor can not be negative -> " + str(self.booster_factor);
+        self.use_booster_factor_every = int(config["Simulation"].getint("use_booster_factor_every", "1"));
+        assert self.use_booster_factor_every >= 1, "Booster factor every 1 or more times"
 
 
         self.topology = config["TOPOLOGY"].get("topology", "KAHUNA");

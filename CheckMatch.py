@@ -15,7 +15,9 @@ class MQ_CheckMatch:
                    recvQ: typing.List[SendRecv],
                    matchQ: typing.List[MQ_Match],
                    topology: Topology,
-                   matchID: int):
+                   matchID: int,
+                   boosterFactor: int,
+                   use_booster_factor: bool)->bool:
 
         # Look on recvQ or sendQ?
         if sendrecv.kind == MPIC_SEND:
@@ -37,6 +39,9 @@ class MQ_CheckMatch:
                 assert sendrecv.tag == partner.tag;
 
 
+                if use_booster_factor == True:
+                    sendrecv.size = sendrecv.size * boosterFactor;
+                    partner.size = partner.size * boosterFactor;
                 
 
                 # Set the baseCycle (the highest between them)

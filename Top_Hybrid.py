@@ -211,9 +211,9 @@ class TopHybrid(Topology):
         lowest_cycle_network = None;
 
         # Check for not initialized matches, and initialize them
-        for i in range(len(fmu_matchesQ)):
-            if not fmu_matchesQ[i].initialized:
-                fmu_matchesQ[i].sep_initializeMatch(self.top_fmu.CommunicationCalculus_Bandwidth(fmu_matchesQ[i].rankS, fmu_matchesQ[i].rankR, fmu_matchesQ[i].size)[0])
+        #for i in range(len(fmu_matchesQ)):
+        #    if not fmu_matchesQ[i].initialized:
+        #        fmu_matchesQ[i].sep_initializeMatch(self.top_fmu.CommunicationCalculus_Bandwidth(fmu_matchesQ[i].rankS, fmu_matchesQ[i].rankR, fmu_matchesQ[i].size)[0])
 
 
         if len(fmu_matchesQ) > 0:

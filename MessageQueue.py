@@ -42,6 +42,18 @@ class MessageQueue:
         
         self.blockablePendingMessage = [0] * numRanks;
 
+        # Modifiers
+        self.boosterFactor = configfile.booster_factor;
+        self.use_booster_factor_every = configfile.use_booster_factor_every;
+        self.use_booster_factor_counter = 0;
+
+
+    def shouldUseBoosterFactor(self)->bool:
+        if self.use_booster_factor_counter % self.use_booster_factor_every == 0:
+            return True;
+        else:
+            return False;
+
 
     
     def includeSendRecv(self, sendrecv: SendRecv):
@@ -54,8 +66,9 @@ class MessageQueue:
             sendrecv.queue_position = -1;
 
 
-        if MQ_CheckMatch.checkMatch(sendrecv, self.sendQ, self.recvQ, self.matchQ, self.topology, self.matchID):
+        if MQ_CheckMatch.checkMatch(sendrecv, self.sendQ, self.recvQ, self.matchQ, self.topology, self.matchID, self.boosterFactor, self.shouldUseBoosterFactor()):
             self.matchID = self.matchID + 1;
+            self.use_booster_factor_counter = (self.use_booster_factor_counter + 1) % self.use_booster_factor_every;
         else:
             if sendrecv.kind == MPIC_SEND:
                 self.sendQ.append(sendrecv)

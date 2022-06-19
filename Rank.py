@@ -68,7 +68,8 @@ class Rank:
         self.dict_mpi_overhead = dict.fromkeys(self.dict_mpi_overhead, 0);
 
         # Modifiers
-        self.boosterFactor = configfile.booster_factor;
+        #self.boosterFactor = configfile.booster_factor;
+        self.boosterFactor = 1; # TODO Remove this after boosterFactor have being implemented on Message Queue.
 
 
         # ***********
