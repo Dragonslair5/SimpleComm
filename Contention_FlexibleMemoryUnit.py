@@ -18,6 +18,8 @@ class Contention_FlexibleMemoryUnit:
         #Override (?)(on topology version of this, it is an override)
         self.interLatency = configfile.fmu_latency;
         self.interBandwidth = configfile.fmu_bandwidth;
+        self.intraLatency = configfile.intranode_latency;
+        self.intraBandwidth = configfile.intranode_bandwidth;
 
         self.nFMUs = configfile.number_of_FMUs;
         assert self.nFMUs > 0, "Number of Free Memory Units needs to be at least 1 when using FMUs topology"
