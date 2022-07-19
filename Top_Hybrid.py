@@ -71,7 +71,8 @@ class TopHybrid(Topology):
     #  0 = FMU only
     def calculatePivot(self, network_latency: float, network_bandwidth: float, fmu_latency: float, fmu_bandwidth: float)->float:
 
-        fmu_latency = fmu_latency * 2;
+        fmu_latency = fmu_latency * 2; # One for write and one for read
+        fmu_bandwidth = fmu_bandwidth / 2; # half bandwidth because steps 1 and 2 are not pipelined
 
         # If latencies are equal
         if(network_bandwidth == fmu_bandwidth):
