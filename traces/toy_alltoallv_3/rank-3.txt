@@ -1,0 +1,5 @@
+2 init
+2 compute 22974
+2 alltoallv 1 1 0 0 3 0 3 0 1 1
+2 compute 43650
+2 finalize

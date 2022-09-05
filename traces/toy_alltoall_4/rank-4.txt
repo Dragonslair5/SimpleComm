@@ -1,0 +1,5 @@
+3 init
+3 compute 19998
+3 alltoall 1 1 0 0
+3 compute 25215
+3 finalize

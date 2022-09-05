@@ -1,0 +1,11 @@
+1 init
+1 compute 39150
+1 reduce 1 0 0 0 
+1 compute 24144
+1 reduce 1 0 1 0 
+1 compute 3855
+1 reduce 1 0 2 0 
+1 compute 3696
+1 reduce 1 0 3 0 
+1 compute 35811
+1 finalize

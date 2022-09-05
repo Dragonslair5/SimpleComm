@@ -1,0 +1,5 @@
+3 init
+3 compute 4485
+3 recv 2 2 1 1
+3 compute 16464
+3 finalize

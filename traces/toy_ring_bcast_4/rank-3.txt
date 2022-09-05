@@ -1,0 +1,11 @@
+2 init
+2 compute 11802
+2 bcast 13 0 0 
+2 compute 4443
+2 bcast 13 1 0 
+2 compute 21735
+2 bcast 13 2 0 
+2 compute 5907
+2 bcast 13 3 0 
+2 compute 6540
+2 finalize

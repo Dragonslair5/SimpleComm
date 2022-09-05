@@ -1,0 +1,63 @@
+0 init
+0 compute 86739
+0 irecv 0 0 1 1
+0 compute 6492
+0 send 0 0 1 1
+0 compute 8598
+0 wait 0 0 0
+0 compute 30180
+0 irecv 0 0 1 1
+0 compute 7818
+0 send 0 0 1 1
+0 compute 5112
+0 wait 0 0 0
+0 compute 28821
+0 irecv 0 0 1 1
+0 compute 7464
+0 send 0 0 1 1
+0 compute 3498
+0 wait 0 0 0
+0 compute 22341
+0 irecv 0 0 1 1
+0 compute 5148
+0 send 0 0 1 1
+0 compute 4278
+0 wait 0 0 0
+0 compute 23073
+0 irecv 0 0 1 1
+0 compute 5808
+0 send 0 0 1 1
+0 compute 3849
+0 wait 0 0 0
+0 compute 16824
+0 irecv 0 0 1 1
+0 compute 5211
+0 send 0 0 1 1
+0 compute 3084
+0 wait 0 0 0
+0 compute 19119
+0 irecv 0 0 1 1
+0 compute 4704
+0 send 0 0 1 1
+0 compute 5490
+0 wait 0 0 0
+0 compute 18642
+0 irecv 0 0 1 1
+0 compute 4149
+0 send 0 0 1 1
+0 compute 3237
+0 wait 0 0 0
+0 compute 21069
+0 irecv 0 0 1 1
+0 compute 5400
+0 send 0 0 1 1
+0 compute 4473
+0 wait 0 0 0
+0 compute 28206
+0 irecv 0 0 1 1
+0 compute 4977
+0 send 0 0 1 1
+0 compute 3093
+0 wait 0 0 0
+0 compute 23499
+0 finalize

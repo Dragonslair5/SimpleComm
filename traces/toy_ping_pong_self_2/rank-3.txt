@@ -1,0 +1,63 @@
+2 init
+2 compute 7470
+2 irecv 2 0 1 1
+2 compute 6135
+2 send 2 0 1 1
+2 compute 209976
+2 wait 2 2 0
+2 compute 25014
+2 irecv 2 0 1 1
+2 compute 4638
+2 send 2 0 1 1
+2 compute 3390
+2 wait 2 2 0
+2 compute 18687
+2 irecv 2 0 1 1
+2 compute 4542
+2 send 2 0 1 1
+2 compute 3093
+2 wait 2 2 0
+2 compute 18783
+2 irecv 2 0 1 1
+2 compute 4542
+2 send 2 0 1 1
+2 compute 3675
+2 wait 2 2 0
+2 compute 18564
+2 irecv 2 0 1 1
+2 compute 5025
+2 send 2 0 1 1
+2 compute 3504
+2 wait 2 2 0
+2 compute 21645
+2 irecv 2 0 1 1
+2 compute 6069
+2 send 2 0 1 1
+2 compute 3987
+2 wait 2 2 0
+2 compute 23277
+2 irecv 2 0 1 1
+2 compute 4332
+2 send 2 0 1 1
+2 compute 3231
+2 wait 2 2 0
+2 compute 19485
+2 irecv 2 0 1 1
+2 compute 6045
+2 send 2 0 1 1
+2 compute 3732
+2 wait 2 2 0
+2 compute 24294
+2 irecv 2 0 1 1
+2 compute 5181
+2 send 2 0 1 1
+2 compute 3423
+2 wait 2 2 0
+2 compute 23625
+2 irecv 2 0 1 1
+2 compute 5835
+2 send 2 0 1 1
+2 compute 3696
+2 wait 2 2 0
+2 compute 22893
+2 finalize

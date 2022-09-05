@@ -1,0 +1,63 @@
+3 init
+3 compute 6861
+3 irecv 3 0 1 1
+3 compute 24249
+3 send 3 0 1 1
+3 compute 5187
+3 wait 3 3 0
+3 compute 27210
+3 irecv 3 0 1 1
+3 compute 4500
+3 send 3 0 1 1
+3 compute 3408
+3 wait 3 3 0
+3 compute 18375
+3 irecv 3 0 1 1
+3 compute 4176
+3 send 3 0 1 1
+3 compute 5118
+3 wait 3 3 0
+3 compute 27912
+3 irecv 3 0 1 1
+3 compute 6807
+3 send 3 0 1 1
+3 compute 5466
+3 wait 3 3 0
+3 compute 28893
+3 irecv 3 0 1 1
+3 compute 6072
+3 send 3 0 1 1
+3 compute 4458
+3 wait 3 3 0
+3 compute 31371
+3 irecv 3 0 1 1
+3 compute 5610
+3 send 3 0 1 1
+3 compute 4077
+3 wait 3 3 0
+3 compute 20928
+3 irecv 3 0 1 1
+3 compute 5106
+3 send 3 0 1 1
+3 compute 3288
+3 wait 3 3 0
+3 compute 18909
+3 irecv 3 0 1 1
+3 compute 4464
+3 send 3 0 1 1
+3 compute 3309
+3 wait 3 3 0
+3 compute 18126
+3 irecv 3 0 1 1
+3 compute 4284
+3 send 3 0 1 1
+3 compute 3456
+3 wait 3 3 0
+3 compute 20607
+3 irecv 3 0 1 1
+3 compute 4746
+3 send 3 0 1 1
+3 compute 4164
+3 wait 3 3 0
+3 compute 20130
+3 finalize

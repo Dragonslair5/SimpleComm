@@ -1,0 +1,5 @@
+1 init
+1 compute 27252
+1 alltoallv 3 0 0 3 2 2 0 0 1 1
+1 compute 20388
+1 finalize

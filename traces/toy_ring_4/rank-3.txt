@@ -1,0 +1,7 @@
+2 init
+2 compute 10440
+2 recv 1 0 1 1
+2 compute 30258
+2 send 3 0 1 1
+2 compute 41049
+2 finalize

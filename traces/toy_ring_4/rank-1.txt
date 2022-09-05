@@ -1,0 +1,7 @@
+0 init
+0 compute 380424
+0 send 1 0 1 1
+0 compute 14250
+0 recv 3 0 1 1
+0 compute 25695
+0 finalize

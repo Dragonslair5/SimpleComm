@@ -1,0 +1,11 @@
+3 init
+3 compute 15858
+3 reduce 1 0 0 0 
+3 compute 8778
+3 reduce 1 0 1 0 
+3 compute 6450
+3 reduce 1 0 2 0 
+3 compute 25467
+3 reduce 1 0 3 0 
+3 compute 28512
+3 finalize

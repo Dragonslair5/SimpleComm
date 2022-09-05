@@ -1,0 +1,11 @@
+3 init
+3 compute 14286
+3 allreduce 1 0 0 
+3 compute 7680
+3 allreduce 1 0 0 
+3 compute 6561
+3 allreduce 1 0 0 
+3 compute 6330
+3 allreduce 1 0 0 
+3 compute 33138
+3 finalize

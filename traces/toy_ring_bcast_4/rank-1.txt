@@ -1,0 +1,11 @@
+0 init
+0 compute 112557
+0 bcast 13 0 0 
+0 compute 4872
+0 bcast 13 1 0 
+0 compute 3855
+0 bcast 13 2 0 
+0 compute 4662
+0 bcast 13 3 0 
+0 compute 6414
+0 finalize

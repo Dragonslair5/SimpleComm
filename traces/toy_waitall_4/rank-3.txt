@@ -1,0 +1,29 @@
+2 init
+2 compute 1.25965e+09
+2 irecv 3 3000 65610 0
+2 compute 9306
+2 irecv 3 2000 65610 0
+2 compute 4110
+2 irecv 0 5000 65610 0
+2 compute 3600
+2 irecv 0 4000 65610 0
+2 compute 4089
+2 irecv 1 6000 65610 0
+2 compute 3960
+2 irecv 1 7000 65610 0
+2 compute 14571
+2 isend 3 2000 65610 0
+2 compute 5094
+2 isend 3 3000 65610 0
+2 compute 3825
+2 isend 0 4000 65610 0
+2 compute 3732
+2 isend 0 5000 65610 0
+2 compute 3921
+2 isend 1 7000 65610 0
+2 compute 3669
+2 isend 1 6000 65610 0
+2 compute 35064
+2 waitall 12
+2 compute 7.67814e+08
+2 finalize

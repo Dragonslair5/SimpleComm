@@ -1,0 +1,23 @@
+1 init
+1 compute 8817
+1 recv 0 0 1 2
+1 compute 20514
+1 send 0 1 2 2
+1 compute 17097
+1 recv 0 0 3 2
+1 compute 16356
+1 send 0 1 4 2
+1 compute 16098
+1 recv 0 0 5 2
+1 compute 19659
+1 send 0 1 6 2
+1 compute 17592
+1 recv 0 0 7 2
+1 compute 16566
+1 send 0 1 8 2
+1 compute 9768
+1 recv 0 0 9 2
+1 compute 10470
+1 send 0 1 10 2
+1 compute 11748
+1 finalize

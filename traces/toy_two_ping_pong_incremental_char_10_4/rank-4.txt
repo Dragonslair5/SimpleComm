@@ -1,0 +1,23 @@
+3 init
+3 compute 5343
+3 recv 2 2 1 2
+3 compute 16176
+3 send 2 3 2 2
+3 compute 17805
+3 recv 2 2 3 2
+3 compute 14889
+3 send 2 3 4 2
+3 compute 15732
+3 recv 2 2 5 2
+3 compute 16308
+3 send 2 3 6 2
+3 compute 16806
+3 recv 2 2 7 2
+3 compute 18657
+3 send 2 3 8 2
+3 compute 18849
+3 recv 2 2 9 2
+3 compute 15321
+3 send 2 3 10 2
+3 compute 18861
+3 finalize

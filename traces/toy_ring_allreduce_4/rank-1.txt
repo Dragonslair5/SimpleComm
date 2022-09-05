@@ -1,0 +1,11 @@
+0 init
+0 compute 144837
+0 allreduce 1 0 0 
+0 compute 10461
+0 allreduce 1 0 0 
+0 compute 7770
+0 allreduce 1 0 0 
+0 compute 7911
+0 allreduce 1 0 0 
+0 compute 68379
+0 finalize

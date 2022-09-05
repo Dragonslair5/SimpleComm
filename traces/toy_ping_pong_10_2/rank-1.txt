@@ -1,0 +1,23 @@
+0 init
+0 compute 63942
+0 send 1 0 1 1
+0 compute 32490
+0 recv 1 0 1 1
+0 compute 19605
+0 send 1 0 1 1
+0 compute 17466
+0 recv 1 0 1 1
+0 compute 18951
+0 send 1 0 1 1
+0 compute 18513
+0 recv 1 0 1 1
+0 compute 18738
+0 send 1 0 1 1
+0 compute 18480
+0 recv 1 0 1 1
+0 compute 18387
+0 send 1 0 1 1
+0 compute 17466
+0 recv 1 0 1 1
+0 compute 20073
+0 finalize

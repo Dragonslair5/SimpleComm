@@ -1,0 +1,11 @@
+2 init
+2 compute 16932
+2 reduce 1 0 0 0 
+2 compute 4311
+2 reduce 1 0 1 0 
+2 compute 34170
+2 reduce 1 0 2 0 
+2 compute 6039
+2 reduce 1 0 3 0 
+2 compute 27441
+2 finalize
