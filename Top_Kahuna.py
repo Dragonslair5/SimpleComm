@@ -161,6 +161,12 @@ class TopKahuna(Topology):
 
         valid_matchesQ = matchQ;
 
+        if len(valid_matchesQ) == 0:
+            print("AEEEEEEE\n")
+            for i in range(len(valid_matchesQ)):
+                print(valid_matchesQ[i]);
+            
+
         times: int;
         times = 0;
 

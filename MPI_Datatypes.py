@@ -1,0 +1,122 @@
+# Based on Simgrid (simgrid/src/smpi/mpi/smpi_datatype.cpp)
+
+def getDataTypeSize(datatype: int) -> int:
+    if datatype == -1: # NULL
+        return 0;
+    if datatype == 0: # double
+        return 8;
+    if datatype == 1: # int
+        return 4;
+    if datatype == 2: # char
+        return 1;
+    if datatype == 3: # short
+        return 2;
+    if datatype == 4: # long
+        return 8;
+    if datatype == 5: # float
+        return 4;
+    if datatype == 6: # int8_t
+        return 1;
+    if datatype == 7: # long long
+        return 8;
+    if datatype == 8: # signed char
+        return 1;
+    if datatype == 9: # unsigned char
+        return 1;
+    if datatype == 10: # unsigned short
+        return 2;
+    if datatype == 11: #unsigned int
+        return 4;
+    if datatype == 12: #unsigned long
+        return 8;
+    
+    
+    
+    
+    if datatype == 23: # UINT32_T 
+        return 4;
+    
+    if datatype == 36: # double double
+        return 16;
+    
+    if datatype == 43: # MPI_DOUBLE_PRECISION (DOUBLE PRECISION Fortran) (COMPLEX16) (DOUBLE_DOUBLE)
+        return 16; # MPI_COMPLEX or MPI_DOUBLE_COMPLEX? (Fortran)
+
+    assert datatype == 0, "Unknown datatype " + str(datatype)
+
+
+
+
+
+
+
+# Original from SimGrid 
+#
+#// Predefined data types
+#CREATE_MPI_DATATYPE_NULL(DATATYPE_NULL, -1)
+#CREATE_MPI_DATATYPE(DOUBLE, 0, double, DT_FLAG_FP)
+#CREATE_MPI_DATATYPE(INT, 1, int, DT_FLAG_C_INTEGER)
+#CREATE_MPI_DATATYPE(CHAR, 2, char, DT_FLAG_C_INTEGER)
+#CREATE_MPI_DATATYPE(SHORT, 3, short, DT_FLAG_C_INTEGER)
+#CREATE_MPI_DATATYPE(LONG, 4, long, DT_FLAG_C_INTEGER)
+#CREATE_MPI_DATATYPE(FLOAT, 5, float, DT_FLAG_FP)
+#CREATE_MPI_DATATYPE(BYTE, 6, int8_t, DT_FLAG_BYTE)
+#CREATE_MPI_DATATYPE(LONG_LONG, 7, long long, DT_FLAG_C_INTEGER)
+#CREATE_MPI_DATATYPE(SIGNED_CHAR, 8, signed char, DT_FLAG_C_INTEGER)
+#CREATE_MPI_DATATYPE(UNSIGNED_CHAR, 9, unsigned char, DT_FLAG_C_INTEGER)
+#CREATE_MPI_DATATYPE(UNSIGNED_SHORT, 10, unsigned short, DT_FLAG_C_INTEGER)
+#CREATE_MPI_DATATYPE(UNSIGNED, 11, unsigned int, DT_FLAG_C_INTEGER)
+#CREATE_MPI_DATATYPE(UNSIGNED_LONG, 12, unsigned long, DT_FLAG_C_INTEGER)
+#CREATE_MPI_DATATYPE(UNSIGNED_LONG_LONG, 13, unsigned long long, DT_FLAG_C_INTEGER)
+#CREATE_MPI_DATATYPE(LONG_DOUBLE, 14, long double, DT_FLAG_FP)
+#CREATE_MPI_DATATYPE(WCHAR, 15, wchar_t, DT_FLAG_BASIC)
+#CREATE_MPI_DATATYPE(C_BOOL, 16, bool, DT_FLAG_LOGICAL)
+#CREATE_MPI_DATATYPE(INT8_T, 17, int8_t, DT_FLAG_C_INTEGER)
+#CREATE_MPI_DATATYPE(INT16_T, 18, int16_t, DT_FLAG_C_INTEGER)
+#CREATE_MPI_DATATYPE(INT32_T, 19, int32_t, DT_FLAG_C_INTEGER)
+#CREATE_MPI_DATATYPE(INT64_T, 20, int64_t, DT_FLAG_C_INTEGER)
+#CREATE_MPI_DATATYPE(UINT8_T, 21, uint8_t, DT_FLAG_C_INTEGER)
+#CREATE_MPI_DATATYPE(UINT16_T, 22, uint16_t, DT_FLAG_C_INTEGER)
+#CREATE_MPI_DATATYPE(UINT32_T, 23, uint32_t, DT_FLAG_C_INTEGER)
+#CREATE_MPI_DATATYPE(UINT64_T, 24, uint64_t, DT_FLAG_C_INTEGER)
+#CREATE_MPI_DATATYPE(C_FLOAT_COMPLEX, 25, float _Complex, DT_FLAG_COMPLEX)
+#CREATE_MPI_DATATYPE(C_DOUBLE_COMPLEX, 26, double _Complex, DT_FLAG_COMPLEX)
+#CREATE_MPI_DATATYPE(C_LONG_DOUBLE_COMPLEX, 27, long double _Complex, DT_FLAG_COMPLEX)
+#CREATE_MPI_DATATYPE(AINT, 28, MPI_Aint, DT_FLAG_MULTILANG)
+#CREATE_MPI_DATATYPE(OFFSET, 29, MPI_Offset, DT_FLAG_MULTILANG)
+#
+#CREATE_MPI_DATATYPE(FLOAT_INT, 30, float_int, DT_FLAG_REDUCTION)
+#CREATE_MPI_DATATYPE(LONG_INT, 31, long_int, DT_FLAG_REDUCTION)
+#CREATE_MPI_DATATYPE(DOUBLE_INT, 32, double_int, DT_FLAG_REDUCTION)
+#CREATE_MPI_DATATYPE(SHORT_INT, 33, short_int, DT_FLAG_REDUCTION)
+#CREATE_MPI_DATATYPE(2INT, 34, int_int, DT_FLAG_REDUCTION)
+#CREATE_MPI_DATATYPE(2FLOAT, 35, float_float, DT_FLAG_REDUCTION)
+#CREATE_MPI_DATATYPE(2DOUBLE, 36, double_double, DT_FLAG_REDUCTION)
+#CREATE_MPI_DATATYPE(2LONG, 37, long_long, DT_FLAG_REDUCTION)
+#
+#CREATE_MPI_DATATYPE(REAL, 38, float, DT_FLAG_FP)
+#CREATE_MPI_DATATYPE(REAL4, 39, float, DT_FLAG_FP)
+#CREATE_MPI_DATATYPE(REAL8, 40, double, DT_FLAG_FP)
+#CREATE_MPI_DATATYPE(REAL16, 41, long double, DT_FLAG_FP)
+#CREATE_MPI_DATATYPE(COMPLEX8, 42, float_float, DT_FLAG_COMPLEX)
+#CREATE_MPI_DATATYPE(COMPLEX16, 43, double_double, DT_FLAG_COMPLEX)
+#CREATE_MPI_DATATYPE(COMPLEX32, 44, double_double, DT_FLAG_COMPLEX)
+#CREATE_MPI_DATATYPE(INTEGER1, 45, int, DT_FLAG_F_INTEGER)
+#CREATE_MPI_DATATYPE(INTEGER2, 46, int16_t, DT_FLAG_F_INTEGER)
+#CREATE_MPI_DATATYPE(INTEGER4, 47, int32_t, DT_FLAG_F_INTEGER)
+#CREATE_MPI_DATATYPE(INTEGER8, 48, int64_t, DT_FLAG_F_INTEGER)
+#CREATE_MPI_DATATYPE(INTEGER16, 49, integer128_t, DT_FLAG_F_INTEGER)
+#
+#CREATE_MPI_DATATYPE(LONG_DOUBLE_INT, 50, long_double_int, DT_FLAG_REDUCTION)
+#CREATE_MPI_DATATYPE(CXX_BOOL, 51, bool, DT_FLAG_LOGICAL)
+#CREATE_MPI_DATATYPE(CXX_FLOAT_COMPLEX, 52, std::complex<float>, DT_FLAG_COMPLEX)
+#CREATE_MPI_DATATYPE(CXX_DOUBLE_COMPLEX, 53, std::complex<double>, DT_FLAG_COMPLEX)
+#CREATE_MPI_DATATYPE(CXX_LONG_DOUBLE_COMPLEX, 54, std::complex<long double>, DT_FLAG_COMPLEX)
+#
+#CREATE_MPI_DATATYPE_NULL(UB, 55)
+#CREATE_MPI_DATATYPE_NULL(LB, 56)
+#CREATE_MPI_DATATYPE(PACKED, 57, char, DT_FLAG_PREDEFINED)
+#// Internal use only
+#CREATE_MPI_DATATYPE(PTR, 58, void*, DT_FLAG_PREDEFINED)
+#CREATE_MPI_DATATYPE(COUNT, 59, long long, DT_FLAG_MULTILANG)
+#MPI_Datatype MPI_PTR = &smpi_MPI_PTR;

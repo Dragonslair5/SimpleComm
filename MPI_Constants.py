@@ -3,6 +3,7 @@ from os.path import exists
 import sys
 from tp_utils import *
 import math
+from MPI_Datatypes import *
 
 class SimpleCommConfiguration:
     def __init__(self, configfile: str) -> None:
@@ -72,19 +73,6 @@ class SimpleCommConfiguration:
 
 
 
-def getDataTypeSize(datatype: int) -> int:
-    if datatype == 0: # MPI_DOUBLE
-        return 8;
-    if datatype == 1: # MPI_INT
-        return 4;
-    if datatype == 2: # MPI_CHAR
-        return 1;
-    if datatype == 23: # MPI_INTEGER32 
-        return 4;
-    if datatype == 43: # MPI_DOUBLE_PRECISION (DOUBLE PRECISION Fortran)
-        return 16; # MPI_COMPLEX or MPI_DOUBLE_COMPLEX? (Fortran)
-        return 8; # 8 or 16? Was not working with 8
-    assert datatype == 0, "Unknown datatype " + str(datatype)
 
 
 # (MPIC)onstants
@@ -145,6 +133,7 @@ class MPI_Operations:
     MPI_IRECV=3;
     MPI_WAIT=4;
     MPI_WAITALL=5;
+    MPI_SENDRECV=6;
 
 
     # Collectives
@@ -154,7 +143,6 @@ class MPI_Operations:
     MPI_ALLREDUCE=103;
     MPI_ALLTOALL=104;
     MPI_ALLTOALLV=105;
-
 
 
 
@@ -195,6 +183,8 @@ class MPI_Operations:
     @staticmethod
     def isCollectiveOperation(ID: int)->bool:
         if ID > 99:
+            return True;
+        if ID == MPI_Operations.MPI_SENDRECV: # Maybe include this with the collectives (+100) to avoid this comparison
             return True;
         return False;
 

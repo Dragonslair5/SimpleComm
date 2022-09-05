@@ -102,7 +102,15 @@ class MessageQueue:
                 return None;
         
         if len(self.matchQ) == 0:
+            print("is it zero?\n")
+            print("SendQ: ");
+            for i in range(len(self.sendQ)):
+                print(self.sendQ[i])
+            print("RendQ: ");
+            for i in range(len(self.recvQ)):
+                print(self.recvQ[i])
             for ri in range(len(list_ranks)):
+                print(list_ranks[ri])
                 if list_ranks[ri].state == Rank.S_WAITING:
                     mahTempt = list_ranks[ri].check_iSendRecvConclusion(list_ranks[ri].waitingTag)
                     if mahTempt:

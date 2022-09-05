@@ -283,6 +283,7 @@ class Rank:
         #  ___) || | | |___|  __/ 
         # |____/ |_| |_____|_|    
         # ********************************************
+        # Based on the trace syntax found on SimGrid Time-Independent Traces (src/smpi/internals/smpi_replay.cpp)
 
 
         # Grab workload and increment index
@@ -329,8 +330,26 @@ class Rank:
 
 
 
-
         # Collectives
+        if(operation == "sendRecv"): # Implemented as collective
+            self.state = Rank.S_COMMUNICATING;
+            # Send
+            sendTarget = int(workload[3])
+            sendTag = 0;
+            sendDatatype = getDataTypeSize(int(workload[6]));
+            sendSize = int(workload[2]) * sendDatatype;
+            sr_send = SendRecv(MPIC_SEND, self.rank, sendTarget, sendSize, self.cycle, MPI_Operations.MPI_SENDRECV, "sendrecv", blocking = False, tag = sendTag);
+            # Recv
+            recvSource = int(workload[5]);
+            recvTag = 0;
+            recvDataType = getDataTypeSize(int(workload[7]));
+            recvSize = int(workload[4]) * recvDataType;
+            sr_recv = SendRecv(MPIC_RECV, self.rank, recvSource, recvSize, self.cycle, MPI_Operations.MPI_SENDRECV, "sendrecv", blocking = False, tag = recvTag);
+            
+            self.current_operation = "SendRecv-(" + str(sendTarget) + " - " + str(recvSource) + ")-" + str(self.index);
+            self.counter_waitingCollective = 2;
+            return [sr_send, sr_recv];
+
         if(operation == "bcast"):
             self.current_operation = "bcast-" + str(self.index);
             self.state = Rank.S_COMMUNICATING;
@@ -475,7 +494,7 @@ class Rank:
         print( bcolors.FAIL + "ERROR: Unknown operation " + str(operation) + bcolors.ENDC);
         sys.exit(1);
 
-        
 
 
-        
+    def __str__ (self):
+        return "Rank " + str(self.rank) + " State: " + self.getCurrentStateName() + " WaitCount: " + str(self.waitall) + " Last Command: " + str(self.trace[self.index - 1])
