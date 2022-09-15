@@ -4,22 +4,51 @@ import sys
 from MessageQueue import *
 import math
 
-
+# *********************************************************
+#  ____  _                 _       _   _             
+# / ___|(_)_ __ ___  _   _| | __ _| |_(_) ___  _ __  
+# \___ \| | '_ ` _ \| | | | |/ _` | __| |/ _ \| '_ \ 
+#  ___) | | | | | | | |_| | | (_| | |_| | (_) | | | |
+# |____/|_|_| |_| |_|\__,_|_|\__,_|\__|_|\___/|_| |_|
+#                                                    
+#   ___        _               _   
+#  / _ \ _   _| |_ _ __  _   _| |_ 
+# | | | | | | | __| '_ \| | | | __|
+# | |_| | |_| | |_| |_) | |_| | |_ 
+#  \___/ \__,_|\__| .__/ \__,_|\__|
+#                 |_|              
+# *********************************************************
 
 class SimulationOutput:
 
-
-
     def __init__(self):
+
+        # Info that is obtained in the end of the simulation
         self.endTime = 0;
         self.averageMessageSize = 0;
-        self.minimumMessageSize = 0;
+        # **
+
+        # Info that is obtained during the simulation
+        #self.minimumMessageSize = 0; # NOTE:Dont know if we ever will need this. Maybe consider second lowest size? Usage of barrier will set the lowest always to 0.
         self.largestMessageSize = 0;
         self.numberOfMessages = 0;
-        
+        self.amountOfDataCommunicated = 0;
+
+        self.recv_after_send_has_completed = 0;
+        #self.
+
+        self.dict_mpi_called_operations = {key:value for key, value in MPI_Operations.__dict__.items() if key.startswith('MPI_')}
+        self.dict_mpi_called_operations = dict.fromkeys(self.dict_mpi_called_operations, 0);
+        # **
+
         self.match_list: list[self.SimOutput_SendRecv]
         self.match_list = []
+        
 
+    def incrementOperationUsage(self, operation_ID: int):
+
+        operationName=MPI_Operations.getOperationNameByID(operation_ID);
+        self.dict_mpi_called_operations[operationName] += 1;
 
 
     def inlude_match(self, match: MQ_Match):
@@ -61,6 +90,21 @@ class SimulationOutput:
 
 
 
+# *********************************************************
+#  ____  _                 _       _   _             
+# / ___|(_)_ __ ___  _   _| | __ _| |_(_) ___  _ __  
+# \___ \| | '_ ` _ \| | | | |/ _` | __| |/ _ \| '_ \ 
+#  ___) | | | | | | | |_| | | (_| | |_| | (_) | | | |
+# |____/|_|_| |_| |_|\__,_|_|\__,_|\__|_|\___/|_| |_|
+#                                                    
+#  _____             _            
+# | ____|_ __   __ _(_)_ __   ___ 
+# |  _| | '_ \ / _` | | '_ \ / _ \
+# | |___| | | | (_| | | | | |  __/
+# |_____|_| |_|\__, |_|_| |_|\___|
+#              |___/              
+# *********************************************************
+
 
 class SimpleCommEngine:
 
@@ -94,12 +138,8 @@ class SimpleCommEngine:
             print( bcolors.FAIL + "ERROR: Unknown show results option:  " + self.show_progress_level + bcolors.ENDC);
             sys.exit(1);
 
+        self.simOutput: SimulationOutput;
         self.simOutput = SimulationOutput();
-
-    #def configure(self, configfile: str):
-    #    self.config = SimpleCommConfiguration(configfile);
-    #    #print("hehe")
-
 
 
     def read_traces(self, nRanks, traces_path):
@@ -112,10 +152,6 @@ class SimpleCommEngine:
                 line_list = stripped_line.split();
                 trace.append(line_list);
             rankFile.close();
-
-            #if self.verbose:
-            #    print( bcolors.OKBLUE + "Rank-" + str(rank) + bcolors.ENDC);
-            #    print(trace);
 
             aux_rank = Rank(nRanks, rank-1, trace, self.config);
 
@@ -131,8 +167,8 @@ class SimpleCommEngine:
 
         # Step forward
         for ri in range(len(self.list_ranks)):
-            # Try to progress on simulation (step)
             
+            # Try to progress on simulation (step)
             sr_list = self.list_ranks[ri].step(len(self.list_ranks));
 
             if sr_list is not None:
@@ -214,9 +250,25 @@ class SimpleCommEngine:
             if match.size > self.list_ranks[match.rankR].largestDataOnASingleCommunication:
                 self.list_ranks[match.rankR].largestDataOnASingleCommunication = match.size;
 
+            self.simOutput.numberOfMessages += 1;
+            self.simOutput.amountOfDataCommunicated += match.size;
+            if match.size > self.simOutput.largestMessageSize:
+                self.simOutput.largestMessageSize = match.size;
+
+            self.simOutput.incrementOperationUsage(match.send_operation_ID);
+            self.simOutput.incrementOperationUsage(match.recv_operation_ID);
+
+            if ( 
+               (match.recv_original_baseCycle > match.send_conclusionCycle)
+               ):
+               self.simOutput.recv_after_send_has_completed += 1;
+            # **
+
             # Collective
             if MPI_Operations.isCollectiveOperation(match.recv_operation_ID):
                 self.list_ranks[match.rankR].concludeCollectiveSendRecv();
+
+            
 
             #del match;
 
@@ -307,21 +359,28 @@ class SimpleCommEngine:
 
 
     def print_blank(self):
-        #print("rankS,rankR,SbaseCycle,SendCycle,RbaseCycle,RendCycle,size,opOrigin")
+
+        # **** Communication Trace
+        # Activated with --> print_communication_trace = False
+        # NOTE: This might be huge! Becareful using it.         
         self.simOutput.unload_Matches_on_the_screen();
-        #for i in range(len(self.simOutput.match_list)):
-        #    print(self.simOutput.match_list[i])
+        # ***
+
+
         if not self.ended:
             return None;
         if self.print_communication_trace:
             print("#");
+        # TOPOLOGY
         print("topology:"+self.config.topology)
+        # BOOSTER FACTOR
         print("booster_factor:"+str(self.config.booster_factor))
+
         biggestCycle = self.list_ranks[0].cycle;
         for ri in range(1, len(self.list_ranks)):
             if self.list_ranks[ri].cycle > biggestCycle:
                 biggestCycle =  self.list_ranks[ri].cycle;
-        #print(biggestCycle);
+        # END TIME (biggest ending cycle)
         print("biggest:"+str(biggestCycle))
         total_time = 0
         halted_time = 0
@@ -329,13 +388,33 @@ class SimpleCommEngine:
             total_time = total_time + self.list_ranks[ri].cycle;
             halted_time = halted_time + self.list_ranks[ri].timeHaltedDueCommunication;
         halted_time_percentage = (halted_time / total_time) * 100;
+        # HALTED TIME (Idleness)
         print("halted_time_percentage:" + "{:.2f}".format(halted_time_percentage) )
         biggest_buffer_size = 0;
         if (isinstance(self.MQ.topology, TopHybrid) or
             isinstance(self.MQ.topology, TopFreeMemoryUnit)
         ):
             biggest_buffer_size = self.MQ.topology.fmu_circularBuffer.biggest_buffer_size;
+        # Biggest Buffer Size (Qdata size on FMU)
         print("biggest_buffer_size:"+str(biggest_buffer_size));
+        
+        # Number of Messages
+        number_of_messages=self.simOutput.numberOfMessages;
+        print("number_of_messages:"+str(number_of_messages));
+        # Average Message Size
+        average_message_size=self.simOutput.amountOfDataCommunicated/number_of_messages;
+        print("average_message_size:"+ str(average_message_size));
+
+        # Largest Message Size
+        largest_message_size=self.simOutput.largestMessageSize;
+        print("largest_message_size:"+str(largest_message_size));
+
+
+        # Percentage of RECVs initiated after SEND conclusion
+        percentage_of_recvs_after_send_conclusion = (self.simOutput.recv_after_send_has_completed / number_of_messages) * 100;
+        print("recv_after_send_conclusion:" + str(percentage_of_recvs_after_send_conclusion))
+        
+        
         hybrid_pivot_value = -1;
         proportion_fmu_usage = 0.0;
         if isinstance(self.MQ.topology, TopHybrid):
@@ -343,8 +422,11 @@ class SimpleCommEngine:
             proportion_fmu_usage = (self.MQ.topology.total_messages_fmu / self.MQ.topology.total_messages) * 100;
         if isinstance(self.MQ.topology, TopFreeMemoryUnit):
             proportion_fmu_usage = 100.0
+        # Hybrid pivot Value (HYBRID)
         print("hybrid_pivot_value:"+str(int(hybrid_pivot_value)));
+        # Proportion of FMU usage (HYBRID)
         print("proportion_fmu_usage:"+str(proportion_fmu_usage))
+        # Header for individual Rank stats
         print("rank,endTime,haltedTime,percentHaltedTime,numCommunications,averageMessageSize,largestData")
         for ri in range(0, len(self.list_ranks)):
 
@@ -354,14 +436,22 @@ class SimpleCommEngine:
             averageCommunicationSize = self.list_ranks[ri].amountOfDataOnCommunication / numCommunications;
             largestDataOnSingleCommunication = self.list_ranks[ri].largestDataOnASingleCommunication;
 
+            # Rank ID
             print("rank"+str(ri), end=',')
+            # END TIME
             print(str(endTime), end=',')
+            # Halted Time (Idleness)
             print(str(haltedTime), end=',')
+            # Halted Time Percentage
             print("{:.2f}".format( ((haltedTime/endTime)*100) ), end=',')
+            # Number of communications
             print(str(numCommunications), end=',')
+            # Average Communication Size
             print(str(averageCommunicationSize), end=',')
+            # Largest Message Size
             print(str(largestDataOnSingleCommunication))
 
+            # Rank ID (For individual haltness [idleness] of individual MPI operation)
             print("H_"+"rank"+str(ri), end='')
             for key, value in self.list_ranks[ri].dict_mpi_overhead.items():
                 halted_dictionary = self.list_ranks[ri].dict_mpi_overhead;
@@ -374,6 +464,7 @@ class SimpleCommEngine:
         
 
 
+    # TODO: Update this to match the information from print_blank
     def print_overall(self):
         
         print("", end= '\r', flush=True);

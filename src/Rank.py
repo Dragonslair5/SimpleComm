@@ -53,9 +53,6 @@ class Rank:
         self.waitingTag = None;
         self.shallEnd = False; # To allow a last operation to be done before finalizing (Barrier)
 
-        #print(self.trace)
-
-
         # Statistics data
         self.timeHaltedDueCommunication = 0;
         self.amountOfDataOnCommunication = 0;
@@ -68,8 +65,7 @@ class Rank:
         self.dict_mpi_overhead = dict.fromkeys(self.dict_mpi_overhead, 0);
 
         # Modifiers
-        #self.boosterFactor = configfile.booster_factor;
-        self.boosterFactor = 1; # TODO Remove this after boosterFactor have being implemented on Message Queue.
+        # NOTE: boosterFactor is currently implemented on the creation of the match (MessageQueue/CheckMatch)
 
 
         # ***********
@@ -125,42 +121,21 @@ class Rank:
             self.printErrorAndQuit("ERROR: Unknown Alltoallv algorithm " + configfile.CA_Alltoallv);
         # ***********************************************************************
 
-        #self.boosterFactor = 14000000;
-        #self.boosterFactor = 350000
-        #self.boosterFactor = 140000;
-        #self.boosterFactor = 1;
-        #self.boosterFactor = 500000;
-        #self.boosterFactor = 4200000
-        #self.boosterFactor = 420000
-        #self.boosterFactor = 28000000
-        #self.boosterFactor = 280000000
-        #self.boosterFactor = 2800000000
-        #self.boosterFactor = 10000
-        #self.boosterFactor = 7000
-
-
     def printErrorAndQuit(self, error_message: str):
         print( bcolors.FAIL + error_message + bcolors.ENDC);
         sys.exit(1);
 
 
-
-    def includeHaltedTime(self, begin, end, operation_ID):
+    def includeHaltedTime(self, begin: float, end: float, operation_ID: int):
         #if end < begin:
         #    return None;
         assert end >= begin, "end must be greater than begin"
         time = end - begin
         self.timeHaltedDueCommunication = self.timeHaltedDueCommunication + time;
 
-        self.dict_mpi_overhead[MPI_Operations.getOperationNameByID(operation_ID)] = self.dict_mpi_overhead[MPI_Operations.getOperationNameByID(operation_ID)] + time
+        operationName=MPI_Operations.getOperationNameByID(operation_ID);
+        self.dict_mpi_overhead[operationName] = self.dict_mpi_overhead[operationName] + time
 
-
-
-    #def changeState(self, newState):
-    #    self.state = newState;
-
-    #def getCurrentState(self):
-    #    return self.state;
 
     def getCurrentStateName(self):
         if self.state == Rank.S_NORMAL:
@@ -307,9 +282,7 @@ class Rank:
             target=int(workload[2]);
             tag = int(workload[3]);
             datatype = getDataTypeSize(int(workload[5]));
-            #size = int(workload[4]) * datatype;
-            size = int(workload[4]) * datatype * self.boosterFactor;
-            #print(size)
+            size = int(workload[4]) * datatype;
             sr = SendRecv(MPIC_SEND, self.rank, target, size, self.cycle, MPI_Operations.MPI_SEND, "send", tag=tag);
             self.current_operation = "send(" + str(target) + ")-" + str(self.index);
             self.i_am_blocked_by_standard_send_or_recv = True;
@@ -319,8 +292,7 @@ class Rank:
             source=int(workload[2]);
             tag = int(workload[3]);
             datatype = getDataTypeSize(int(workload[5]));
-            #size = int(workload[4]) * datatype;
-            size = int(workload[4]) * datatype * self.boosterFactor;
+            size = int(workload[4]) * datatype;
             sr = SendRecv(MPIC_RECV, self.rank, source, size, self.cycle, MPI_Operations.MPI_RECV, "recv", tag=tag);
             self.current_operation = "recv(" + str(source) + ")-" + str(self.index);
             self.i_am_blocked_by_standard_send_or_recv = True;
@@ -355,13 +327,9 @@ class Rank:
             self.state = Rank.S_COMMUNICATING;
             root = int(workload[3]);
             datatype = getDataTypeSize(int(workload[4]));
-            size = int(workload[2]) * datatype * self.boosterFactor;
-            #bc = MQ_Bcast_entry(self.rank, root, size, self.cycle);
-            #return bc;
-            #self.collective_sr_list = self.col_barrier(self.nRanks, self.rank, self.cycle, rank_offset=0);
+            size = int(workload[2]) * datatype;
             self.collective_sr_list = self.col_bcast(self.nRanks, self.rank, root, size, self.cycle, rank_offset=0);
             self.counter_waitingCollective = len(self.collective_sr_list[0]);
-            #print("up Rank: " + str(self.rank) + " Counter: " + str(self.counter_waitingCollective))
             return self.collective_sr_list.pop(0);
 
             
@@ -372,67 +340,53 @@ class Rank:
             
             self.collective_sr_list = self.col_barrier(self.nRanks, self.rank, self.cycle, rank_offset=0);
             self.counter_waitingCollective = len(self.collective_sr_list[0]);
-            #print("up Rank: " + str(self.rank) + " Counter: " + str(self.counter_waitingCollective))
             return self.collective_sr_list.pop(0);
-
-            #barrier = MQ_Barrier_entry(self.rank, self.cycle);
-            #return barrier;
 
 
         if(operation == "reduce"):
             self.current_operation = "reduce-" + str(self.index);
             self.state = Rank.S_COMMUNICATING;
-            #root = int(workload[3]);
             root = int(workload[4]);
             datatype = getDataTypeSize(int(workload[5]));
-            size = int(workload[2]) * datatype * self.boosterFactor;
-            #reduce = MQ_Reduce_entry(self.rank, root, size, self.cycle);
-            #return reduce;
+            size = int(workload[2]) * datatype;
             self.collective_sr_list = self.col_reduce(self.nRanks, self.rank, size, root, self.cycle, rank_offset=0);
             self.counter_waitingCollective = len(self.collective_sr_list[0]);
-            #print("up Rank: " + str(self.rank) + " Counter: " + str(self.counter_waitingCollective))
             return self.collective_sr_list.pop(0);
 
         if(operation == "allreduce"):
             self.current_operation = "allreduce-"+str(self.index);
             self.state = Rank.S_COMMUNICATING;
             datatype = getDataTypeSize(int(workload[4]));
-            size = int(workload[2]) * datatype * self.boosterFactor;
-            #allreduce = MQ_Allreduce_entry(self.rank, size, self.cycle);
-            #return allreduce;
+            size = int(workload[2]) * datatype;
             self.collective_sr_list = self.col_allreduce(self.nRanks, self.rank, size, self.cycle, rank_offset=0);
             self.counter_waitingCollective = len(self.collective_sr_list[0]);
-            #print("up Rank: " + str(self.rank) + " Counter: " + str(self.counter_waitingCollective))
             return self.collective_sr_list.pop(0);
+
         if(operation == "alltoall"):
             self.current_operation = "alltoall-" + str(self.index);
             self.state = Rank.S_COMMUNICATING;
             send_datatype = getDataTypeSize(int(workload[4]));
             recv_datatype = getDataTypeSize(int(workload[5]));
-            send_size = int(workload[2]) * send_datatype * self.boosterFactor;
-            recv_size = int(workload[3]) * recv_datatype * self.boosterFactor;
-            #alltoall = MQ_Alltoall_entry(self.rank, send_size, recv_size, self.cycle);
-            #return alltoall;
+            send_size = int(workload[2]) * send_datatype;
+            recv_size = int(workload[3]) * recv_datatype;
             self.collective_sr_list = self.col_alltoall(self.nRanks, self.rank, send_size, recv_size, self.cycle, rank_offset=0);
             self.counter_waitingCollective = len(self.collective_sr_list[0]);
-            #print("up Rank: " + str(self.rank) + " Counter: " + str(self.counter_waitingCollective))
             return self.collective_sr_list.pop(0);
+
         if(operation == "alltoallv"): # alltoallv <send count> [send vector] <recv count> [recv vector] <recv datatype> <send datatype>
             self.current_operation = "alltoallv-" + str(self.index);
             self.state = Rank.S_COMMUNICATING;
-            send_datatype = getDataTypeSize(int(workload[4+2*num_ranks])) * self.boosterFactor;
-            recv_datatype = getDataTypeSize(int(workload[5+2*num_ranks])) * self.boosterFactor;
+            send_datatype = getDataTypeSize(int(workload[4+2*num_ranks]));
+            recv_datatype = getDataTypeSize(int(workload[5+2*num_ranks]));
             send_count = [];
             recv_count = [];
             for i in range(num_ranks):
                 send_count.append(int(workload[3 + i]));
                 recv_count.append(int(workload[4 + num_ranks + i]));
-            #alltoallv = MQ_Alltoallv_entry(self.rank, send_datatype, recv_datatype, send_count, recv_count, self.cycle);
-            #return alltoallv;
             self.collective_sr_list = self.col_alltoallv(self.nRanks, self.rank, send_datatype, recv_datatype, send_count, recv_count, self.cycle, rank_offset=0);
             self.counter_waitingCollective = len(self.collective_sr_list[0]);
-            #print("up Rank: " + str(self.rank) + " Counter: " + str(self.counter_waitingCollective))
             return self.collective_sr_list.pop(0);
+            
         # ***
         
         
@@ -447,12 +401,7 @@ class Rank:
 
             self.collective_sr_list = self.col_barrier(self.nRanks, self.rank, self.cycle, rank_offset=0);
             self.counter_waitingCollective = len(self.collective_sr_list[0]);
-            #print("up Rank: " + str(self.rank) + " Counter: " + str(self.counter_waitingCollective) + " ColLength: " + str(len(self.collective_sr_list)))
             return self.collective_sr_list.pop(0);
-            
-            barrier = MQ_Barrier_entry(self.rank, self.cycle);
-            return barrier;
-            return None;
 
         # No blocking operations
         if(operation == "isend"):
@@ -460,7 +409,7 @@ class Rank:
             target=int(workload[2]);
             tag = int(workload[3]);
             datatype = getDataTypeSize(int(workload[5]));
-            size = int(workload[4]) * datatype * self.boosterFactor;
+            size = int(workload[4]) * datatype;
             sr = SendRecv(MPIC_SEND, self.rank, target, size, self.cycle, MPI_Operations.MPI_ISEND, "isend", blocking = False, tag=tag);
             self.current_operation = "isend-(" + str(target) + ")-" + str(self.index);
             return sr;
@@ -469,7 +418,7 @@ class Rank:
             source=int(workload[2]);
             tag = int(workload[3]);
             datatype = getDataTypeSize(int(workload[5]));
-            size = int(workload[4]) * datatype * self.boosterFactor;
+            size = int(workload[4]) * datatype;
             sr = SendRecv(MPIC_RECV, self.rank, source, size, self.cycle, MPI_Operations.MPI_IRECV, "irecv", blocking = False, tag=tag);
             self.current_operation = "irecv(" + str(source) + ")-" + str(self.index);
             return sr;

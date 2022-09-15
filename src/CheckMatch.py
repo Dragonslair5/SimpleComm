@@ -33,12 +33,14 @@ class MQ_CheckMatch:
             if ( partner_queue[i].partner == sendrecv.rank and 
                 sendrecv.partner == partner_queue[i].rank and
                 sendrecv.tag == partner_queue[i].tag ):
+                
                 # Grab the matched SendRecv and remove from the queue
                 partner: SendRecv;
                 partner = partner_queue.pop(i);
                 assert sendrecv.tag == partner.tag;
+                # ***
 
-
+                # Apply booster factor if it should
                 if use_booster_factor == True:
                     sendrecv.size = sendrecv.size * boosterFactor;
                     partner.size = partner.size * boosterFactor;
@@ -50,11 +52,11 @@ class MQ_CheckMatch:
                 else:
                     baseCycle = partner.baseCycle;
 
-                latency = 0;
-                bandwidth = 1;
+                latency: int;
+                bandwidth: int;
                 # Calculate endCycle
-                # SEND size must be less or equal to RECV size
                 if sendrecv.kind == MPIC_SEND:
+                    # SEND size must be less or equal to RECV size
                     assert sendrecv.size <= partner.size;
 
                     # Eager Protocol
@@ -81,6 +83,7 @@ class MQ_CheckMatch:
                     endCycle = endCycle + baseCycle;
                     #endCycle = baseCycle + topology.CommunicationCalculus_Bandwidth(sendrecv.rank, sendrecv.partner, sendrecv.size)
                 else:
+                    # SEND size must be less or equal to RECV size
                     assert sendrecv.size >= partner.size;
 
                     # Eager Protocol

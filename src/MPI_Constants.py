@@ -229,6 +229,7 @@ class MQ_Match:
         self.send_original_baseCycle = -1;
         self.send_baseCycle = -1; # >= baseCycle
         self.send_endCycle = -1; # <= endCycle
+        self.send_conclusionCycle = -1; # >= send_endCycle (this is to mark when the data was fully sent to destination, and not when the SENDER was released to continue the execution)
         self.recv_original_baseCycle = -1;
         self.recv_baseCycle = -1; # >= baseCycle
         self.recv_endCycle = -1; # <= endCycle
@@ -260,6 +261,7 @@ class MQ_Match:
         self.recv_origin = recv_origin; # The operations name
         self.recv_operation_ID = recv_operation_ID; # The operation ID
 
+        # NOTE: We are still using this for debugging purpose
         # Ordering for when it matters (TAG not negative)
         self.positionS = positionS; # Ordering
         self.positionR = positionR; # Ordering

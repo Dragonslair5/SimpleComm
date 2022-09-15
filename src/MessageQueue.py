@@ -40,6 +40,7 @@ class MessageQueue:
         self.indexAcumulator = [0] * numRanks; # To increment index when including SEND/RECV
         self.currentPosition = [0] * numRanks; # Position for consuming SEND/RECV Matches
         
+        # TODO: Check if this is still necessary (this blockablePendingMessage)
         self.blockablePendingMessage = [0] * numRanks;
 
         # Modifiers
@@ -115,27 +116,12 @@ class MessageQueue:
                     mahTempt = list_ranks[ri].check_iSendRecvConclusion(list_ranks[ri].waitingTag)
                     if mahTempt:
                         print("wtf dude") # This should have been served before (I believe it was already fixed)
-        
-
-        #if len(self.matchQ) == 0:
-        #    assert len(self.Col_matchQ) > 0, "matchQ == 0 and no Collectives Available on Col_matchQ"
-        #    tmp_list = self.Col_matchQ[0].getValidMatches();
-        #    if self.Col_matchQ[0].isEmpty():
-        #        del self.Col_matchQ[0];
-        #    self.matchQ = tmp_list;
             
 
-        #self.processContention(len(list_ranks), self.matchQ, earliest_match, "SC_CC");
-        #self.processContention(len(list_ranks), self.matchQ, earliest_match, "SC_FATPIPE");
         earliest_match : MQ_Match;
         earliest_match = self.topology.processContention(self.matchQ);
 
         assert earliest_match is not None, "No match was found on MessageQueue"
-
-        #if len(self.col_matchQ) > 0:
-        #    if self.col_matchQ[0].isEmpty():
-        #        del self.col_matchQ[0];
-
 
         # Increment position on the queue
         if earliest_match.blocking_send:
@@ -156,22 +142,27 @@ class MessageQueue:
         if isinstance(self.topology, TopFreeMemoryUnit):
             self.op_message = self.op_message + " fmu: " + str(earliest_match.fmu_in_use);
 
+
         if not self.topology.independent_send_recv:
             earliest_match.send_endCycle = earliest_match.endCycle;
             earliest_match.recv_endCycle = earliest_match.endCycle;
+            earliest_match.send_conclusionCycle = earliest_match.endCycle;
 
             # Eager Protocol
-            if earliest_match.size < self.topology.eager_protocol_max_size:
+            if earliest_match.size <= self.topology.eager_protocol_max_size:
                 earliest_match.send_endCycle = earliest_match.send_baseCycle;
                 if earliest_match.recv_baseCycle > earliest_match.endCycle:
                     earliest_match.recv_endCycle = earliest_match.recv_baseCycle;
         else:
+            earliest_match.send_conclusionCycle = earliest_match.send_endCycle;
             # Eager Protocol
             if earliest_match.size < self.topology.eager_protocol_max_size:
                 earliest_match.send_endCycle = earliest_match.send_baseCycle;
 
         #print("earliest: ", end='')
         #print(earliest_match)
+
+        
 
         return earliest_match;
 
