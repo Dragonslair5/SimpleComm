@@ -39,6 +39,9 @@ class SimulationOutput:
 
         self.dict_mpi_called_operations = {key:value for key, value in MPI_Operations.__dict__.items() if key.startswith('MPI_')}
         self.dict_mpi_called_operations = dict.fromkeys(self.dict_mpi_called_operations, 0);
+
+        self.dict_mpi_overhead = {key:value for key, value in MPI_Operations.__dict__.items() if key.startswith('MPI_')}
+        self.dict_mpi_overhead = dict.fromkeys(self.dict_mpi_overhead, 0);
         # **
 
         self.match_list: list[self.SimOutput_SendRecv]
@@ -412,8 +415,24 @@ class SimpleCommEngine:
 
         # Percentage of RECVs initiated after SEND conclusion
         percentage_of_recvs_after_send_conclusion = (self.simOutput.recv_after_send_has_completed / number_of_messages) * 100;
-        print("recv_after_send_conclusion:" + str(percentage_of_recvs_after_send_conclusion))
+        print("recv_after_send_conclusion:" + str(percentage_of_recvs_after_send_conclusion));
         
+        # Most called MPI operation
+        dic_mpi_operations = self.simOutput.dict_mpi_called_operations;
+        print("most_called_mpi_operation:"+max(dic_mpi_operations, key=dic_mpi_operations.get));
+
+
+
+        
+
+
+
+        # MPI operation that most caused idleness
+        dic_mpi_haltness = self.simOutput.dict_mpi_overhead;
+        for ri in range(0, len(self.list_ranks)):
+            rank_dic = self.list_ranks[ri].dict_mpi_overhead
+            dic_mpi_haltness = {k: dic_mpi_haltness.get(k, 0) + rank_dic.get(k, 0) for k in set(dic_mpi_haltness) | set(rank_dic)}        
+        print("most_idleness_source_mpi_operation:", max(dic_mpi_haltness, key=dic_mpi_haltness.get))
         
         hybrid_pivot_value = -1;
         proportion_fmu_usage = 0.0;
