@@ -2,6 +2,7 @@ from Top_FreeMemoryUnit import *
 from Topology import *
 from Top_Kahuna import *
 from Top_Hybrid import *
+from Top_Perfect import *
 from Rank import *
 from CheckMatch import *
 
@@ -23,6 +24,8 @@ class MessageQueue:
             self.topology = TopHybrid(numRanks, configfile);
         elif configfile.topology == "FMU": # *** FMU
             self.topology = TopFreeMemoryUnit(numRanks, configfile);
+        elif configfile.topology == "PERFECT": # *** Infinite Bandwidth, No Latency, No Contention
+            self.topology = TopPerfect(numRanks, configfile);
         else:
             print( bcolors.FAIL + "ERROR: Unknown topology " + configfile.topology + bcolors.ENDC);
             sys.exit(1);
