@@ -97,6 +97,8 @@ class Rank:
         self.col_reduce = None;
         if configfile.CA_Reduce == "alltoroot":
             self.col_reduce = Col_Reduce.allToRoot;
+        elif configfile.CA_Reduce == "binomial_tree":
+            self.col_reduce = Col_Reduce.binomial_tree;
         else:
             self.printErrorAndQuit("ERROR: Unknown Reduce algorithm " + configfile.CA_Reduce);
         # Allreduce
