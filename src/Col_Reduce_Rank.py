@@ -69,7 +69,6 @@ class Col_Reduce:
                 if (source < num_ranks):
                     source = (source + lroot) % num_ranks;
                     # recv
-                    #Request::recv(tmp_buf, count, datatype, source, tag, comm, &status);
                     sr = SendRecv(MPIC_RECV, my_rank, source, size, baseCycle, MPI_Operations.MPI_REDUCE, operation_origin=operation_origin, tag=MPIC_COLL_TAG_REDUCE, col_id=col_id);
                     col_id = col_id + 1;
                     sr_list.append(sr);
@@ -78,7 +77,6 @@ class Col_Reduce:
             else:
                 dst = ((relrank & (~mask)) + lroot) % num_ranks;
                 # send
-                #Request::send(recvbuf, count, datatype, dst, tag, comm);
                 sr = SendRecv(MPIC_SEND, my_rank, dst, size, baseCycle, MPI_Operations.MPI_REDUCE, operation_origin=operation_origin, tag=MPIC_COLL_TAG_REDUCE, col_id=col_id);
                 col_id = col_id + 1;
                 sr_list.append(sr);
@@ -86,8 +84,14 @@ class Col_Reduce:
                 break;            
             mask = mask << 1;
         
+        # -----
         # I am unsure about this last part
-        #if root != 0:
+        # TODO: this should be checked, if we need this or not.
+        # The original condition was the following
+        #   -->  if (not is_commutative && (root != 0))
+        # We do not check the reduce operation, so we assume it is always commutative
+        # -----
+        #if root != 0: #
         #    if my_rank == 0:
         #        sr = SendRecv(MPIC_SEND, my_rank, root, size, baseCycle, MPI_Operations.MPI_REDUCE, operation_origin=operation_origin, tag=MPIC_COLL_TAG_REDUCE, col_id=2);
         #        sr_list.append(sr);
