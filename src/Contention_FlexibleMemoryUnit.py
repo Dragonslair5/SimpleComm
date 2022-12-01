@@ -34,24 +34,32 @@ class Contention_FlexibleMemoryUnit:
         self.chooseFMU = None;
         self.update_fmu_last_cycle = None;
         self.get_fmu_last_cycle = None;
-        if configfile.fmu_contention_model == "STATIC":
+        if configfile.fmu_mapping == "STATIC":
             self.isThereConflict = self.isThereConflict_Static;
             self.chooseFMU = self.chooseFMU_static;
             # ON / ON
             self.update_fmu_last_cycle = self.update_fmu_last_cycle_TURNED_ON;
             self.get_fmu_last_cycle = self.get_fmu_last_cycle_TUNED_ON;
-        elif configfile.fmu_contention_model == "NO_CONFLICT":
+        elif configfile.fmu_mapping == "NO_CONFLICT":
             self.isThereConflict = self.isThereConflict_NoConflict;
             self.chooseFMU = self.chooseFMU_oracle;
             # OFF / OFF
             self.update_fmu_last_cycle = self.update_fmu_last_cycle_TURNED_OFF;
             self.get_fmu_last_cycle = self.get_fmu_last_cycle_TUNED_OFF;
-        elif configfile.fmu_contention_model == "INTERLEAVE":
+        elif configfile.fmu_mapping == "INTERLEAVE":
             self.isThereConflict = self.isThereConflict_Interleave;
             self.chooseFMU = self.chooseFMU_interleave;
             # ON / ON
             self.update_fmu_last_cycle = self.update_fmu_last_cycle_TURNED_ON;
             self.get_fmu_last_cycle = self.get_fmu_last_cycle_TUNED_ON;
+        else:
+            print( bcolors.FAIL + "ERROR: Unknown fmu mapping scheme:  " + configfile.fmu_mapping + bcolors.ENDC);
+            sys.exit(1);
+        # Contention Function
+        if configfile.fmu_contention_model == "SINGLE_USE":
+            self.processContentionX = self.contention_singleUse;
+        elif configfile.fmu_contention_model == "AS_MUCH_AS_POSSIBLE":
+            self.processContentionX = self.contention_useAsMuchAsPossible;
         else:
             print( bcolors.FAIL + "ERROR: Unknown fmu contention model:  " + configfile.fmu_contention_model + bcolors.ENDC);
             sys.exit(1);
@@ -202,7 +210,13 @@ class Contention_FlexibleMemoryUnit:
 # **************************************************
 
 
+
     def processContention(self, matchQ) -> MQ_Match:
+        return self.processContentionX(matchQ);
+
+
+
+    def contention_singleUse(self, matchQ) -> MQ_Match:
 
         valid_matchesQ = matchQ;
 
@@ -289,3 +303,135 @@ class Contention_FlexibleMemoryUnit:
 
         return readyMatch;
 
+
+
+    def contention_useAsMuchAsPossible(self, matchQ) -> MQ_Match:
+
+        valid_matchesQ = matchQ;
+
+        #print("Valid: " + str(len(valid_matchesQ)) + " Invalid: " + str(len(invalid_matchesQ)))
+        # We might be on a deadlock if there is no valid match on this point
+        assert len(valid_matchesQ) > 0, "No valid Match was found"
+
+        # Check for not initialized matches, and initialize them
+        self.initializeUnitializedMatches(valid_matchesQ);
+
+        # find lowest cycle
+        readyMatch : MQ_Match
+        readyMatch = None;
+
+        # Check if some match is ready
+        for i in range(0, len(valid_matchesQ)):
+            if valid_matchesQ[i].READY:
+                readyMatch = valid_matchesQ[i];
+                break;
+
+        # If none is ready, lets do this
+        while readyMatch == None:
+
+            lowest_cycle = valid_matchesQ[0].sep_getBaseCycle();
+            li = 0;
+            for i in range(0, len(valid_matchesQ)):
+                if valid_matchesQ[i].sep_getBaseCycle() < lowest_cycle:
+                    lowest_cycle = valid_matchesQ[i].sep_getBaseCycle();
+                    li = i;
+
+            readyMatch = valid_matchesQ[li];
+            #print("\nreadyMatch = " + str(readyMatch.id))
+
+            rank_in_usage = None;
+            if readyMatch.still_solving_send:
+                rank_in_usage = readyMatch.rankS;
+            else:
+                rank_in_usage = readyMatch.rankR;
+            
+            # Delay other communications as needed
+            for j in range(0, len(valid_matchesQ)):
+                if j == li:
+                    continue;
+                
+                partner: MQ_Match;
+                partner = valid_matchesQ[j];
+
+
+                partner_rank = None;
+                if valid_matchesQ[j].still_solving_send:
+                    partner_rank = valid_matchesQ[j].rankS;
+                else:
+                    partner_rank = valid_matchesQ[j].rankR;
+
+                # Check if we can move something else to this FMU
+                if (readyMatch.fmu_in_use == partner.fmu_in_use): # If same FMU
+                    if (rank_in_usage == partner_rank): # If same Rank
+                        if (partner.sep_getBaseCycle() - partner.latency) <= readyMatch.sep_getEndCycle(): # If issued before this access endCycle
+                            #print("IT IS HAPPENING")
+                            # Remove the switch latency
+                            partner.sep_decrementCycle(partner.latency);
+                            # Adjust the Timing 
+                            minToStart = readyMatch.sep_getEndCycle();
+                            inc = minToStart - partner.sep_getBaseCycle();
+                            if inc > 0:
+                                partner.sep_incrementCycle(inc);
+                            
+                            if partner.still_solving_send: # IF it is a SEND
+                                partner.sep_move_RECV_after_SEND();
+                                self.fmu_circularBuffer.insert_entry(partner.fmu_in_use,
+                                                     partner.id,
+                                                     partner.size);
+                            else: # If it is a RECV
+                                self.fmu_circularBuffer.consume_entry(partner.fmu_in_use,
+                                              partner.id);
+                                partner.READY = True;
+
+
+                if (
+                    self.isThereConflict(rank_in_usage, partner_rank, readyMatch.fmu_in_use, valid_matchesQ[j].fmu_in_use)
+                ):
+                    minToStart = readyMatch.sep_getEndCycle() + valid_matchesQ[j].latency;
+                    inc = minToStart - valid_matchesQ[j].sep_getBaseCycle();
+
+                    if inc > 0:
+                        valid_matchesQ[j].sep_incrementCycle(inc);
+                        if readyMatch.fmu_in_use == valid_matchesQ[j].fmu_in_use:
+                            self.fmu_congestion_time[readyMatch.fmu_in_use] = self.fmu_congestion_time[readyMatch.fmu_in_use] + inc;
+
+            if readyMatch.still_solving_send:
+                readyMatch.sep_move_RECV_after_SEND();
+                
+                #self.fmu_circularBuffer.insert_entry(readyMatch.rankR % self.nFMUs,
+                #                                     readyMatch.id,
+                #                                     readyMatch.size);
+
+                self.fmu_circularBuffer.insert_entry(readyMatch.fmu_in_use,
+                                                     readyMatch.id,
+                                                     readyMatch.size);
+                
+                readyMatch = None;
+
+        if readyMatch.READY == False: # It was not solved with another operation
+            self.fmu_circularBuffer.consume_entry(readyMatch.fmu_in_use,
+                                              readyMatch.id);
+
+
+        assert readyMatch.endCycle == readyMatch.recv_endCycle, "Why are they not equal? " + str(readyMatch.endCycle) + " != " + str(readyMatch.recv_endCycle)
+        self.update_fmu_last_cycle(readyMatch.fmu_in_use, readyMatch.endCycle);
+        
+
+
+        readyMatchID = readyMatch.id;
+        # Grab the ready match from the matches queue (matchQ) or collectives matches queue (col_matchQ)
+        readyMatch = None;
+        for j in range(0, len(matchQ)):
+            if readyMatchID == matchQ[j].id:
+               readyMatch = matchQ.pop(j)
+               break;
+
+        assert readyMatch is not None, "ready match is not presented on matches queues"
+
+
+        return readyMatch;
+
+
+
+
+        

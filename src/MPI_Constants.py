@@ -47,7 +47,8 @@ class SimpleCommConfiguration:
         self.fmu_bandwidth = float(config["TOPOLOGY"].get("fmu_bandwidth", "10"));
         self.fmu_latency = float(config["TOPOLOGY"].get("fmu_latency", "10"));
         self.fmu_pivot_value = float(config["TOPOLOGY"].get("fmu_pivot_value", "10"));
-        self.fmu_contention_model = config["TOPOLOGY"].get("fmu_contention_model", "STATIC");
+        self.fmu_contention_model = config["TOPOLOGY"].get("fmu_contention_model", "AS_MUCH_AS_POSSIBLE");
+        self.fmu_mapping = config["TOPOLOGY"].get("fmu_mapping", "STATIC");
 
         # SimGrid               (65536 bytes) (64KB in short)
         # OpenMPI Version 4.0.5 (65536 bytes) (64KB in short) (btl_tcp_component.c)
@@ -220,6 +221,9 @@ class MQ_Match:
         self.size = size;
         self.baseCycle = baseCycle;
 
+        self.READY = False # This is to mark that this match has already been processed and is ready to be taken out of the MQ.
+                           # NOTE: The use of this variable is optional. It is up to the topology implementation to use it or not.
+
 
         # FMU
         self.fmu_in_use = None;
@@ -303,6 +307,18 @@ class MQ_Match:
             self.recv_baseCycle = self.recv_baseCycle + increment;
             self.recv_endCycle = self.recv_endCycle + increment;
             self.endCycle = self.recv_endCycle;
+    
+    # NOTE: This should be used with care
+    def sep_decrementCycle(self, decrement: float):
+        if self.still_solving_send:
+            self.send_baseCycle = self.send_baseCycle - decrement;
+            self.send_endCycle = self.send_endCycle - decrement;
+        else:
+            self.recv_baseCycle = self.recv_baseCycle - decrement;
+            assert self.recv_baseCycle >= self.send_endCycle;
+            self.recv_endCycle = self.recv_endCycle - decrement;
+            self.endCycle = self.recv_endCycle;
+
     
     def sep_move_RECV_after_SEND(self):
         assert self.still_solving_send == True, "Wtf?"
