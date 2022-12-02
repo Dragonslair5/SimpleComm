@@ -105,6 +105,8 @@ class Rank:
         self.col_allreduce = None;
         if configfile.CA_Allreduce == "reduce_bcast":
             self.col_allreduce = Col_AllReduce.reduce_bcast;
+        elif configfile.CA_Allreduce == "reduceBinomialTree_bcast":
+            self.col_allreduce = Col_AllReduce.reduceBinomialTree_bcast
         else:
             self.printErrorAndQuit("ERROR: Unknown Allreduce algorithm " + configfile.CA_Allreduce);
         # Alltoall

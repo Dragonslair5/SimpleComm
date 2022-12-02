@@ -62,12 +62,12 @@ class SimpleCommConfiguration:
 
 
         # Collective Algorithms
-        self.CA_Allreduce = config["CollectiveAlgorithm"].get("CA_Allreduce", "reduce_bcast");
+        self.CA_Allreduce = config["CollectiveAlgorithm"].get("CA_Allreduce", "reduceBinomialTree_bcast");
         self.CA_Alltoall = config["CollectiveAlgorithm"].get("CA_Alltoall", "basic_linear");
         self.CA_Alltoallv = config["CollectiveAlgorithm"].get("CA_Alltoallv", "nbc_like_simgrid");
         self.CA_Barrier = config["CollectiveAlgorithm"].get("CA_Barrier", "basic_linear");
         self.CA_Bcast = config["CollectiveAlgorithm"].get("CA_Bcast", "binomial_tree");
-        self.CA_Reduce = config["CollectiveAlgorithm"].get("CA_reduce", "alltoroot");
+        self.CA_Reduce = config["CollectiveAlgorithm"].get("CA_reduce", "binomial_tree");
 
 
 
