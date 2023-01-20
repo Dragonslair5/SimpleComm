@@ -159,7 +159,7 @@ class MessageQueue:
         else:
             earliest_match.send_conclusionCycle = earliest_match.send_endCycle;
             # Eager Protocol
-            if earliest_match.size < self.topology.eager_protocol_max_size:
+            if earliest_match.size <= self.topology.eager_protocol_max_size:
                 earliest_match.send_endCycle = earliest_match.send_baseCycle;
 
         #print("earliest: ", end='')

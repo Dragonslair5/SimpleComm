@@ -231,6 +231,10 @@ class Contention_Kahuna:
                 # ---
                         
                 #print("")
+
+                readyMatch.send_endCycle = readyMatch.endCycle;
+                readyMatch.recv_endCycle = readyMatch.endCycle;
+
                 return readyMatch;
 
             # ---
