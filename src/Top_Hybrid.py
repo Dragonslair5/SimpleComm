@@ -13,6 +13,8 @@ class TopHybrid(Topology):
     def __init__(self, nRanks, configfile: SimpleCommConfiguration):
         super(TopHybrid, self).__init__(nRanks, configfile);
 
+        self.independent_send_recv = True;
+
         self.fmu_latency = configfile.fmu_latency;
         self.fmu_bandwidth = configfile.fmu_bandwidth;
 
@@ -32,7 +34,8 @@ class TopHybrid(Topology):
 
 
         self.top_kahuna = Contention_Kahuna(nRanks, configfile);
-        self.top_fmu = Contention_FlexibleMemoryUnit(nRanks, configfile);
+        #self.top_fmu = Contention_FlexibleMemoryUnit(nRanks, configfile);
+        self.top_fmu = Contention_FlexibleMemoryUnit.getMeTheContentionMethod(nRanks, configfile);
 
         self.fmu_circularBuffer : FMU_CircularBuffer;
         self.fmu_circularBuffer = self.top_fmu.fmu_circularBuffer;
@@ -43,7 +46,7 @@ class TopHybrid(Topology):
 
     # Decide if a match should be served by FMU
     def isThroughFMU_preMatch(self, rankS: int, rankR: int, size: int)->bool:
-    
+        #return True
         # Negative value means to use only the network
         if self.pivotValue < 0:
             return False;
@@ -53,10 +56,13 @@ class TopHybrid(Topology):
         return False
 
 
+
     # Decide if a match should be served by FMU
     def isThroughFMU(self, match: MQ_Match)->bool:
+        return self.isThroughFMU_preMatch(match.rankS, match.rankR, match.size)
 
         size = match.size;
+        
         # Negative value means to use only the network
         if self.pivotValue < 0:
             return False;
