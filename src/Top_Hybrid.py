@@ -6,7 +6,17 @@ from Contention_FlexibleMemoryUnit import *
 
 
 
-# The initial intent of this Topology is to be a topology of topologies.
+# HYBRID
+# - 2 topologies
+#       * Top_Kahuna
+#       * Top_FreeMemoryUnit
+# - Choose between the two topologies using the message size
+#       if < pivotValue:
+#           Kahuna
+#       else:
+#           FMU
+# See <calculatePivot> method for how we define the pivotValue
+#
 class TopHybrid(Topology):
 
 
@@ -27,14 +37,11 @@ class TopHybrid(Topology):
         self.total_messages_fmu = 0;
         self.total_messages_network = 0;
 
-        self.used_topology = None;
-
-        #self.pivotValue = configfile.fmu_pivot_value;
+        # Pivot Value
         self.pivotValue = self.calculatePivot(self.interLatency, self.interBandwidth, self.fmu_latency, self.fmu_bandwidth);
 
-
+        # Set up the topologies
         self.top_kahuna = Contention_Kahuna(nRanks, configfile);
-        #self.top_fmu = Contention_FlexibleMemoryUnit(nRanks, configfile);
         self.top_fmu = Contention_FlexibleMemoryUnit.getMeTheContentionMethod(nRanks, configfile);
 
         self.fmu_circularBuffer : FMU_CircularBuffer;
@@ -60,17 +67,6 @@ class TopHybrid(Topology):
     # Decide if a match should be served by FMU
     def isThroughFMU(self, match: MQ_Match)->bool:
         return self.isThroughFMU_preMatch(match.rankS, match.rankR, match.size)
-
-        size = match.size;
-        
-        # Negative value means to use only the network
-        if self.pivotValue < 0:
-            return False;
-
-        if size >= self.pivotValue:
-            return True;
-        return False
-
 
 
     # -1 = Network only
@@ -110,47 +106,6 @@ class TopHybrid(Topology):
         assert False, "FMU is worst than Network for large messages, but better on small messages. We did not implement this case."
 
 
-    # Override
-#    def dep_CommunicationCalculus_Bandwidth(self, rankS: int, rankR: int, workload: int):
-#
-#        workload = int(workload) + 16; # 16 Bytes as MPI overhead (based on SimGrid)
-#
-#        nodeS = rankS // self.cores_per_node;
-#        nodeR = rankR // self.cores_per_node;
-#
-#        bandwidth: float;
-#        if nodeS == nodeR: # Intranode
-#            bandwidth=self.intraBandwidth;
-#        else: #Internode
-#            if self.isThroughFMU(rankS, rankR, workload):
-#                bandwidth=self.fmu_bandwidth;
-#            else:
-#                bandwidth=self.interBandwidth;
-#
-#        if bandwidth == 0:
-#            return 0, bandwidth;
-#        else:
-#            return workload/bandwidth, bandwidth;
-#
-#
-#    def dep_CommunicationCalculus_Latency(self, rankS: int, rankR: int, workload: int):
-#
-#        if rankS == rankR:
-#            return 0;
-#
-#        nodeS = rankS // self.cores_per_node;
-#        nodeR = rankR // self.cores_per_node;
-#
-#        latency: float;
-#        if nodeS == nodeR: # Intranode
-#            latency = self.intraLatency;
-#        else: # Internode
-#            if self.isThroughFMU(rankS, rankR, workload):
-#                latency = self.fmu_latency;
-#            else:
-#                latency = self.interLatency;
-#
-#        return latency;
 
 
     # Override
@@ -175,7 +130,7 @@ class TopHybrid(Topology):
         else:
             return workload/bandwidth, bandwidth;
 
-
+    # Override
     def CommunicationCalculus_Latency(self, rankS: int, rankR: int, workload: int):
 
         if rankS == rankR:
@@ -217,12 +172,6 @@ class TopHybrid(Topology):
         lowest_cycle_network: float;
         lowest_cycle_network = None;
 
-        # Check for not initialized matches, and initialize them
-        #for i in range(len(fmu_matchesQ)):
-        #    if not fmu_matchesQ[i].initialized:
-        #        fmu_matchesQ[i].sep_initializeMatch(self.top_fmu.CommunicationCalculus_Bandwidth(fmu_matchesQ[i].rankS, fmu_matchesQ[i].rankR, fmu_matchesQ[i].size)[0])
-
-
         if len(fmu_matchesQ) > 0:
             lowest_cycle_fmu = fmu_matchesQ[0].sep_getBaseCycle();
             for i in range(len(fmu_matchesQ)):
@@ -235,7 +184,6 @@ class TopHybrid(Topology):
                 lowest_cycle_network = self.top_kahuna.findWindow(network_matchesQ)[0];
             else:
                 lowest_cycle_network = readyMatch.baseCycle;
-
         
         # ****************************************************************************
 
@@ -249,26 +197,20 @@ class TopHybrid(Topology):
         #   3 - lowest is from FMU
         #   4 - lowest is from Network
         #       4.1 - TODO: Network should stop if its lowest meets the FMU lowest
-        if lowest_cycle_fmu == None:
-            #readyMatchID = self.Contention_Kahuna(network_matchesQ, invalid_matchesQ, -1);
+        if lowest_cycle_fmu == None: # 1
             readyMatch = self.top_kahuna.processContention(network_matchesQ);
             self.total_messages_network = self.total_messages_network + 1;
         else:
-            if lowest_cycle_network == None:
-                #readyMatchID = self.Contention_FMU(fmu_matchesQ, invalid_matchesQ);
+            if lowest_cycle_network == None: # 2
                 readyMatch = self.top_fmu.processContention(fmu_matchesQ);
                 self.total_messages_fmu = self.total_messages_fmu + 1;
             else:
-                if lowest_cycle_fmu <= lowest_cycle_network:
-                    #readyMatchID = self.Contention_FMU(fmu_matchesQ, invalid_matchesQ);
+                if lowest_cycle_fmu <= lowest_cycle_network: # 3
                     readyMatch = self.top_fmu.processContention(fmu_matchesQ);
                     self.total_messages_fmu = self.total_messages_fmu + 1;
-                else:
-                    #readyMatchID = self.Contention_Kahuna(network_matchesQ, invalid_matchesQ, lowest_cycle_fmu);
+                else: # 4
                     readyMatch = self.top_kahuna.processContention(network_matchesQ);
                     self.total_messages_network = self.total_messages_network + 1;
-                    #if readyMatchID == None:
-                    #    readyMatchID = self.Contention_FMU(fmu_matchesQ, invalid_matchesQ);
 
         assert readyMatch is not None, "what?"
 

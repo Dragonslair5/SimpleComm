@@ -31,7 +31,6 @@ class Contention_Kahuna:
         readies : typing.List[MQ_Match];
         readies = []
         for i in range(0, len(valid_matchesQ)):
-            #if valid_matchesQ[i].baseCycle == valid_matchesQ[i].endCycle:
             if math.isclose(valid_matchesQ[i].baseCycle, valid_matchesQ[i].endCycle):
                 #return valid_matchesQ[i];
                 readies.append(valid_matchesQ[i]);
@@ -157,8 +156,6 @@ class Contention_Kahuna:
                 decrement = solved_window * (1.0/float(valid_matchesQ[i].bw_factor))
                 decrement = solved_window - decrement
                 valid_matchesQ[i].endCycle = valid_matchesQ[i].endCycle - decrement;
-                #if math.isclose(valid_matchesQ[i].endCycle, valid_matchesQ[i].baseCycle):
-                #    print("Decrement was: " + str(decrement));
                 assert valid_matchesQ[i].endCycle > valid_matchesQ[i].baseCycle, str(valid_matchesQ[i].endCycle) + " <= " + str(valid_matchesQ[i].baseCycle);
                 valid_matchesQ[i].solvedCycle = -1;
                 valid_matchesQ[i].bw_factor = 1;
@@ -166,8 +163,6 @@ class Contention_Kahuna:
             # GAMBIARRA: Should investigate why we need to do this. 
             # Sometimes the result does not reach the endCycle, and we do not know why this happens.
             # Probably some floating-point imprecision issue.
-            #if ((valid_matchesQ[i].baseCycle - valid_matchesQ[i].original_baseCycle)/(valid_matchesQ[i].endCycle - valid_matchesQ[i].original_baseCycle)) > 0.998:
-            #    valid_matchesQ[i].baseCycle = valid_matchesQ[i].endCycle;
             if math.isclose(valid_matchesQ[i].baseCycle, valid_matchesQ[i].endCycle):
                 valid_matchesQ[i].baseCycle = valid_matchesQ[i].endCycle;
         
@@ -198,13 +193,9 @@ class Contention_Kahuna:
 
         valid_matchesQ = matchQ;
 
-        times: int;
-        times = 0;
 
-        #print("--------------------");
-        #for i in range(len(valid_matchesQ)):
-        #    print(valid_matchesQ[i]);
-        #print("--------------------");
+        times: int; # Iteration counter, for debug
+        times = 0;
 
         while True:
 
@@ -258,4 +249,4 @@ class Contention_Kahuna:
             times = times + 1; # Debug
 
         
-        return None;
+        return None; # Should not arrive this point
