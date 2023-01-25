@@ -361,127 +361,6 @@ class SimpleCommEngine:
             print(biggestCycle); 
 
 
-    def print_blank(self):
-
-        # **** Communication Trace
-        # Activated with --> print_communication_trace = False
-        # NOTE: This might be huge! Becareful using it.         
-        self.simOutput.unload_Matches_on_the_screen();
-        # ***
-
-
-        if not self.ended:
-            return None;
-        if self.print_communication_trace:
-            print("#");
-        # TOPOLOGY
-        print("topology:"+self.config.topology)
-        # BOOSTER FACTOR
-        print("booster_factor:"+str(self.config.booster_factor))
-
-        biggestCycle = self.list_ranks[0].cycle;
-        for ri in range(1, len(self.list_ranks)):
-            if self.list_ranks[ri].cycle > biggestCycle:
-                biggestCycle =  self.list_ranks[ri].cycle;
-        # END TIME (biggest ending cycle)
-        print("biggest:"+str(biggestCycle))
-        total_time = 0
-        halted_time = 0
-        for ri in range(0, len(self.list_ranks)):
-            total_time = total_time + self.list_ranks[ri].cycle;
-            halted_time = halted_time + self.list_ranks[ri].timeHaltedDueCommunication;
-        halted_time_percentage = (halted_time / total_time) * 100;
-        # HALTED TIME (Idleness)
-        print("halted_time_percentage:" + "{:.2f}".format(halted_time_percentage) )
-        biggest_buffer_size = 0;
-        if (isinstance(self.MQ.topology, TopHybrid) or
-            isinstance(self.MQ.topology, TopFreeMemoryUnit)
-        ):
-            biggest_buffer_size = self.MQ.topology.fmu_circularBuffer.biggest_buffer_size;
-        # Biggest Buffer Size (Qdata size on FMU)
-        print("biggest_buffer_size:"+str(biggest_buffer_size));
-        
-        # Number of Messages
-        number_of_messages=self.simOutput.numberOfMessages;
-        print("number_of_messages:"+str(number_of_messages));
-        # Average Message Size
-        average_message_size=self.simOutput.amountOfDataCommunicated/number_of_messages;
-        print("average_message_size:"+ str(average_message_size));
-
-        # Largest Message Size
-        largest_message_size=self.simOutput.largestMessageSize;
-        print("largest_message_size:"+str(largest_message_size));
-
-
-        # Percentage of RECVs initiated after SEND conclusion
-        percentage_of_recvs_after_send_conclusion = (self.simOutput.recv_after_send_has_completed / number_of_messages) * 100;
-        print("recv_after_send_conclusion:" + str(percentage_of_recvs_after_send_conclusion));
-        
-        # Most called MPI operation
-        dic_mpi_operations = self.simOutput.dict_mpi_called_operations;
-        print("most_called_mpi_operation:"+max(dic_mpi_operations, key=dic_mpi_operations.get));
-
-
-
-        
-
-
-
-        # MPI operation that most caused idleness
-        dic_mpi_haltness = self.simOutput.dict_mpi_overhead;
-        for ri in range(0, len(self.list_ranks)):
-            rank_dic = self.list_ranks[ri].dict_mpi_overhead
-            dic_mpi_haltness = {k: dic_mpi_haltness.get(k, 0) + rank_dic.get(k, 0) for k in set(dic_mpi_haltness) | set(rank_dic)}        
-        print("most_idleness_source_mpi_operation:", max(dic_mpi_haltness, key=dic_mpi_haltness.get))
-        
-        hybrid_pivot_value = -1;
-        proportion_fmu_usage = 0.0;
-        if isinstance(self.MQ.topology, TopHybrid):
-            hybrid_pivot_value = self.MQ.topology.pivotValue;
-            proportion_fmu_usage = (self.MQ.topology.total_messages_fmu / self.MQ.topology.total_messages) * 100;
-        if isinstance(self.MQ.topology, TopFreeMemoryUnit):
-            proportion_fmu_usage = 100.0
-        # Hybrid pivot Value (HYBRID)
-        print("hybrid_pivot_value:"+str(int(hybrid_pivot_value)));
-        # Proportion of FMU usage (HYBRID)
-        print("proportion_fmu_usage:"+str(proportion_fmu_usage))
-        # Header for individual Rank stats
-        print("rank,endTime,haltedTime,percentHaltedTime,numCommunications,averageMessageSize,largestData")
-        for ri in range(0, len(self.list_ranks)):
-
-            endTime = self.list_ranks[ri].cycle;
-            haltedTime = self.list_ranks[ri].timeHaltedDueCommunication;
-            numCommunications = self.list_ranks[ri].amountOfCommunications;
-            averageCommunicationSize = self.list_ranks[ri].amountOfDataOnCommunication / numCommunications;
-            largestDataOnSingleCommunication = self.list_ranks[ri].largestDataOnASingleCommunication;
-
-            # Rank ID
-            print("rank"+str(ri), end=',')
-            # END TIME
-            print(str(endTime), end=',')
-            # Halted Time (Idleness)
-            print(str(haltedTime), end=',')
-            # Halted Time Percentage
-            print("{:.2f}".format( ((haltedTime/endTime)*100) ), end=',')
-            # Number of communications
-            print(str(numCommunications), end=',')
-            # Average Communication Size
-            print(str(averageCommunicationSize), end=',')
-            # Largest Message Size
-            print(str(largestDataOnSingleCommunication))
-
-            # Rank ID (For individual haltness [idleness] of individual MPI operation)
-            print("H_"+"rank"+str(ri), end='')
-            for key, value in self.list_ranks[ri].dict_mpi_overhead.items():
-                halted_dictionary = self.list_ranks[ri].dict_mpi_overhead;
-                haltedTime = halted_dictionary[key];
-                if haltedTime == 0:
-                    continue;
-                haltedTime_percentage = (haltedTime / endTime)*100;
-                print("," + key + ":" + "{:.2f}".format(haltedTime_percentage), end='')
-            print("")
-        
-
 
     # TODO: Update this to match the information from print_blank
     def print_overall(self):
@@ -567,3 +446,143 @@ class SimpleCommEngine:
                 haltedTime_percentage = (haltedTime / endTime)*100;
                 print("," + key + ":" + "{:.2f}".format(haltedTime_percentage), end='')
             print("")
+
+
+
+
+# ********************************
+#  ____  _        _    _   _ _  __
+# | __ )| |      / \  | \ | | |/ /
+# |  _ \| |     / _ \ |  \| | ' / 
+# | |_) | |___ / ___ \| |\  | . \ 
+# |____/|_____/_/   \_\_| \_|_|\_\
+#                                 
+# ********************************
+# This is the main way/most updated printing function
+
+    def print_blank(self):
+
+        # **** Communication Trace
+        # Activated with --> print_communication_trace = False
+        # NOTE: This might be huge! Becareful using it.         
+        self.simOutput.unload_Matches_on_the_screen();
+        # ***
+
+
+        if not self.ended:
+            return None;
+        if self.print_communication_trace:
+            print("#");
+        # TOPOLOGY
+        print("topology:"+self.config.topology)
+        # BOOSTER FACTOR
+        print("booster_factor:"+str(self.config.booster_factor))
+
+        biggestCycle = self.list_ranks[0].cycle;
+        for ri in range(1, len(self.list_ranks)):
+            if self.list_ranks[ri].cycle > biggestCycle:
+                biggestCycle =  self.list_ranks[ri].cycle;
+        # END TIME (biggest ending cycle)
+        print("biggest:"+str(biggestCycle))
+        total_time = 0
+        halted_time = 0
+        for ri in range(0, len(self.list_ranks)):
+            total_time = total_time + self.list_ranks[ri].cycle;
+            halted_time = halted_time + self.list_ranks[ri].timeHaltedDueCommunication;
+        halted_time_percentage = (halted_time / total_time) * 100;
+        # HALTED TIME (Idleness)
+        print("halted_time_percentage:" + "{:.2f}".format(halted_time_percentage) )
+        biggest_buffer_size = 0;
+        if (isinstance(self.MQ.topology, TopHybrid) or
+            isinstance(self.MQ.topology, TopFreeMemoryUnit)
+        ):
+            biggest_buffer_size = self.MQ.topology.fmu_circularBuffer.biggest_buffer_size;
+        # Biggest Buffer Size (Qdata size on FMU)
+        print("biggest_buffer_size:"+str(biggest_buffer_size));
+        
+        # Number of Messages
+        number_of_messages=self.simOutput.numberOfMessages;
+        print("number_of_messages:"+str(number_of_messages));
+        # Average Message Size
+        average_message_size=self.simOutput.amountOfDataCommunicated/number_of_messages;
+        print("average_message_size:"+ str(average_message_size));
+
+        # Largest Message Size
+        largest_message_size=self.simOutput.largestMessageSize;
+        print("largest_message_size:"+str(largest_message_size));
+
+
+        # Percentage of RECVs initiated after SEND conclusion
+        # TODO: This might be wrong
+        percentage_of_recvs_after_send_conclusion = (self.simOutput.recv_after_send_has_completed / number_of_messages) * 100;
+        print("recv_after_send_conclusion:" + str(percentage_of_recvs_after_send_conclusion));
+        
+        # Most called MPI operation
+        dic_mpi_operations = self.simOutput.dict_mpi_called_operations;
+        print("most_called_mpi_operation:"+max(dic_mpi_operations, key=dic_mpi_operations.get));
+
+        # MPI operation that most caused idleness
+        dic_mpi_haltness = self.simOutput.dict_mpi_overhead;
+        for ri in range(0, len(self.list_ranks)):
+            rank_dic = self.list_ranks[ri].dict_mpi_overhead
+            dic_mpi_haltness = {k: dic_mpi_haltness.get(k, 0) + rank_dic.get(k, 0) for k in set(dic_mpi_haltness) | set(rank_dic)}        
+        print("most_idleness_source_mpi_operation:", max(dic_mpi_haltness, key=dic_mpi_haltness.get))
+        
+        hybrid_pivot_value = -1;
+        proportion_fmu_usage = 0.0;
+        if isinstance(self.MQ.topology, TopHybrid):
+            hybrid_pivot_value = self.MQ.topology.pivotValue;
+            proportion_fmu_usage = (self.MQ.topology.total_messages_fmu / self.MQ.topology.total_messages) * 100;
+        if isinstance(self.MQ.topology, TopFreeMemoryUnit):
+            proportion_fmu_usage = 100.0
+        # Hybrid pivot Value (HYBRID)
+        print("hybrid_pivot_value:"+str(int(hybrid_pivot_value)));
+        # Proportion of FMU usage (HYBRID)
+        print("proportion_fmu_usage:"+str(proportion_fmu_usage))
+
+        if isinstance(self.MQ.topology, TopHybrid) or isinstance(self.MQ.topology, TopFreeMemoryUnit):
+            print(self.MQ.topology.top_fmu.fmu_congestion_time)
+            print("fmu_congestion_time:"+str(self.MQ.topology.top_fmu.fmu_congestion_time))
+            print("fmu_channel_congestion_time:"+str(self.MQ.topology.top_fmu.channel_congestion_time))
+            print("fmu_idle_mapping:"+str(self.MQ.topology.top_fmu.fmu_idle_mapping))
+            print("fmu_heuristic_mapping:"+str(self.MQ.topology.top_fmu.fmu_heuristic_mapping))
+
+
+        # Per Rank Results
+        # **************************************************************************************************
+        # Header for individual Rank stats
+        print("rank,endTime,haltedTime,percentHaltedTime,numCommunications,averageMessageSize,largestData")
+        for ri in range(0, len(self.list_ranks)):
+
+            endTime = self.list_ranks[ri].cycle;
+            haltedTime = self.list_ranks[ri].timeHaltedDueCommunication;
+            numCommunications = self.list_ranks[ri].amountOfCommunications;
+            averageCommunicationSize = self.list_ranks[ri].amountOfDataOnCommunication / numCommunications;
+            largestDataOnSingleCommunication = self.list_ranks[ri].largestDataOnASingleCommunication;
+
+            # Rank ID
+            print("rank"+str(ri), end=',')
+            # END TIME
+            print(str(endTime), end=',')
+            # Halted Time (Idleness)
+            print(str(haltedTime), end=',')
+            # Halted Time Percentage
+            print("{:.2f}".format( ((haltedTime/endTime)*100) ), end=',')
+            # Number of communications
+            print(str(numCommunications), end=',')
+            # Average Communication Size
+            print(str(averageCommunicationSize), end=',')
+            # Largest Message Size
+            print(str(largestDataOnSingleCommunication))
+
+            # Rank ID (For individual haltness [idleness] of individual MPI operation)
+            print("H_"+"rank"+str(ri), end='')
+            for key, value in self.list_ranks[ri].dict_mpi_overhead.items():
+                halted_dictionary = self.list_ranks[ri].dict_mpi_overhead;
+                haltedTime = halted_dictionary[key];
+                if haltedTime == 0:
+                    continue;
+                haltedTime_percentage = (haltedTime / endTime)*100;
+                print("," + key + ":" + "{:.2f}".format(haltedTime_percentage), end='')
+            print("")
+        

@@ -52,6 +52,9 @@ class Contention_FlexibleMemoryUnit:
         self.fmu_circularBuffer : FMU_CircularBuffer;
         self.fmu_circularBuffer = FMU_CircularBuffer(self.nFMUs);
 
+        self.fmu_idle_mapping = 0;
+        self.fmu_heuristic_mapping = 0;
+
 
 # ************************************************************
 #  _____ _           _               __  __           _      _ 
@@ -758,20 +761,53 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
                 li = i;
         return matchQ[li];
 
-    # Update FMU Request Tracker (FRT)
-    def updateFRT(self, fmu_index, cycle):
-        if self.fmu_request_tracker[fmu_index] < cycle:
-            self.fmu_request_tracker[fmu_index] = cycle;
+    def findWindow(self, matchQ):
+        assert len(matchQ) > 0;
+        lowest_cycle = matchQ[0].sep_getBaseCycle();
+        li = 0;
+        for i in range(0, len(matchQ)):
+            if matchQ[i].sep_getBaseCycle() < lowest_cycle:
+                lowest_cycle = matchQ[i].sep_getBaseCycle();
+                li = i;
+        second_lowest_cycle = matchQ[li].sep_getEndCycle();
+
+        assert lowest_cycle < second_lowest_cycle, "second lowest not bigger than lowest?"
+
+        for i in range(0, len(matchQ)):
         
+            if matchQ[i].sep_getBaseCycle() < second_lowest_cycle and not math.isclose(matchQ[i].sep_getBaseCycle(), lowest_cycle):
+                second_lowest_cycle = matchQ[i].sep_getBaseCycle();
+            if matchQ[i].sep_getEndCycle() < second_lowest_cycle:
+                second_lowest_cycle = matchQ[i].sep_getEndCycle();
+
+        return lowest_cycle, second_lowest_cycle;
+
+    # Update FMU Request Tracker (FRT)
+    #def updateFRT(self, fmu_index, cycle):
+    #   if self.fmu_request_tracker[fmu_index] < cycle:
+    #       self.fmu_request_tracker[fmu_index] = cycle;
+    #   if self.fmu_request_tracker[fmu_index] < cycle:
+        
+
+    def incrementFRT(self, fmu_index):
+        self.fmu_request_tracker[fmu_index] += 1;
+    
+    def decrementFRT(self, fmu_index):
+        self.fmu_request_tracker[fmu_index] -= 1;
+        assert self.fmu_request_tracker[fmu_index] >= 0;
+
 
     # - baseCycle to seek FMU
     # - endCycle to mark it as used until endCycle
     def seekIdleFMU(self, baseCycle, endCycle)->int:
         assert endCycle >= baseCycle;
         for i in range(len(self.fmu_request_tracker)):
-            if self.fmu_request_tracker[i] <= baseCycle:
-                self.updateFRT(i, endCycle);
-                return i;
+            #if self.fmu_request_tracker[i] <= baseCycle:
+            if self.fmu_request_tracker[i] == 0:
+                self.incrementFRT(i);
+                return i
+                #self.updateFRT(i, endCycle);
+                #return i;
         return None;
 
     # Find lowest used FMU by amount of data
@@ -780,6 +816,8 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
         for i in range(0,len(self.fmu_data_written_on)):
             if self.fmu_data_written_on[i] < self.fmu_data_written_on[fmu_in_use]:
                 fmu_in_use = i;
+        
+        self.incrementFRT(fmu_in_use);
         return fmu_in_use
 
 
@@ -792,14 +830,56 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
         baseCycle = readyMatch.sep_getBaseCycle();
         endCycle = readyMatch.sep_getEndCycle();
 
+        baseCycle, endCycle = self.findWindow(matchQ);
+
+        for i in range(self.nFMUs):
+            self.fmu_request_tracker[i] = 0;
+            if self.fmu_last_cycle_vector[i] > baseCycle:
+                self.fmu_request_tracker[i] += 1;
+        
+        for i in range(len(matchQ)):
+            current_match = matchQ[i];
+            if current_match.fmu_in_use is None: # It still needs to be assigned to a FMU
+                continue;
+            if current_match.sep_getBaseCycle() >= endCycle: # It is out of the window
+                continue;
+            self.fmu_request_tracker[current_match.fmu_in_use] += 1;
+
+        for i in range(len(matchQ)):
+            current_match = matchQ[i];
+            if current_match.fmu_in_use is not None: # It has already chosen FMU
+                continue;
+            if current_match.sep_getBaseCycle() >= endCycle: # It is out of the window
+                continue;
+
+            # Try to get an Idle FMU
+            current_match.fmu_in_use = self.seekIdleFMU(baseCycle, endCycle);
+            if current_match.fmu_in_use != None:
+                self.fmu_idle_mapping += 1;
+                self.fmu_request_tracker[current_match.fmu_in_use] += 1;
+                self.fmu_data_written_on[current_match.fmu_in_use] += current_match.size;
+                continue;
+            
+            # Get FMU using LeastUsedFMU
+            current_match.fmu_in_use = self.chooseFMU_LeastUsedFMU();
+            self.fmu_request_tracker[current_match.fmu_in_use] += 1;
+            #self.updateFRT(current_match.fmu_in_use, endCycle);
+            self.fmu_heuristic_mapping += 1;
+            self.fmu_data_written_on[current_match.fmu_in_use] += current_match.size;
+
+        return;
+
         # Try to get an Idle FMU
         readyMatch.fmu_in_use = self.seekIdleFMU(baseCycle, endCycle);
         if readyMatch.fmu_in_use != None:
+            self.fmu_idle_mapping += 1;
+            self.fmu_data_written_on[readyMatch.fmu_in_use] += readyMatch.size;
             return;
 
         # Get FMU using LeastUsedFMU
         readyMatch.fmu_in_use = self.chooseFMU_LeastUsedFMU();
         self.updateFRT(readyMatch.fmu_in_use, endCycle);
+        self.fmu_idle_mapping += 1;
         self.fmu_data_written_on[readyMatch.fmu_in_use] += readyMatch.size;
 
 
@@ -811,6 +891,12 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
         #print("Valid: " + str(len(valid_matchesQ)) )
         # We might be on a deadlock if there is no valid match on this point
         assert len(matchQ) > 0, "No valid Match was found"
+
+        # Initialize everyone
+        for i in range(len(matchQ)):
+            currentMatch = matchQ[i];
+            if not currentMatch.initialized:
+                currentMatch.sep_initializeMatch(self.CommunicationCalculus_Bandwidth(currentMatch.rankS, currentMatch.rankR, currentMatch.size)[0]);
 
         # find lowest cycle
         readyMatch : MQ_Match
@@ -826,6 +912,7 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
 
             # Initialize if not yet
             if not readyMatch.initialized:
+                assert False;
                 readyMatch.sep_initializeMatch(self.CommunicationCalculus_Bandwidth(readyMatch.rankS, readyMatch.rankR, readyMatch.size)[0]);
 
             # Choose FMU is needed

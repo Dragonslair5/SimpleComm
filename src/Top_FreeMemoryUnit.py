@@ -18,15 +18,15 @@ class TopFreeMemoryUnit(Topology):
         self.interLatency = configfile.fmu_latency;
         self.interBandwidth = configfile.fmu_bandwidth;
 
-        self.contentionObject: Contention_FlexibleMemoryUnit;
-        self.contentionObject = Contention_FlexibleMemoryUnit.getMeTheContentionMethod(nRanks, configfile);
+        self.top_fmu: Contention_FlexibleMemoryUnit;
+        self.top_fmu = Contention_FlexibleMemoryUnit.getMeTheContentionMethod(nRanks, configfile);
 
         self.fmu_circularBuffer : FMU_CircularBuffer;
-        self.fmu_circularBuffer = self.contentionObject.fmu_circularBuffer;
-        self.fmu_congestion_time = self.contentionObject.fmu_congestion_time;
-        self.nFMUs = self.contentionObject.nFMUs;
+        self.fmu_circularBuffer = self.top_fmu.fmu_circularBuffer;
+        self.fmu_congestion_time = self.top_fmu.fmu_congestion_time;
+        self.nFMUs = self.top_fmu.nFMUs;
 
 
     def processContention(self, matchQ: typing.List[MQ_Match])-> MQ_Match:
-        return self.contentionObject.processContention(matchQ);
+        return self.top_fmu.processContention(matchQ);
 
