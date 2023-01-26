@@ -12,18 +12,7 @@ class Contention_FlexibleMemoryUnit:
 
     @staticmethod
     def getMeTheContentionMethod(nRanks: int, configfile: SimpleCommConfiguration):
-        
-        if configfile.fmu_mapping == "STATIC":
-            return Contention_FlexibleMemoryUnit_STATIC(nRanks, configfile);
-        elif configfile.fmu_mapping == "INTERLEAVE":
-            return Contention_FlexibleMemoryUnit_Incremental(nRanks, configfile);
-        elif configfile.fmu_mapping == "LEAST_USED_FMU":
-            return Contention_FlexibleMemoryUnit_LeastUsedFMU(nRanks, configfile);
-        elif configfile.fmu_mapping == "GENERAL":
-            return Contention_FlexibleMemoryUnit_General(nRanks, configfile);
-        else:
-            print( bcolors.FAIL + "ERROR: Unknown fmu mapping scheme:  " + configfile.fmu_mapping + bcolors.ENDC);
-            sys.exit(1);
+        return Contention_FlexibleMemoryUnit_General(nRanks, configfile); 
 
 
     def __init__(self, nRanks: int, configfile: SimpleCommConfiguration):
@@ -101,617 +90,6 @@ class Contention_FlexibleMemoryUnit:
         return latency;
 
 
-# *********************************************
-#  __  __                   _                 
-# |  \/  | __ _ _ __  _ __ (_)_ __   __ _ ___ 
-# | |\/| |/ _` | '_ \| '_ \| | '_ \ / _` / __|
-# | |  | | (_| | |_) | |_) | | | | | (_| \__ \
-# |_|  |_|\__,_| .__/| .__/|_|_| |_|\__, |___/
-#              |_|   |_|            |___/     
-# *********************************************
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# ********************************
-#  ____ _____  _  _____ ___ ____ 
-# / ___|_   _|/ \|_   _|_ _/ ___|
-# \___ \ | | / _ \ | |  | | |    
-#  ___) || |/ ___ \| |  | | |___ 
-# |____/ |_/_/   \_\_| |___\____|
-#                                
-#********************************
-
-class Contention_FlexibleMemoryUnit_STATIC(Contention_FlexibleMemoryUnit):
-
-
-    def __init__(self, nRanks, configfile: SimpleCommConfiguration):
-        super(Contention_FlexibleMemoryUnit_STATIC, self).__init__(nRanks, configfile);
-
-
-    def get_fmu_last_cycle(self, chosenFMU: int)->float:
-        assert chosenFMU < self.nFMUs, "What? FMU " + str(chosenFMU) + " does not exist."
-        return self.fmu_last_cycle_vector[chosenFMU];
-
-    def chooseFMU(self, rank):
-        return rank % self.nFMUs;
-
-    def update_fmu_last_cycle(self, chosenFMU: int, endTime: float)-> None:
-        assert chosenFMU < self.nFMUs, "What? FMU " + str(chosenFMU) + " does not exist."
-        assert self.fmu_last_cycle_vector[chosenFMU] <= endTime, "what? " + str(endTime) + " < " + str(self.fmu_last_cycle_vector[chosenFMU])
-        self.fmu_last_cycle_vector[chosenFMU] = endTime;
-
-    def isThereConflict(self, my_rank: int, partner_rank: int, fmu_in_usage_1 = None, fmu_in_usage_2= None) -> bool:
-        if my_rank == partner_rank:
-            return True;
-        if fmu_in_usage_1 == fmu_in_usage_2:
-            return True;
-        return False;
-
-    def initializeUnitializedMatches(self, valid_matchesQ: typing.List[MQ_Match])-> None:
-        for i in range(len(valid_matchesQ)):
-            if not valid_matchesQ[i].initialized:
-                valid_matchesQ[i].sep_initializeMatch(self.CommunicationCalculus_Bandwidth(valid_matchesQ[i].rankS, valid_matchesQ[i].rankR, valid_matchesQ[i].size)[0]);
-                chosenFMU = self.chooseFMU(valid_matchesQ[i].rankR);
-                valid_matchesQ[i].fmu_in_use = chosenFMU;
-                if chosenFMU < self.nFMUs:
-                    minToStart = self.get_fmu_last_cycle(chosenFMU) + valid_matchesQ[i].latency;
-                    inc = minToStart - valid_matchesQ[i].sep_getBaseCycle();
-                    if inc > 0:
-                        valid_matchesQ[i].sep_incrementCycle(inc);
-                        self.fmu_congestion_time[chosenFMU] = self.fmu_congestion_time[chosenFMU] + inc;
-
-
-    
-
-    def processContention(self, matchQ) -> MQ_Match:
-        valid_matchesQ = matchQ;
-
-        # We might be on a deadlock if there is no valid match on this point
-        assert len(valid_matchesQ) > 0, "No valid Match was found"
-
-        # Check for not initialized matches, and initialize them
-        self.initializeUnitializedMatches(valid_matchesQ);
-
-        # find lowest cycle
-        readyMatch : MQ_Match
-        readyMatch = None;
-
-        # Check if some match is ready
-        for i in range(0, len(valid_matchesQ)):
-            if valid_matchesQ[i].READY:
-                readyMatch = valid_matchesQ[i];
-                break;
-
-        # If none is ready, lets do this
-        while readyMatch == None:
-
-            lowest_cycle = valid_matchesQ[0].sep_getBaseCycle();
-            li = 0;
-            for i in range(0, len(valid_matchesQ)):
-                if valid_matchesQ[i].sep_getBaseCycle() < lowest_cycle:
-                    lowest_cycle = valid_matchesQ[i].sep_getBaseCycle();
-                    li = i;
-
-            readyMatch = valid_matchesQ[li];
-            #print("\nreadyMatch = " + str(readyMatch.id))
-
-            rank_in_usage = None;
-            if readyMatch.still_solving_send:
-                rank_in_usage = readyMatch.rankS;
-            else:
-                rank_in_usage = readyMatch.rankR;
-            
-            # Delay other communications as needed
-            for j in range(0, len(valid_matchesQ)):
-                if j == li:
-                    continue;
-                
-                partner: MQ_Match;
-                partner = valid_matchesQ[j];
-
-
-                partner_rank = None;
-                if valid_matchesQ[j].still_solving_send:
-                    partner_rank = valid_matchesQ[j].rankS;
-                else:
-                    partner_rank = valid_matchesQ[j].rankR;
-
-                # Check if we can move something else to this FMU
-                if (readyMatch.fmu_in_use == partner.fmu_in_use): # If same FMU
-                    if (rank_in_usage == partner_rank): # If same Rank
-                        if (partner.sep_getBaseCycle() - partner.latency) <= readyMatch.sep_getEndCycle(): # If issued before this access endCycle
-                            #print("IT IS HAPPENING")
-                            # Remove the switch latency
-                            partner.sep_decrementCycle(partner.latency);
-                            # Adjust the Timing 
-                            minToStart = readyMatch.sep_getEndCycle();
-                            inc = minToStart - partner.sep_getBaseCycle();
-                            if inc > 0:
-                                partner.sep_incrementCycle(inc);
-                            
-                            if partner.still_solving_send: # IF it is a SEND
-                                partner.sep_move_RECV_after_SEND();
-                                self.fmu_circularBuffer.insert_entry(partner.fmu_in_use,
-                                                     partner.id,
-                                                     partner.size);
-                            else: # If it is a RECV
-                                self.fmu_circularBuffer.consume_entry(partner.fmu_in_use,
-                                              partner.id);
-                                partner.READY = True;
-
-
-                if (
-                    self.isThereConflict(rank_in_usage, partner_rank, readyMatch.fmu_in_use, valid_matchesQ[j].fmu_in_use)
-                ):
-                    minToStart = readyMatch.sep_getEndCycle() + valid_matchesQ[j].latency;
-                    inc = minToStart - valid_matchesQ[j].sep_getBaseCycle();
-
-                    if inc > 0:
-                        valid_matchesQ[j].sep_incrementCycle(inc);
-                        if readyMatch.fmu_in_use == valid_matchesQ[j].fmu_in_use:
-                            self.fmu_congestion_time[readyMatch.fmu_in_use] = self.fmu_congestion_time[readyMatch.fmu_in_use] + inc;
-
-            if readyMatch.still_solving_send:
-                readyMatch.sep_move_RECV_after_SEND();
-                
-                #self.fmu_circularBuffer.insert_entry(readyMatch.rankR % self.nFMUs,
-                #                                     readyMatch.id,
-                #                                     readyMatch.size);
-
-                self.fmu_circularBuffer.insert_entry(readyMatch.fmu_in_use,
-                                                     readyMatch.id,
-                                                     readyMatch.size);
-                
-                readyMatch = None;
-
-        if readyMatch.READY == False: # It was not solved with another operation
-            self.fmu_circularBuffer.consume_entry(readyMatch.fmu_in_use,
-                                              readyMatch.id);
-
-
-        assert readyMatch.endCycle == readyMatch.recv_endCycle, "Why are they not equal? " + str(readyMatch.endCycle) + " != " + str(readyMatch.recv_endCycle)
-        self.update_fmu_last_cycle(readyMatch.fmu_in_use, readyMatch.endCycle);
-        
-
-
-        readyMatchID = readyMatch.id;
-        # Grab the ready match from the matches queue (matchQ) or collectives matches queue (col_matchQ)
-        readyMatch = None;
-        for j in range(0, len(matchQ)):
-            if readyMatchID == matchQ[j].id:
-               readyMatch = matchQ.pop(j)
-               break;
-
-        assert readyMatch is not None, "ready match is not presented on matches queues"
-
-
-        return readyMatch;
-
-
-
-
-
-
-
-
-
-# ******************************************************************
-#  ___ _   _  ____ ____  _____ __  __ _____ _   _ _____  _    _     
-# |_ _| \ | |/ ___|  _ \| ____|  \/  | ____| \ | |_   _|/ \  | |    
-#  | ||  \| | |   | |_) |  _| | |\/| |  _| |  \| | | | / _ \ | |    
-#  | || |\  | |___|  _ <| |___| |  | | |___| |\  | | |/ ___ \| |___ 
-# |___|_| \_|\____|_| \_\_____|_|  |_|_____|_| \_| |_/_/   \_\_____|
-#                                                                   
-# ******************************************************************
-
-
-
-
-
-class Contention_FlexibleMemoryUnit_Incremental(Contention_FlexibleMemoryUnit):
-
-    def __init__(self, nRanks, configfile: SimpleCommConfiguration):
-        super(Contention_FlexibleMemoryUnit_Incremental, self).__init__(nRanks, configfile);
-        self.fmu_interleave = 0;
-
-
-    def get_fmu_last_cycle(self, chosenFMU: int)->float:
-        assert chosenFMU < self.nFMUs, "What? FMU " + str(chosenFMU) + " does not exist."
-        return self.fmu_last_cycle_vector[chosenFMU];
-
-    def chooseFMU(self, rank):
-        self.fmu_interleave = (self.fmu_interleave + 1) % self.nFMUs;
-        return self.fmu_interleave;
-
-    def update_fmu_last_cycle(self, chosenFMU: int, endTime: float)-> None:
-        assert chosenFMU < self.nFMUs, "What? FMU " + str(chosenFMU) + " does not exist."
-        assert self.fmu_last_cycle_vector[chosenFMU] <= endTime, "what? " + str(endTime) + " < " + str(self.fmu_last_cycle_vector[chosenFMU])
-        self.fmu_last_cycle_vector[chosenFMU] = endTime;
-
-    def isThereConflict(self, my_rank: int, partner_rank: int, fmu_in_usage_1 = None, fmu_in_usage_2= None) -> bool:
-        if my_rank == partner_rank:
-            return True;
-        if fmu_in_usage_1 == fmu_in_usage_2:
-            return True;
-        return False;
-
-    def initializeUnitializedMatches(self, valid_matchesQ: typing.List[MQ_Match])-> None:
-        for i in range(len(valid_matchesQ)):
-            if not valid_matchesQ[i].initialized:
-                valid_matchesQ[i].sep_initializeMatch(self.CommunicationCalculus_Bandwidth(valid_matchesQ[i].rankS, valid_matchesQ[i].rankR, valid_matchesQ[i].size)[0]);
-                chosenFMU = self.chooseFMU(valid_matchesQ[i].rankR);
-                valid_matchesQ[i].fmu_in_use = chosenFMU;
-                if chosenFMU < self.nFMUs:
-                    minToStart = self.get_fmu_last_cycle(chosenFMU) + valid_matchesQ[i].latency;
-                    inc = minToStart - valid_matchesQ[i].sep_getBaseCycle();
-                    if inc > 0:
-                        valid_matchesQ[i].sep_incrementCycle(inc);
-                        self.fmu_congestion_time[chosenFMU] = self.fmu_congestion_time[chosenFMU] + inc;
-
-
-    def processContention(self, matchQ) -> MQ_Match:
-        valid_matchesQ = matchQ;
-
-        # We might be on a deadlock if there is no valid match on this point
-        assert len(valid_matchesQ) > 0, "No valid Match was found"
-
-        # Check for not initialized matches, and initialize them
-        self.initializeUnitializedMatches(valid_matchesQ);
-
-        # find lowest cycle
-        readyMatch : MQ_Match
-        readyMatch = None;
-
-        # Check if some match is ready
-        for i in range(0, len(valid_matchesQ)):
-            if valid_matchesQ[i].READY:
-                readyMatch = valid_matchesQ[i];
-                break;
-
-        # If none is ready, lets do this
-        while readyMatch == None:
-
-            lowest_cycle = valid_matchesQ[0].sep_getBaseCycle();
-            li = 0;
-            for i in range(0, len(valid_matchesQ)):
-                if valid_matchesQ[i].sep_getBaseCycle() < lowest_cycle:
-                    lowest_cycle = valid_matchesQ[i].sep_getBaseCycle();
-                    li = i;
-
-            readyMatch = valid_matchesQ[li];
-            #print("\nreadyMatch = " + str(readyMatch.id))
-
-            rank_in_usage = None;
-            if readyMatch.still_solving_send:
-                rank_in_usage = readyMatch.rankS;
-            else:
-                rank_in_usage = readyMatch.rankR;
-            
-            # Delay other communications as needed
-            for j in range(0, len(valid_matchesQ)):
-                if j == li:
-                    continue;
-                
-                partner: MQ_Match;
-                partner = valid_matchesQ[j];
-
-
-                partner_rank = None;
-                if valid_matchesQ[j].still_solving_send:
-                    partner_rank = valid_matchesQ[j].rankS;
-                else:
-                    partner_rank = valid_matchesQ[j].rankR;
-
-                # Check if we can move something else to this FMU
-                if (readyMatch.fmu_in_use == partner.fmu_in_use): # If same FMU
-                    if (rank_in_usage == partner_rank): # If same Rank
-                        if (partner.sep_getBaseCycle() - partner.latency) <= readyMatch.sep_getEndCycle(): # If issued before this access endCycle
-                            #print("IT IS HAPPENING")
-                            # Remove the switch latency
-                            partner.sep_decrementCycle(partner.latency);
-                            # Adjust the Timing 
-                            minToStart = readyMatch.sep_getEndCycle();
-                            inc = minToStart - partner.sep_getBaseCycle();
-                            if inc > 0:
-                                partner.sep_incrementCycle(inc);
-                            
-                            if partner.still_solving_send: # IF it is a SEND
-                                partner.sep_move_RECV_after_SEND();
-                                self.fmu_circularBuffer.insert_entry(partner.fmu_in_use,
-                                                     partner.id,
-                                                     partner.size);
-                            else: # If it is a RECV
-                                self.fmu_circularBuffer.consume_entry(partner.fmu_in_use,
-                                              partner.id);
-                                partner.READY = True;
-
-
-                if (
-                    self.isThereConflict(rank_in_usage, partner_rank, readyMatch.fmu_in_use, valid_matchesQ[j].fmu_in_use)
-                ):
-                    minToStart = readyMatch.sep_getEndCycle() + valid_matchesQ[j].latency;
-                    inc = minToStart - valid_matchesQ[j].sep_getBaseCycle();
-
-                    if inc > 0:
-                        valid_matchesQ[j].sep_incrementCycle(inc);
-                        if readyMatch.fmu_in_use == valid_matchesQ[j].fmu_in_use:
-                            self.fmu_congestion_time[readyMatch.fmu_in_use] = self.fmu_congestion_time[readyMatch.fmu_in_use] + inc;
-
-            if readyMatch.still_solving_send:
-                readyMatch.sep_move_RECV_after_SEND();
-                
-                #self.fmu_circularBuffer.insert_entry(readyMatch.rankR % self.nFMUs,
-                #                                     readyMatch.id,
-                #                                     readyMatch.size);
-
-                self.fmu_circularBuffer.insert_entry(readyMatch.fmu_in_use,
-                                                     readyMatch.id,
-                                                     readyMatch.size);
-                
-                readyMatch = None;
-
-        if readyMatch.READY == False: # It was not solved with another operation
-            self.fmu_circularBuffer.consume_entry(readyMatch.fmu_in_use,
-                                              readyMatch.id);
-
-
-        assert readyMatch.endCycle == readyMatch.recv_endCycle, "Why are they not equal? " + str(readyMatch.endCycle) + " != " + str(readyMatch.recv_endCycle)
-        self.update_fmu_last_cycle(readyMatch.fmu_in_use, readyMatch.endCycle);
-        
-
-
-        readyMatchID = readyMatch.id;
-        # Grab the ready match from the matches queue (matchQ) or collectives matches queue (col_matchQ)
-        readyMatch = None;
-        for j in range(0, len(matchQ)):
-            if readyMatchID == matchQ[j].id:
-               readyMatch = matchQ.pop(j)
-               break;
-
-        assert readyMatch is not None, "ready match is not presented on matches queues"
-
-
-        return readyMatch;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# ***************************************************************
-#  _     _____    _    ____ _____        _   _ ____  _____ ____  
-# | |   | ____|  / \  / ___|_   _|      | | | / ___|| ____|  _ \ 
-# | |   |  _|   / _ \ \___ \ | |        | | | \___ \|  _| | | | |
-# | |___| |___ / ___ \ ___) || |        | |_| |___) | |___| |_| |
-# |_____|_____/_/   \_\____/ |_|____ ____\___/|____/|_____|____/ 
-#                             |_____|_____|                      
-# ***************************************************************
-
-
-class Contention_FlexibleMemoryUnit_LeastUsedFMU(Contention_FlexibleMemoryUnit):
-
-    def __init__(self, nRanks, configfile: SimpleCommConfiguration):
-        super(Contention_FlexibleMemoryUnit_LeastUsedFMU, self).__init__(nRanks, configfile);
-        self.fmu_data_written_on = [0] * self.nFMUs;
-
-
-    def get_fmu_last_cycle(self, chosenFMU: int)->float:
-        assert chosenFMU < self.nFMUs, "What? FMU " + str(chosenFMU) + " does not exist."
-        return self.fmu_last_cycle_vector[chosenFMU];
-
-
-    def update_fmu_last_cycle(self, chosenFMU: int, endTime: float)-> None:
-        assert chosenFMU < self.nFMUs, "What? FMU " + str(chosenFMU) + " does not exist."
-        assert self.fmu_last_cycle_vector[chosenFMU] < endTime or math.isclose(self.fmu_last_cycle_vector[chosenFMU], endTime), "what? " + str(endTime) + " < " + str(self.fmu_last_cycle_vector[chosenFMU])
-        self.fmu_last_cycle_vector[chosenFMU] = endTime;
-
-
-
-    def processContention(self, matchQ) -> MQ_Match:
-
-        valid_matchesQ = matchQ;
-
-        #print("Valid: " + str(len(valid_matchesQ)) )
-        # We might be on a deadlock if there is no valid match on this point
-        assert len(valid_matchesQ) > 0, "No valid Match was found"
-
-        # find lowest cycle
-        readyMatch : MQ_Match
-        readyMatch = None;
-
-        # Check if some match is ready
-        for i in range(0, len(valid_matchesQ)):
-            if valid_matchesQ[i].READY:
-                readyMatch = valid_matchesQ[i];
-                break;
-
-        # If none is ready, lets do this
-        while readyMatch == None:
-            #print(self.fmu_data_written_on)
-            # Find earliest
-            lowest_cycle = valid_matchesQ[0].sep_getBaseCycle();
-            li = 0;
-            for i in range(0, len(valid_matchesQ)):
-                if valid_matchesQ[i].sep_getBaseCycle() < lowest_cycle:
-                    lowest_cycle = valid_matchesQ[i].sep_getBaseCycle();
-                    li = i;
-            readyMatch = valid_matchesQ[li];
-
-            # Initialize if not yet
-            if not readyMatch.initialized:
-                readyMatch.sep_initializeMatch(self.CommunicationCalculus_Bandwidth(readyMatch.rankS, readyMatch.rankR, readyMatch.size)[0]);
-
-            fmu_in_use = None;
-            # Choose FMU if is a SEND
-            if readyMatch.still_solving_send:
-                assert readyMatch.fmu_in_use == None;
-                # Choose FMU
-                # Find lowest used FMU by amount of data
-                fmu_in_use = 0;
-                for i in range(0,len(self.fmu_data_written_on)):
-                    if self.fmu_data_written_on[i] < self.fmu_data_written_on[fmu_in_use]:
-                        fmu_in_use = i;
-                readyMatch.fmu_in_use = fmu_in_use;
-
-            fmu_in_use = readyMatch.fmu_in_use;
-            assert fmu_in_use is not None;
-
-            # Adjust time based on the chosen FMU
-            minToStart = self.get_fmu_last_cycle(fmu_in_use) + readyMatch.latency;
-            inc = minToStart - readyMatch.sep_getBaseCycle();
-            if inc > 0:
-                readyMatch.sep_incrementCycle(inc);
-                self.fmu_congestion_time[fmu_in_use] += inc;
-
-
-            # ACTIONS
-            # - Check if we can move something else to this FMU
-            # - Delay other communications as needed
-            for j in range(0, len(valid_matchesQ)):
-                if j == li:
-                    continue;
-                partner: MQ_Match;
-                partner = valid_matchesQ[j];
-
-                rank_in_usage = None;
-                if readyMatch.still_solving_send:
-                    rank_in_usage = readyMatch.rankS;
-                else:
-                    rank_in_usage = readyMatch.rankR;
-
-                partner_rank = None;
-                if partner.still_solving_send:
-                    partner_rank = partner.rankS;
-                else:
-                    partner_rank = partner.rankR;
-
-                # Check
-                if partner.fmu_in_use is not None: 
-                    if rank_in_usage == partner_rank: # If same Rank
-                        if readyMatch.fmu_in_use == partner.fmu_in_use: # If same FMU
-                            if (partner.sep_getBaseCycle() - partner.latency) <= readyMatch.sep_getEndCycle(): # If issued before this access endCycle
-                                partner.sep_decrementCycle(partner.latency);
-                                minToStart = readyMatch.sep_getEndCycle();
-                                inc = minToStart - partner.sep_getBaseCycle();
-                                if inc > 0:
-                                    partner.sep_incrementCycle(inc);
-
-                                if partner.still_solving_send: # IF it is a SEND
-                                    partner.sep_move_RECV_after_SEND();
-                                    #print(str(partner.id) + " -> " + str(partner.fmu_in_use)  + "  FUSED")
-                                    self.update_fmu_last_cycle(readyMatch.fmu_in_use, partner.send_endCycle);
-                                    self.fmu_circularBuffer.insert_entry(partner.fmu_in_use,
-                                                         partner.id,
-                                                         partner.size);
-                                    self.fmu_data_written_on[partner.fmu_in_use] += partner.size;
-                                    
-                                else: # If it is a RECV
-                                    #print(str(partner.id) + " out from " + str(partner.fmu_in_use) + "  FUSED")
-                                    self.update_fmu_last_cycle(readyMatch.fmu_in_use, partner.endCycle);
-                                    self.fmu_circularBuffer.consume_entry(partner.fmu_in_use,
-                                                  partner.id);
-                                    
-                                    partner.READY = True;
-
-                # Delay
-                if (
-                    rank_in_usage == partner_rank
-                ):
-                    minToStart = 0;
-                    if partner.initialized:
-                        minToStart = readyMatch.sep_getEndCycle() + partner.latency;
-                    else:
-                        minToStart = readyMatch.sep_getEndCycle();
-
-                    inc = minToStart - partner.sep_getBaseCycle();
-
-                    if inc > 0:
-                        partner.sep_incrementCycle(inc)
-                        self.channel_congestion_time[partner_rank] += inc;
-
-                
-            if readyMatch.still_solving_send:
-                #print("send to recv -- " + str(readyMatch.id))
-                readyMatch.sep_move_RECV_after_SEND();
-                self.update_fmu_last_cycle(readyMatch.fmu_in_use, readyMatch.send_endCycle);
-                #print(str(readyMatch.id) + " -> " + str(readyMatch.fmu_in_use))
-                self.fmu_circularBuffer.insert_entry(readyMatch.fmu_in_use,
-                                                 readyMatch.id,
-                                                 readyMatch.size);
-                self.fmu_data_written_on[readyMatch.fmu_in_use] += readyMatch.size;
-                readyMatch = None;
-
-
-        #print(readyMatch)
-        assert readyMatch.still_solving_send == False; # Cant be still solving send
-
-        if readyMatch.READY == False: # It was not solved with another operation
-            #print(str(readyMatch.id) + " out from " + str(readyMatch.fmu_in_use))
-            self.fmu_circularBuffer.consume_entry(readyMatch.fmu_in_use,
-                                              readyMatch.id);
-            
-        
-
-        assert readyMatch.endCycle == readyMatch.recv_endCycle, "Why are they not equal? " + str(readyMatch.endCycle) + " != " + str(readyMatch.recv_endCycle)
-        self.update_fmu_last_cycle(readyMatch.fmu_in_use, readyMatch.endCycle);
-        
-
-
-        readyMatchID = readyMatch.id;
-        # Grab the ready match from the matches queue (matchQ) or collectives matches queue (col_matchQ)
-        readyMatch = None;
-        for j in range(0, len(matchQ)):
-            if readyMatchID == matchQ[j].id:
-               readyMatch = matchQ.pop(j)
-               break;
-
-
-        assert readyMatch is not None, "ready match is not presented on matches queues"
-
-
-        return readyMatch;
-
-
-
-
-
-
-
 
 # ***************************************************************
 #  ____  _____ _____ _    ____ _____ ___  ____  ___ _   _  ____ 
@@ -730,6 +108,27 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
         self.fmu_data_written_on = [0] * self.nFMUs;
         self.fmu_FRR = [[0 for y in range(self.nFMUs)] for x in range(self.nRanks)]
 
+        self.fmu_seek_idle = configfile.fmu_seek_idle;
+
+        if configfile.fmu_seek_idle_kind == "SIMPLE":
+            self.fmu_seek_idle_kind = False
+        elif configfile.fmu_seek_idle_kind == "LEAST_USED_FMU":
+            self.fmu_seek_idle_kind = True
+        else:
+            print( bcolors.FAIL + "ERROR: Unknown fmu seek idle kind:  " + configfile.fmu_seek_idle_kind + bcolors.ENDC);
+            sys.exit(1);
+
+        if configfile.fmu_mapping == "STATIC":
+            self.chooseFMU_MappingScheme = self.chooseFMU_Static;
+        elif configfile.fmu_mapping == "INTERLEAVE":
+            self.fmu_interleave = 0;
+            self.chooseFMU_MappingScheme = self.chooseFMU_Incremental;
+        elif configfile.fmu_mapping == "LEAST_USED_FMU":
+            self.chooseFMU_MappingScheme = self.chooseFMU_LeastUsedFMU;
+        else:
+            print( bcolors.FAIL + "ERROR: Unknown fmu mapping scheme:  " + configfile.fmu_mapping + bcolors.ENDC);
+            sys.exit(1);
+
 
     # FMU Request Queue (FRQ) Timing
     def get_fmu_last_cycle(self, chosenFMU: int)->float:
@@ -742,15 +141,15 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
         self.fmu_last_cycle_vector[chosenFMU] = endTime;
 
 
-
-
-
+    # Find Ready Match
     def findReadyMatch(self, matchQ)-> MQ_Match:
         for i in range(0, len(matchQ)):
             if matchQ[i].READY:
                 return matchQ[i];
         return None;
 
+
+    # Find Earliest match 
     def findEarliestMatch(self, matchQ)-> MQ_Match:
         assert len(matchQ) > 0;
         lowest_cycle = matchQ[0].sep_getBaseCycle();
@@ -761,6 +160,7 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
                 li = i;
         return matchQ[li];
 
+    # Find Window (similar to the one from Kahuna)
     def findWindow(self, matchQ):
         assert len(matchQ) > 0;
         lowest_cycle = matchQ[0].sep_getBaseCycle();
@@ -782,36 +182,57 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
 
         return lowest_cycle, second_lowest_cycle;
 
-    # Update FMU Request Tracker (FRT)
-    #def updateFRT(self, fmu_index, cycle):
-    #   if self.fmu_request_tracker[fmu_index] < cycle:
-    #       self.fmu_request_tracker[fmu_index] = cycle;
-    #   if self.fmu_request_tracker[fmu_index] < cycle:
-        
 
     def incrementFRT(self, fmu_index):
         self.fmu_request_tracker[fmu_index] += 1;
-    
-    def decrementFRT(self, fmu_index):
-        self.fmu_request_tracker[fmu_index] -= 1;
-        assert self.fmu_request_tracker[fmu_index] >= 0;
 
 
     # - baseCycle to seek FMU
     # - endCycle to mark it as used until endCycle
     def seekIdleFMU(self, baseCycle, endCycle)->int:
+        #return None
         assert endCycle >= baseCycle;
-        for i in range(len(self.fmu_request_tracker)):
-            #if self.fmu_request_tracker[i] <= baseCycle:
-            if self.fmu_request_tracker[i] == 0:
-                self.incrementFRT(i);
-                return i
-                #self.updateFRT(i, endCycle);
-                #return i;
-        return None;
 
+        if not self.fmu_seek_idle_kind:
+            for i in range(len(self.fmu_request_tracker)):
+                if self.fmu_request_tracker[i] == 0:
+                    self.incrementFRT(i);
+                    return i
+            return None;
+
+
+        idles = [];
+
+        for i in range(len(self.fmu_request_tracker)):
+            if self.fmu_request_tracker[i] == 0:
+                idles.append(i);
+            
+        if len(idles) == 0:
+            return None;
+
+        lowest = idles[0];
+        for i in range(len(idles)):
+            dataOnLowest = self.fmu_data_written_on[lowest]
+            dataOnCurrent = self.fmu_data_written_on[idles[i]]
+            if dataOnLowest > dataOnCurrent:
+                lowest = idles[i];
+
+        return lowest;
+
+
+# *******************************************
+#  __  __    _    ____  ____ ___ _   _  ____ 
+# |  \/  |  / \  |  _ \|  _ \_ _| \ | |/ ___|
+# | |\/| | / _ \ | |_) | |_) | ||  \| | |  _ 
+# | |  | |/ ___ \|  __/|  __/| || |\  | |_| |
+# |_|  |_/_/   \_\_|   |_|  |___|_| \_|\____|
+#                                            
+# *******************************************
+
+
+    
     # Find lowest used FMU by amount of data
-    def chooseFMU_LeastUsedFMU(self)->int:
+    def chooseFMU_LeastUsedFMU(self, match: MQ_Match)->int:
         fmu_in_use = 0;
         for i in range(0,len(self.fmu_data_written_on)):
             if self.fmu_data_written_on[i] < self.fmu_data_written_on[fmu_in_use]:
@@ -820,23 +241,83 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
         self.incrementFRT(fmu_in_use);
         return fmu_in_use
 
+    # Find FMU by using a global counter (interleave FMUs among requests)
+    def chooseFMU_Incremental(self, match: MQ_Match)->int:
+        self.fmu_interleave = (self.fmu_interleave + 1) % self.nFMUs;
+        self.incrementFRT(self.fmu_interleave)
+        return self.fmu_interleave;
+
+    # Find FMU based on the receiver Rank
+    def chooseFMU_Static(self, match: MQ_Match)->int:
+        self.incrementFRT(match.rankR % self.nFMUs)
+        return match.rankR % self.nFMUs;
 
 
-    def chooseFMU(self, readyMatch: MQ_Match, matchQ)-> None:
-        assert readyMatch.fmu_in_use == None;
-        assert readyMatch.still_solving_send;
+# ***********************************************************
+#   ____ _   _  ___   ___  ____  _____   _____ __  __ _   _ 
+#  / ___| | | |/ _ \ / _ \/ ___|| ____| |  ___|  \/  | | | |
+# | |   | |_| | | | | | | \___ \|  _|   | |_  | |\/| | | | |
+# | |___|  _  | |_| | |_| |___) | |___  |  _| | |  | | |_| |
+#  \____|_| |_|\___/ \___/|____/|_____| |_|   |_|  |_|\___/ 
+#                                                           
+# ***********************************************************
 
-        # Window       
-        baseCycle = readyMatch.sep_getBaseCycle();
-        endCycle = readyMatch.sep_getEndCycle();
 
+    def chooseFMU(self, matchQ)-> None:
+
+        # Window
         baseCycle, endCycle = self.findWindow(matchQ);
 
-        for i in range(self.nFMUs):
+        # Initialize FMU_REQUEST_TRACKER (FRT)
+        for i in range(len(self.fmu_request_tracker)):
             self.fmu_request_tracker[i] = 0;
             if self.fmu_last_cycle_vector[i] > baseCycle:
-                self.fmu_request_tracker[i] += 1;
+                self.incrementFRT(i);
         
+        # Order vector
+        index_order_vector = []
+        for i in range(len(matchQ)):
+            current_match = matchQ[i];
+            if current_match.sep_getBaseCycle() >= endCycle: # It is out of the window
+                continue;
+            index_order_vector.append([i, current_match.sep_getBaseCycle()])
+
+        assert len(index_order_vector) > 0;
+        index_order_vector = sorted(index_order_vector, key = lambda e: e[1])
+
+
+        # Choose FMUs to the ones inside the window that still has not been assigned to a FMU
+        for i in range(len(index_order_vector)):
+            current_match = matchQ[index_order_vector[i][0]];
+            if current_match.fmu_in_use is not None: # It has already chosen FMU
+                self.incrementFRT(current_match.fmu_in_use);
+                continue;
+            if current_match.sep_getBaseCycle() >= endCycle: # It is out of the window
+                assert False;
+                continue;
+
+            # Try to get an Idle FMU
+            if self.fmu_seek_idle:
+                current_match.fmu_in_use = self.seekIdleFMU(baseCycle, endCycle);
+                if current_match.fmu_in_use != None:
+                    self.fmu_idle_mapping += 1;
+                    self.fmu_request_tracker[current_match.fmu_in_use] += 1;
+                    self.fmu_data_written_on[current_match.fmu_in_use] += current_match.size;
+                    continue;
+            
+            # Get FMU using the fmu mapping scheme
+            current_match.fmu_in_use = self.chooseFMU_MappingScheme(current_match);
+            self.fmu_request_tracker[current_match.fmu_in_use] += 1;
+            #self.updateFRT(current_match.fmu_in_use, endCycle);
+            self.fmu_heuristic_mapping += 1;
+            self.fmu_data_written_on[current_match.fmu_in_use] += current_match.size;
+
+        return;
+
+
+        return 
+
+        # Check if someone is already using it inside the window and update FRT accordingly
         for i in range(len(matchQ)):
             current_match = matchQ[i];
             if current_match.fmu_in_use is None: # It still needs to be assigned to a FMU
@@ -845,6 +326,7 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
                 continue;
             self.fmu_request_tracker[current_match.fmu_in_use] += 1;
 
+        # Choose FMUs to the ones inside the window that still has not been assigned to a FMU
         for i in range(len(matchQ)):
             current_match = matchQ[i];
             if current_match.fmu_in_use is not None: # It has already chosen FMU
@@ -853,15 +335,16 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
                 continue;
 
             # Try to get an Idle FMU
-            current_match.fmu_in_use = self.seekIdleFMU(baseCycle, endCycle);
-            if current_match.fmu_in_use != None:
-                self.fmu_idle_mapping += 1;
-                self.fmu_request_tracker[current_match.fmu_in_use] += 1;
-                self.fmu_data_written_on[current_match.fmu_in_use] += current_match.size;
-                continue;
+            if self.fmu_seek_idle:
+                current_match.fmu_in_use = self.seekIdleFMU(baseCycle, endCycle);
+                if current_match.fmu_in_use != None:
+                    self.fmu_idle_mapping += 1;
+                    self.fmu_request_tracker[current_match.fmu_in_use] += 1;
+                    self.fmu_data_written_on[current_match.fmu_in_use] += current_match.size;
+                    continue;
             
-            # Get FMU using LeastUsedFMU
-            current_match.fmu_in_use = self.chooseFMU_LeastUsedFMU();
+            # Get FMU using the fmu mapping scheme
+            current_match.fmu_in_use = self.chooseFMU_MappingScheme(current_match);
             self.fmu_request_tracker[current_match.fmu_in_use] += 1;
             #self.updateFRT(current_match.fmu_in_use, endCycle);
             self.fmu_heuristic_mapping += 1;
@@ -869,18 +352,16 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
 
         return;
 
-        # Try to get an Idle FMU
-        readyMatch.fmu_in_use = self.seekIdleFMU(baseCycle, endCycle);
-        if readyMatch.fmu_in_use != None:
-            self.fmu_idle_mapping += 1;
-            self.fmu_data_written_on[readyMatch.fmu_in_use] += readyMatch.size;
-            return;
 
-        # Get FMU using LeastUsedFMU
-        readyMatch.fmu_in_use = self.chooseFMU_LeastUsedFMU();
-        self.updateFRT(readyMatch.fmu_in_use, endCycle);
-        self.fmu_idle_mapping += 1;
-        self.fmu_data_written_on[readyMatch.fmu_in_use] += readyMatch.size;
+
+# *********************************************************
+#   ____ ___  _   _ _____ _____ _   _ _____ ___ ___  _   _ 
+#  / ___/ _ \| \ | |_   _| ____| \ | |_   _|_ _/ _ \| \ | |
+# | |  | | | |  \| | | | |  _| |  \| | | |  | | | | |  \| |
+# | |__| |_| | |\  | | | | |___| |\  | | |  | | |_| | |\  |
+#  \____\___/|_| \_| |_| |_____|_| \_| |_| |___\___/|_| \_|
+#                                                          
+# *********************************************************
 
 
 
@@ -915,9 +396,9 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
                 assert False;
                 readyMatch.sep_initializeMatch(self.CommunicationCalculus_Bandwidth(readyMatch.rankS, readyMatch.rankR, readyMatch.size)[0]);
 
-            # Choose FMU is needed
+            # Choose FMU if needed
             if readyMatch.fmu_in_use == None:
-                self.chooseFMU(readyMatch, matchQ);
+                self.chooseFMU(matchQ);
 
             fmu_in_use = readyMatch.fmu_in_use;
             assert fmu_in_use is not None;
@@ -989,6 +470,7 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
                     if partner.initialized:
                         minToStart = readyMatch.sep_getEndCycle() + partner.latency;
                     else:
+                        assert False;
                         minToStart = readyMatch.sep_getEndCycle();
 
                     inc = minToStart - partner.sep_getBaseCycle();

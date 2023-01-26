@@ -459,47 +459,56 @@ class SimpleCommEngine:
 #                                 
 # ********************************
 # This is the main way/most updated printing function
-
+# It has three parts
+#   1 - (if print_communication_trace == True ) print each match on the screen
+#       This might produce a huge trace, so becareful
+#   2 - If simulation has not ended, return and print nothing
+#   3 - Simulation has ended, so print the results
     def print_blank(self):
 
+        # Part 1
         # **** Communication Trace
         # Activated with --> print_communication_trace = False
         # NOTE: This might be huge! Becareful using it.         
         self.simOutput.unload_Matches_on_the_screen();
         # ***
 
-
+        # Part 2
+        # While simulation is running, return
         if not self.ended:
             return None;
+
+        # Part 3
+        # Simulation has ended, print the result
+
         if self.print_communication_trace:
             print("#");
+        print("[GENERAL]")
+        
+        # Number of Ranks
+        print("number_of_ranks:"+str(self.MQ.topology.nRanks));
         # TOPOLOGY
         print("topology:"+self.config.topology)
         # BOOSTER FACTOR
         print("booster_factor:"+str(self.config.booster_factor))
 
+        # END TIME (biggest ending cycle)
         biggestCycle = self.list_ranks[0].cycle;
         for ri in range(1, len(self.list_ranks)):
             if self.list_ranks[ri].cycle > biggestCycle:
                 biggestCycle =  self.list_ranks[ri].cycle;
-        # END TIME (biggest ending cycle)
         print("biggest:"+str(biggestCycle))
+  
+  
+        # HALTED TIME (Idleness)
         total_time = 0
         halted_time = 0
         for ri in range(0, len(self.list_ranks)):
             total_time = total_time + self.list_ranks[ri].cycle;
             halted_time = halted_time + self.list_ranks[ri].timeHaltedDueCommunication;
         halted_time_percentage = (halted_time / total_time) * 100;
-        # HALTED TIME (Idleness)
         print("halted_time_percentage:" + "{:.2f}".format(halted_time_percentage) )
-        biggest_buffer_size = 0;
-        if (isinstance(self.MQ.topology, TopHybrid) or
-            isinstance(self.MQ.topology, TopFreeMemoryUnit)
-        ):
-            biggest_buffer_size = self.MQ.topology.fmu_circularBuffer.biggest_buffer_size;
-        # Biggest Buffer Size (Qdata size on FMU)
-        print("biggest_buffer_size:"+str(biggest_buffer_size));
-        
+
         # Number of Messages
         number_of_messages=self.simOutput.numberOfMessages;
         print("number_of_messages:"+str(number_of_messages));
@@ -527,7 +536,26 @@ class SimpleCommEngine:
             rank_dic = self.list_ranks[ri].dict_mpi_overhead
             dic_mpi_haltness = {k: dic_mpi_haltness.get(k, 0) + rank_dic.get(k, 0) for k in set(dic_mpi_haltness) | set(rank_dic)}        
         print("most_idleness_source_mpi_operation:", max(dic_mpi_haltness, key=dic_mpi_haltness.get))
+
+
+
+        # FMU Specific 
+        # ************
+        print("[FMU]")
+        print("number_of_fmus:"+str(self.config.number_of_FMUs))
+        print("fmu_mapping:"+self.config.fmu_mapping)
+        print("fmu_seek_idle:"+str(self.config.fmu_seek_idle))
+        print("fmu_seek_idle_kind:"+str(self.config.fmu_seek_idle_kind))
+        biggest_buffer_size = 0;
+        if (isinstance(self.MQ.topology, TopHybrid) or
+            isinstance(self.MQ.topology, TopFreeMemoryUnit)
+        ):
+            biggest_buffer_size = self.MQ.topology.fmu_circularBuffer.biggest_buffer_size;
+        # Biggest Buffer Size (Qdata size on FMU)
+        print("biggest_buffer_size:"+str(biggest_buffer_size));
         
+        # Pivot Value
+        # % of FMU usage
         hybrid_pivot_value = -1;
         proportion_fmu_usage = 0.0;
         if isinstance(self.MQ.topology, TopHybrid):
@@ -541,13 +569,16 @@ class SimpleCommEngine:
         print("proportion_fmu_usage:"+str(proportion_fmu_usage))
 
         if isinstance(self.MQ.topology, TopHybrid) or isinstance(self.MQ.topology, TopFreeMemoryUnit):
-            print(self.MQ.topology.top_fmu.fmu_congestion_time)
+            print("fmu_data_written:"+str(self.MQ.topology.top_fmu.fmu_data_written_on))
             print("fmu_congestion_time:"+str(self.MQ.topology.top_fmu.fmu_congestion_time))
             print("fmu_channel_congestion_time:"+str(self.MQ.topology.top_fmu.channel_congestion_time))
             print("fmu_idle_mapping:"+str(self.MQ.topology.top_fmu.fmu_idle_mapping))
             print("fmu_heuristic_mapping:"+str(self.MQ.topology.top_fmu.fmu_heuristic_mapping))
+            assert (self.MQ.topology.top_fmu.fmu_idle_mapping + self.MQ.topology.top_fmu.fmu_heuristic_mapping) == self.simOutput.numberOfMessages
 
 
+
+        print("[PER RANK]")
         # Per Rank Results
         # **************************************************************************************************
         # Header for individual Rank stats
