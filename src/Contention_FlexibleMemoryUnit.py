@@ -45,14 +45,14 @@ class Contention_FlexibleMemoryUnit:
         self.fmu_heuristic_mapping = 0;
 
 
-# ************************************************************
+# *************************************************************
 #  _____ _           _               __  __           _      _ 
 # |_   _(_)_ __ ___ (_)_ __   __ _  |  \/  | ___   __| | ___| |
 #   | | | | '_ ` _ \| | '_ \ / _` | | |\/| |/ _ \ / _` |/ _ \ |
 #   | | | | | | | | | | | | | (_| | | |  | | (_) | (_| |  __/ |
 #   |_| |_|_| |_| |_|_|_| |_|\__, | |_|  |_|\___/ \__,_|\___|_|
 #                            |___/                             
-# ************************************************************
+# *************************************************************
 
     
     def CommunicationCalculus_Bandwidth(self, rankS: int, rankR: int, workload: int):
@@ -108,12 +108,12 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
         self.fmu_data_written_on = [0] * self.nFMUs;
         self.fmu_FRR = [[0 for y in range(self.nFMUs)] for x in range(self.nRanks)]
 
-        self.fmu_seek_idle = configfile.fmu_seek_idle;
-
         if configfile.fmu_seek_idle_kind == "SIMPLE":
-            self.fmu_seek_idle_kind = False
+            self.seekIdleFMU = self.seekIdleFMU_Simple;
         elif configfile.fmu_seek_idle_kind == "LEAST_USED_FMU":
-            self.fmu_seek_idle_kind = True
+            self.seekIdleFMU = self.seekIdleFMU_LeastUsedFMU;
+        elif configfile.fmu_seek_idle_kind == "NONE":
+            self.seekIdleFMU = self.seekIdleFMU_None;
         else:
             print( bcolors.FAIL + "ERROR: Unknown fmu seek idle kind:  " + configfile.fmu_seek_idle_kind + bcolors.ENDC);
             sys.exit(1);
@@ -183,26 +183,24 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
         return lowest_cycle, second_lowest_cycle;
 
 
+
+# ************************************************
+#  ____  _____ _____ _  __  ___ ____  _     _____ 
+# / ___|| ____| ____| |/ / |_ _|  _ \| |   | ____|
+# \___ \|  _| |  _| | ' /   | || | | | |   |  _|  
+#  ___) | |___| |___| . \   | || |_| | |___| |___ 
+# |____/|_____|_____|_|\_\ |___|____/|_____|_____|
+#                                                 
+# ************************************************
+
+
     def incrementFRT(self, fmu_index):
         self.fmu_request_tracker[fmu_index] += 1;
 
 
-    # - baseCycle to seek FMU
-    # - endCycle to mark it as used until endCycle
-    def seekIdleFMU(self, baseCycle, endCycle)->int:
-        #return None
-        assert endCycle >= baseCycle;
-
-        if not self.fmu_seek_idle_kind:
-            for i in range(len(self.fmu_request_tracker)):
-                if self.fmu_request_tracker[i] == 0:
-                    self.incrementFRT(i);
-                    return i
-            return None;
-
-
+    def seekIdleFMU_LeastUsedFMU(self, baseCycle, endCycle)->int:
+        
         idles = [];
-
         for i in range(len(self.fmu_request_tracker)):
             if self.fmu_request_tracker[i] == 0:
                 idles.append(i);
@@ -211,6 +209,7 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
             return None;
 
         lowest = idles[0];
+
         for i in range(len(idles)):
             dataOnLowest = self.fmu_data_written_on[lowest]
             dataOnCurrent = self.fmu_data_written_on[idles[i]]
@@ -218,6 +217,19 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
                 lowest = idles[i];
 
         return lowest;
+
+    def seekIdleFMU_Simple(self, baseCycle, endCycle)->int:
+        for i in range(len(self.fmu_request_tracker)):
+            if self.fmu_request_tracker[i] == 0:
+                self.incrementFRT(i);
+                return i
+        return None;
+
+
+    def seekIdleFMU_None(self, baseCycle, endCycle)->int:
+        return None;
+
+        
 
 
 # *******************************************
@@ -270,16 +282,18 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
 
         # Initialize FMU_REQUEST_TRACKER (FRT)
         for i in range(len(self.fmu_request_tracker)):
-            self.fmu_request_tracker[i] = 0;
-            if self.fmu_last_cycle_vector[i] > baseCycle:
+            self.fmu_request_tracker[i] = 0;            
+            if self.get_fmu_last_cycle(i) > baseCycle:
                 self.incrementFRT(i);
         
         # Order vector
         index_order_vector = []
         for i in range(len(matchQ)):
             current_match = matchQ[i];
-            if current_match.sep_getBaseCycle() >= endCycle: # It is out of the window
+            if current_match.sep_getBaseCycle() >= endCycle:
                 continue;
+            #if current_match.sep_getBaseCycle() > endCycle or math.isclose(current_match.sep_getBaseCycle(), endCycle): # It is out of the window
+            #    continue;
             index_order_vector.append([i, current_match.sep_getBaseCycle()])
 
         assert len(index_order_vector) > 0;
@@ -297,55 +311,16 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
                 continue;
 
             # Try to get an Idle FMU
-            if self.fmu_seek_idle:
-                current_match.fmu_in_use = self.seekIdleFMU(baseCycle, endCycle);
-                if current_match.fmu_in_use != None:
-                    self.fmu_idle_mapping += 1;
-                    self.fmu_request_tracker[current_match.fmu_in_use] += 1;
-                    self.fmu_data_written_on[current_match.fmu_in_use] += current_match.size;
-                    continue;
+            current_match.fmu_in_use = self.seekIdleFMU(baseCycle, endCycle);
+            if current_match.fmu_in_use != None:
+                self.fmu_idle_mapping += 1;
+                self.incrementFRT(current_match.fmu_in_use);
+                self.fmu_data_written_on[current_match.fmu_in_use] += current_match.size;
+                continue;
             
             # Get FMU using the fmu mapping scheme
             current_match.fmu_in_use = self.chooseFMU_MappingScheme(current_match);
-            self.fmu_request_tracker[current_match.fmu_in_use] += 1;
-            #self.updateFRT(current_match.fmu_in_use, endCycle);
-            self.fmu_heuristic_mapping += 1;
-            self.fmu_data_written_on[current_match.fmu_in_use] += current_match.size;
-
-        return;
-
-
-        return 
-
-        # Check if someone is already using it inside the window and update FRT accordingly
-        for i in range(len(matchQ)):
-            current_match = matchQ[i];
-            if current_match.fmu_in_use is None: # It still needs to be assigned to a FMU
-                continue;
-            if current_match.sep_getBaseCycle() >= endCycle: # It is out of the window
-                continue;
-            self.fmu_request_tracker[current_match.fmu_in_use] += 1;
-
-        # Choose FMUs to the ones inside the window that still has not been assigned to a FMU
-        for i in range(len(matchQ)):
-            current_match = matchQ[i];
-            if current_match.fmu_in_use is not None: # It has already chosen FMU
-                continue;
-            if current_match.sep_getBaseCycle() >= endCycle: # It is out of the window
-                continue;
-
-            # Try to get an Idle FMU
-            if self.fmu_seek_idle:
-                current_match.fmu_in_use = self.seekIdleFMU(baseCycle, endCycle);
-                if current_match.fmu_in_use != None:
-                    self.fmu_idle_mapping += 1;
-                    self.fmu_request_tracker[current_match.fmu_in_use] += 1;
-                    self.fmu_data_written_on[current_match.fmu_in_use] += current_match.size;
-                    continue;
-            
-            # Get FMU using the fmu mapping scheme
-            current_match.fmu_in_use = self.chooseFMU_MappingScheme(current_match);
-            self.fmu_request_tracker[current_match.fmu_in_use] += 1;
+            self.incrementFRT(current_match.fmu_in_use)
             #self.updateFRT(current_match.fmu_in_use, endCycle);
             self.fmu_heuristic_mapping += 1;
             self.fmu_data_written_on[current_match.fmu_in_use] += current_match.size;
@@ -390,11 +365,6 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
 
             # Find earliest
             readyMatch = self.findEarliestMatch(matchQ);
-
-            # Initialize if not yet
-            if not readyMatch.initialized:
-                assert False;
-                readyMatch.sep_initializeMatch(self.CommunicationCalculus_Bandwidth(readyMatch.rankS, readyMatch.rankR, readyMatch.size)[0]);
 
             # Choose FMU if needed
             if readyMatch.fmu_in_use == None:
@@ -447,7 +417,6 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
 
                                 if partner.still_solving_send: # IF it is a SEND
                                     partner.sep_move_RECV_after_SEND();
-                                    #print(str(partner.id) + " -> " + str(partner.fmu_in_use)  + "  FUSED")
                                     self.update_fmu_last_cycle(readyMatch.fmu_in_use, partner.send_endCycle);
                                     self.fmu_circularBuffer.insert_entry(partner.fmu_in_use,
                                                          partner.id,
@@ -481,10 +450,8 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
 
                 
             if readyMatch.still_solving_send:
-                #print("send to recv -- " + str(readyMatch.id))
                 readyMatch.sep_move_RECV_after_SEND();
                 self.update_fmu_last_cycle(readyMatch.fmu_in_use, readyMatch.send_endCycle);
-                #print(str(readyMatch.id) + " -> " + str(readyMatch.fmu_in_use))
                 self.fmu_circularBuffer.insert_entry(readyMatch.fmu_in_use,
                                                  readyMatch.id,
                                                  readyMatch.size);
@@ -492,12 +459,9 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
                 readyMatch = None;
 
 
-        #print(readyMatch)
-        #print(readyMatch)
         assert readyMatch.still_solving_send == False; # Cant be still solving send
 
         if readyMatch.READY == False: # It was not solved with another operation
-            #print(str(readyMatch.id) + " out from " + str(readyMatch.fmu_in_use))
             self.fmu_circularBuffer.consume_entry(readyMatch.fmu_in_use,
                                               readyMatch.id);
             

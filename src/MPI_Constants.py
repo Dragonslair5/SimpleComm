@@ -49,12 +49,7 @@ class SimpleCommConfiguration:
         self.fmu_pivot_value = float(config["TOPOLOGY"].get("fmu_pivot_value", "10"));
         self.fmu_contention_model = config["TOPOLOGY"].get("fmu_contention_model", "AS_MUCH_AS_POSSIBLE");
         self.fmu_mapping = config["TOPOLOGY"].get("fmu_mapping", "STATIC");
-        self.fmu_seek_idle = config["TOPOLOGY"].get("fmu_seek_idle", "True");
-        if self.fmu_seek_idle == "True":
-            self.fmu_seek_idle = True;
-        else:
-            self.fmu_seek_idle = False;
-        self.fmu_seek_idle_kind = config["TOPOLOGY"].get("fmu_seek_idle_kind", "SIMPLE");
+        self.fmu_seek_idle_kind = config["TOPOLOGY"].get("fmu_seek_idle_kind", "NONE");
 
         # SimGrid               (65536 bytes) (64KB in short)
         # OpenMPI Version 4.0.5 (65536 bytes) (64KB in short) (btl_tcp_component.c)
@@ -321,7 +316,8 @@ class MQ_Match:
             self.send_endCycle = self.send_endCycle - decrement;
         else:
             self.recv_baseCycle = self.recv_baseCycle - decrement;
-            assert self.recv_baseCycle >= self.send_endCycle;
+            # TODO: Should we really use isclose here? should not recv_baseCycle be at least +latency higher than send_endCycle?
+            assert (self.recv_baseCycle > self.send_endCycle) or math.isclose(self.recv_baseCycle,self.send_endCycle), str(self.recv_baseCycle) + "<" + str(self.send_endCycle);
             self.recv_endCycle = self.recv_endCycle - decrement;
             self.endCycle = self.recv_endCycle;
 

@@ -544,7 +544,6 @@ class SimpleCommEngine:
         print("[FMU]")
         print("number_of_fmus:"+str(self.config.number_of_FMUs))
         print("fmu_mapping:"+self.config.fmu_mapping)
-        print("fmu_seek_idle:"+str(self.config.fmu_seek_idle))
         print("fmu_seek_idle_kind:"+str(self.config.fmu_seek_idle_kind))
         biggest_buffer_size = 0;
         if (isinstance(self.MQ.topology, TopHybrid) or
@@ -574,6 +573,8 @@ class SimpleCommEngine:
             print("fmu_channel_congestion_time:"+str(self.MQ.topology.top_fmu.channel_congestion_time))
             print("fmu_idle_mapping:"+str(self.MQ.topology.top_fmu.fmu_idle_mapping))
             print("fmu_heuristic_mapping:"+str(self.MQ.topology.top_fmu.fmu_heuristic_mapping))
+            percentual_idle_served = (self.MQ.topology.top_fmu.fmu_idle_mapping / self.simOutput.numberOfMessages) * 100
+            print("fmu_idle_served_percentage:"+str(percentual_idle_served))
             assert (self.MQ.topology.top_fmu.fmu_idle_mapping + self.MQ.topology.top_fmu.fmu_heuristic_mapping) == self.simOutput.numberOfMessages
 
 
