@@ -1,7 +1,7 @@
 from MPI_Constants import *
 from FMU_CircularBuffer import *
 import math
-
+import random
 
 
 
@@ -15,6 +15,14 @@ class Contention_FlexibleMemoryUnit:
         return Contention_FlexibleMemoryUnit_General(nRanks, configfile); 
 
 
+    # Incoming Recv, to decrement amount of size on an upcoming recv;
+    class IncomingRecv:
+        def __init__(self, cycle, size, fmu):
+            self.cycle = cycle;
+            self.size = size;
+            self.fmu = fmu;
+
+
     def __init__(self, nRanks: int, configfile: SimpleCommConfiguration):
 
 
@@ -24,6 +32,8 @@ class Contention_FlexibleMemoryUnit:
         self.eager_protocol_max_size = configfile.eager_protocol_max_size;
 
         #Override (?)(on topology version of this, it is an override)
+        self.network_bandwidth = configfile.internode_bandwidth;
+        self.network_latency = configfile.internode_latency;
         self.interLatency = configfile.fmu_latency;
         self.interBandwidth = configfile.fmu_bandwidth;
         self.intraLatency = configfile.intranode_latency;
@@ -43,6 +53,11 @@ class Contention_FlexibleMemoryUnit:
 
         self.fmu_idle_mapping = 0;
         self.fmu_heuristic_mapping = 0;
+
+        self.list_of_incoming_recvs : typing.List[self.IncomingRecv];
+        self.list_of_incoming_recvs = []
+
+        
 
 
 # *************************************************************
@@ -106,12 +121,22 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
     def __init__(self, nRanks, configfile: SimpleCommConfiguration):
         super(Contention_FlexibleMemoryUnit_General, self).__init__(nRanks, configfile);
         self.fmu_data_written_on = [0] * self.nFMUs;
-        self.fmu_FRR = [[0 for y in range(self.nFMUs)] for x in range(self.nRanks)]
+        #self.fmu_FRR = [[0 for y in range(self.nFMUs)] for x in range(self.nRanks)]
+
+
+
+        if configfile.fmu_monitor_incoming_recv:
+            self.includeIncomingRecv = self.includeIncomingRecv_Function;
+        else:
+            self.includeIncomingRecv = self.includeIncomingRecv_Dummy;
+
 
         if configfile.fmu_seek_idle_kind == "SIMPLE":
             self.seekIdleFMU = self.seekIdleFMU_Simple;
         elif configfile.fmu_seek_idle_kind == "LEAST_USED_FMU":
             self.seekIdleFMU = self.seekIdleFMU_LeastUsedFMU;
+        elif configfile.fmu_seek_idle_kind == "RANDOM":
+            self.seekIdleFMU = self.seekIdleFMU_Random;
         elif configfile.fmu_seek_idle_kind == "NONE":
             self.seekIdleFMU = self.seekIdleFMU_None;
         else:
@@ -125,6 +150,8 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
             self.chooseFMU_MappingScheme = self.chooseFMU_Incremental;
         elif configfile.fmu_mapping == "LEAST_USED_FMU":
             self.chooseFMU_MappingScheme = self.chooseFMU_LeastUsedFMU;
+        elif configfile.fmu_mapping == "RANDOM":
+            self.chooseFMU_MappingScheme = self.chooseFMU_Random;
         else:
             print( bcolors.FAIL + "ERROR: Unknown fmu mapping scheme:  " + configfile.fmu_mapping + bcolors.ENDC);
             sys.exit(1);
@@ -137,7 +164,7 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
 
     def update_fmu_last_cycle(self, chosenFMU: int, endTime: float)-> None:
         assert chosenFMU < self.nFMUs, "What? FMU " + str(chosenFMU) + " does not exist."
-        assert self.fmu_last_cycle_vector[chosenFMU] < endTime or math.isclose(self.fmu_last_cycle_vector[chosenFMU], endTime), "what? " + str(endTime) + " < " + str(self.fmu_last_cycle_vector[chosenFMU])
+        assert self.fmu_last_cycle_vector[chosenFMU] < endTime or math.isclose(self.fmu_last_cycle_vector[chosenFMU], endTime, rel_tol=0.01), "what? " + str(endTime) + " < " + str(self.fmu_last_cycle_vector[chosenFMU])
         self.fmu_last_cycle_vector[chosenFMU] = endTime;
 
 
@@ -226,8 +253,25 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
         return None;
 
 
+    def seekIdleFMU_Random(self, baseCycle, endCycle)->int:
+
+        idles = [];
+        for i in range(len(self.fmu_request_tracker)):
+            if self.fmu_request_tracker[i] == 0:
+                idles.append(i);
+            
+        if len(idles) == 0:
+            return None;
+        
+        choose_on_idles = random.randrange(len(idles));
+
+        return idles[choose_on_idles];
+
+
+
     def seekIdleFMU_None(self, baseCycle, endCycle)->int:
         return None;
+
 
         
 
@@ -264,6 +308,11 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
         self.incrementFRT(match.rankR % self.nFMUs)
         return match.rankR % self.nFMUs;
 
+    def chooseFMU_Random(self, match: MQ_Match)->int:
+        chosen_fmu = random.randrange(self.nFMUs)
+        self.incrementFRT(chosen_fmu);
+        return chosen_fmu;
+
 
 # ***********************************************************
 #   ____ _   _  ___   ___  ____  _____   _____ __  __ _   _ 
@@ -275,21 +324,55 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
 # ***********************************************************
 
 
+    # Two attempts are made on assigning a FMU to a SEND request
+    #   CONFIG: fmu_seek_idle_kind
+    #   First attempt:  It tries to assign an IDLE FMU. 
+    #                   An IDLE FMU is one that is not switched to any node (access queue is currently empty).
+    #                   If no FMU is IDLE, the second attempt is made.
+    #                   This first attempt is optional.
+    #   
+    #   CONFIG: fmu_mapping
+    #   Second attempt: It uses some mapping scheme to assign a FMU.
+    #                   Note that this same scheme can be used on the first attempt, but considering only IDLE FMUs.
+    # 
+    # The assigning occurs on SENDs that baseCycle are within a range (referred as window).
+    # The process occurs on 6 steps:
+    #   1 - Find the window, that is a range starting in a certain *baseCycle* and ending in a certain *endCycle*
+    #   2 - Initialize FMU_REQUEST_TRACKER (FRT). This serves to track the size of the access queue
+    #       * It initially starts with 0. Each request increments this value.
+    #       * This is modified here, checking the leastCycle of each FMU and when seeking IDLE FMUs
+    #   3 - Filter matchQ for matches that baseCycle are within the window and put them in the Order Vector
+    #   4 - Include incoming RECVs that are within the window and put them in the Order Vector
+    #   5 - Sort the Order Vector in temporal order
+    #   6 - Decrement data written in FMU if its an incoming RECV
+    #       Assign FMUs if its a match, using the following two attepts:
+    #       * First, try an IDLE FMU (Optional)
+    #       * Second, use the mapping scheme
+    #
     def chooseFMU(self, matchQ)-> None:
 
-        # Window
-        baseCycle, endCycle = self.findWindow(matchQ);
+        current_match: MQ_Match;
 
-        # Initialize FMU_REQUEST_TRACKER (FRT)
+        # 1 - Window
+        baseCycle, endCycle = self.findWindow(matchQ);
+                
+
+
+        # 2 - Initialize FMU_REQUEST_TRACKER (FRT)
         for i in range(len(self.fmu_request_tracker)):
             self.fmu_request_tracker[i] = 0;            
             if self.get_fmu_last_cycle(i) > baseCycle:
                 self.incrementFRT(i);
         
-        # Order vector
+        # 3 - filter matches that are withing the Window
+        #     Put them on the Order Vector with 2 arguments
         index_order_vector = []
         for i in range(len(matchQ)):
             current_match = matchQ[i];
+
+            # TODO: Sometimes the window is very short, where baseCycle and endCycle are close enough that math.isclose will make them equal.
+            #       We should devise some scheme that takes the size of the window into consideration.
+            #       For the moment, using "=" seems to work. 
             if current_match.sep_getBaseCycle() >= endCycle:
                 continue;
             #if current_match.sep_getBaseCycle() > endCycle or math.isclose(current_match.sep_getBaseCycle(), endCycle): # It is out of the window
@@ -297,11 +380,35 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
             index_order_vector.append([i, current_match.sep_getBaseCycle()])
 
         assert len(index_order_vector) > 0;
+
+
+        # 4 - Include incoming RECVs that are within the window
+        #     Include them in the Order Vector with 3 arguments
+        for i in range(len(self.list_of_incoming_recvs)-1, -1, -1):
+            incoming_recv: self.IncomingRecv;
+            incoming_recv = self.list_of_incoming_recvs[i]
+            if incoming_recv.cycle < endCycle: # If the incoming RECV is within the window
+                index_order_vector.append([incoming_recv.fmu, incoming_recv.cycle, incoming_recv.size]);
+                del self.list_of_incoming_recvs[i];
+
+
+
+        # 5 - Sort the Order Vector in temporal order ([1] parameter)
         index_order_vector = sorted(index_order_vector, key = lambda e: e[1])
 
 
-        # Choose FMUs to the ones inside the window that still has not been assigned to a FMU
+        # 6 - Choose FMUs to the ones inside the window that still has not been assigned to a FMU
+        #     Decrement data written on FMU in case it is an incoming RECV
         for i in range(len(index_order_vector)):
+            
+            if len(index_order_vector[i]) > 2: #It is an Incoming RECV
+                incoming_recv_fmu = index_order_vector[i][0]
+                incoming_recv_size = index_order_vector[i][2]
+                self.fmu_data_written_on[incoming_recv_fmu] -= incoming_recv_size;
+                assert self.fmu_data_written_on[incoming_recv_fmu] >= 0;
+                continue;
+            
+            # It is a match
             current_match = matchQ[index_order_vector[i][0]];
             if current_match.fmu_in_use is not None: # It has already chosen FMU
                 self.incrementFRT(current_match.fmu_in_use);
@@ -310,23 +417,36 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
                 assert False;
                 continue;
 
-            # Try to get an Idle FMU
+            # First Attempt - Try to get an Idle FMU
             current_match.fmu_in_use = self.seekIdleFMU(baseCycle, endCycle);
             if current_match.fmu_in_use != None:
                 self.fmu_idle_mapping += 1;
-                self.incrementFRT(current_match.fmu_in_use);
-                self.fmu_data_written_on[current_match.fmu_in_use] += current_match.size;
                 continue;
+            else:
+                # Second Attempt - Get FMU using the fmu mapping scheme
+                current_match.fmu_in_use = self.chooseFMU_MappingScheme(current_match);
+                self.fmu_heuristic_mapping += 1;
             
-            # Get FMU using the fmu mapping scheme
-            current_match.fmu_in_use = self.chooseFMU_MappingScheme(current_match);
+            assert current_match.fmu_in_use != None;
+            
+            
             self.incrementFRT(current_match.fmu_in_use)
-            #self.updateFRT(current_match.fmu_in_use, endCycle);
-            self.fmu_heuristic_mapping += 1;
             self.fmu_data_written_on[current_match.fmu_in_use] += current_match.size;
+            # Include a RECV incoming
+            self.includeIncomingRecv(current_match);
 
         return;
 
+
+
+    def includeIncomingRecv_Function(self, current_match):
+        incoming_recv_cycle = current_match.send_original_baseCycle + self.network_latency;
+        if incoming_recv_cycle < current_match.recv_original_baseCycle:
+            incoming_recv_cycle = current_match.recv_original_baseCycle;
+        self.list_of_incoming_recvs.append(self.IncomingRecv(cycle=incoming_recv_cycle, size=current_match.size, fmu=current_match.fmu_in_use));
+
+    def includeIncomingRecv_Dummy(self, current_match):
+        return;
 
 
 # *********************************************************
@@ -421,11 +541,10 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
                                     self.fmu_circularBuffer.insert_entry(partner.fmu_in_use,
                                                          partner.id,
                                                          partner.size);
-                                    self.fmu_data_written_on[partner.fmu_in_use] += partner.size;
                                     
                                 else: # If it is a RECV
                                     #print(str(partner.id) + " out from " + str(partner.fmu_in_use) + "  FUSED")
-                                    self.update_fmu_last_cycle(readyMatch.fmu_in_use, partner.endCycle);
+                                    self.update_fmu_last_cycle(readyMatch.fmu_in_use, partner.recv_endCycle);
                                     self.fmu_circularBuffer.consume_entry(partner.fmu_in_use,
                                                   partner.id);
                                     
@@ -455,7 +574,6 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
                 self.fmu_circularBuffer.insert_entry(readyMatch.fmu_in_use,
                                                  readyMatch.id,
                                                  readyMatch.size);
-                self.fmu_data_written_on[readyMatch.fmu_in_use] += readyMatch.size;
                 readyMatch = None;
 
 

@@ -47,9 +47,13 @@ class SimpleCommConfiguration:
         self.fmu_bandwidth = float(config["TOPOLOGY"].get("fmu_bandwidth", "10"));
         self.fmu_latency = float(config["TOPOLOGY"].get("fmu_latency", "10"));
         self.fmu_pivot_value = float(config["TOPOLOGY"].get("fmu_pivot_value", "10"));
-        self.fmu_contention_model = config["TOPOLOGY"].get("fmu_contention_model", "AS_MUCH_AS_POSSIBLE");
         self.fmu_mapping = config["TOPOLOGY"].get("fmu_mapping", "STATIC");
         self.fmu_seek_idle_kind = config["TOPOLOGY"].get("fmu_seek_idle_kind", "NONE");
+        self.fmu_monitor_incoming_recv = config["TOPOLOGY"].get("fmu_monitor_incoming_recv", "True");
+        if self.fmu_monitor_incoming_recv == "True":
+            self.fmu_monitor_incoming_recv = True;
+        else:
+            self.fmu_monitor_incoming_recv = False;
 
         # SimGrid               (65536 bytes) (64KB in short)
         # OpenMPI Version 4.0.5 (65536 bytes) (64KB in short) (btl_tcp_component.c)

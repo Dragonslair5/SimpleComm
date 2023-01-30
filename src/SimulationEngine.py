@@ -543,6 +543,7 @@ class SimpleCommEngine:
         # ************
         print("[FMU]")
         print("number_of_fmus:"+str(self.config.number_of_FMUs))
+        print("fmu_monitor_incoming_recv:"+str(self.config.fmu_monitor_incoming_recv))
         print("fmu_mapping:"+self.config.fmu_mapping)
         print("fmu_seek_idle_kind:"+str(self.config.fmu_seek_idle_kind))
         biggest_buffer_size = 0;
