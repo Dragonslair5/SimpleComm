@@ -421,7 +421,6 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
             current_match.fmu_in_use = self.seekIdleFMU(baseCycle, endCycle);
             if current_match.fmu_in_use != None:
                 self.fmu_idle_mapping += 1;
-                continue;
             else:
                 # Second Attempt - Get FMU using the fmu mapping scheme
                 current_match.fmu_in_use = self.chooseFMU_MappingScheme(current_match);
