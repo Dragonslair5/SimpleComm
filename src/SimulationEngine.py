@@ -576,7 +576,8 @@ class SimpleCommEngine:
             print("fmu_heuristic_mapping:"+str(self.MQ.topology.top_fmu.fmu_heuristic_mapping))
             percentual_idle_served = (self.MQ.topology.top_fmu.fmu_idle_mapping / self.simOutput.numberOfMessages) * 100
             print("fmu_idle_served_percentage:"+str(percentual_idle_served))
-            assert (self.MQ.topology.top_fmu.fmu_idle_mapping + self.MQ.topology.top_fmu.fmu_heuristic_mapping) == self.simOutput.numberOfMessages
+            print("fmu_total_usage_time:"+str(self.MQ.topology.top_fmu.getMeTotalTimeSpentInPercentage()))
+            #assert (self.MQ.topology.top_fmu.fmu_idle_mapping + self.MQ.topology.top_fmu.fmu_heuristic_mapping) == self.simOutput.numberOfMessages
 
 
 

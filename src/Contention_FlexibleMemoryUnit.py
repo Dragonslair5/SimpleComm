@@ -47,6 +47,7 @@ class Contention_FlexibleMemoryUnit:
 
         self.fmu_congestion_time = [0] * self.nFMUs;
         self.channel_congestion_time = [0] * nRanks;
+        self.fmu_total_usage_time = [0] * self.nFMUs;
 
         self.fmu_circularBuffer : FMU_CircularBuffer;
         self.fmu_circularBuffer = FMU_CircularBuffer(self.nFMUs);
@@ -57,7 +58,21 @@ class Contention_FlexibleMemoryUnit:
         self.list_of_incoming_recvs : typing.List[self.IncomingRecv];
         self.list_of_incoming_recvs = []
 
+
+
+    def getMeTotalTimeSpentInPercentage(self):
+
+        total_time = 0;
+        for i in range(len(self.fmu_total_usage_time)):
+            total_time += self.fmu_total_usage_time[i];
         
+        used_percentage = [0] * self.nFMUs;
+
+        for i in range(self.nFMUs):
+            used_percentage[i] = (self.fmu_total_usage_time[i]/total_time) * 100
+        
+        return used_percentage;
+
 
 
 # *************************************************************
@@ -523,6 +538,11 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
                 else:
                     partner_rank = partner.rankR;
 
+
+                #if rank_in_usage == partner_rank:
+                #     print(str(rank_in_usage) + " " + readyMatch.send_origin + "   " + str(partner_rank) + " " + partner.send_origin)
+
+
                 # Check
                 if partner.fmu_in_use is not None: 
                     if rank_in_usage == partner_rank: # If same Rank
@@ -548,6 +568,8 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
                                                   partner.id);
                                     
                                     partner.READY = True;
+
+
 
                 # Delay
                 if (
@@ -582,7 +604,13 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
             self.fmu_circularBuffer.consume_entry(readyMatch.fmu_in_use,
                                               readyMatch.id);
             
-        
+
+        # Statistic
+        time_spent_on_send = readyMatch.send_endCycle - readyMatch.send_baseCycle;
+        time_spent_on_recv = readyMatch.recv_endCycle - readyMatch.recv_baseCycle;
+        self.fmu_total_usage_time[readyMatch.fmu_in_use] += time_spent_on_send + time_spent_on_recv;
+        # *** 
+
 
         assert readyMatch.endCycle == readyMatch.recv_endCycle, "Why are they not equal? " + str(readyMatch.endCycle) + " != " + str(readyMatch.recv_endCycle)
         self.update_fmu_last_cycle(readyMatch.fmu_in_use, readyMatch.endCycle);
