@@ -213,7 +213,7 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
                 li = i;
         second_lowest_cycle = matchQ[li].sep_getEndCycle();
 
-        assert lowest_cycle < second_lowest_cycle, "second lowest not bigger than lowest?"
+        assert lowest_cycle <= second_lowest_cycle, "second lowest not bigger than lowest? " + str(lowest_cycle) + "   " + str(second_lowest_cycle)
 
         for i in range(0, len(matchQ)):
         
@@ -387,8 +387,8 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
 
             # TODO: Sometimes the window is very short, where baseCycle and endCycle are close enough that math.isclose will make them equal.
             #       We should devise some scheme that takes the size of the window into consideration.
-            #       For the moment, using "=" seems to work. 
-            if current_match.sep_getBaseCycle() >= endCycle:
+            #       For the moment, we are allowing baseCycle = endCycle due to these too small window sizes. 
+            if current_match.sep_getBaseCycle() > endCycle:
                 continue;
             #if current_match.sep_getBaseCycle() > endCycle or math.isclose(current_match.sep_getBaseCycle(), endCycle): # It is out of the window
             #    continue;
@@ -428,7 +428,8 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
             if current_match.fmu_in_use is not None: # It has already chosen FMU
                 self.incrementFRT(current_match.fmu_in_use);
                 continue;
-            if current_match.sep_getBaseCycle() >= endCycle: # It is out of the window
+            # NOTE: We are allowing baseCycle = endCycle because sometimes the window is too small (few bytes over gigabytes of bandwidth)
+            if current_match.sep_getBaseCycle() > endCycle: # It is out of the window
                 assert False;
                 continue;
 
