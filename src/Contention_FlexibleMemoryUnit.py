@@ -526,6 +526,8 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
                 partner = matchQ[j];
                 if readyMatch.id == partner.id: # Hey, thats me!
                     continue;
+                if partner.READY == True:
+                    continue;
 
                 rank_in_usage = None;
                 if readyMatch.still_solving_send:
