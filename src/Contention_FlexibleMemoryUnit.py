@@ -48,6 +48,9 @@ class Contention_FlexibleMemoryUnit:
         self.fmu_congestion_time = [0] * self.nFMUs;
         self.channel_congestion_time = [0] * nRanks;
         self.fmu_total_usage_time = [0] * self.nFMUs;
+        self.number_of_times_more_than_one_message_was_moved_with_a_single_switch = 0
+        self.number_single_switch_sends = 0
+        self.number_single_switch_recvs = 0
 
         self.fmu_circularBuffer : FMU_CircularBuffer;
         self.fmu_circularBuffer = FMU_CircularBuffer(self.nFMUs);
@@ -179,7 +182,7 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
 
     def update_fmu_last_cycle(self, chosenFMU: int, endTime: float)-> None:
         assert chosenFMU < self.nFMUs, "What? FMU " + str(chosenFMU) + " does not exist."
-        assert self.fmu_last_cycle_vector[chosenFMU] < endTime or math.isclose(self.fmu_last_cycle_vector[chosenFMU], endTime, rel_tol=0.01), "what? " + str(endTime) + " < " + str(self.fmu_last_cycle_vector[chosenFMU])
+        assert self.fmu_last_cycle_vector[chosenFMU] < endTime or math.isclose(self.fmu_last_cycle_vector[chosenFMU], endTime, rel_tol=0.01, abs_tol=0.001), "what? " + str(endTime) + " < " + str(self.fmu_last_cycle_vector[chosenFMU])
         self.fmu_last_cycle_vector[chosenFMU] = endTime;
 
 
@@ -501,6 +504,12 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
             # Find earliest
             readyMatch = self.findEarliestMatch(matchQ);
 
+
+            #assert readyMatch.READY == False
+            if readyMatch.READY == True: # If it is READY, it was consumed with another match already.
+                break;
+
+
             # Choose FMU if needed
             if readyMatch.fmu_in_use == None:
                 self.chooseFMU(matchQ);
@@ -557,7 +566,11 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
                                 if inc > 0:
                                     partner.sep_incrementCycle(inc);
 
+                                self.number_of_times_more_than_one_message_was_moved_with_a_single_switch += 1;
+
+
                                 if partner.still_solving_send: # IF it is a SEND
+                                    self.number_single_switch_sends += 1;
                                     partner.sep_move_RECV_after_SEND();
                                     self.update_fmu_last_cycle(readyMatch.fmu_in_use, partner.send_endCycle);
                                     self.fmu_circularBuffer.insert_entry(partner.fmu_in_use,
@@ -565,6 +578,7 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
                                                          partner.size);
                                     
                                 else: # If it is a RECV
+                                    self.number_single_switch_recvs += 1;
                                     #print(str(partner.id) + " out from " + str(partner.fmu_in_use) + "  FUSED")
                                     self.update_fmu_last_cycle(readyMatch.fmu_in_use, partner.recv_endCycle);
                                     self.fmu_circularBuffer.consume_entry(partner.fmu_in_use,

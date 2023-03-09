@@ -571,6 +571,10 @@ class SimpleCommEngine:
         if isinstance(self.MQ.topology, TopHybrid) or isinstance(self.MQ.topology, TopFreeMemoryUnit):
             print("fmu_data_written:"+str(self.MQ.topology.top_fmu.fmu_data_written_on))
             print("fmu_congestion_time:"+str(self.MQ.topology.top_fmu.fmu_congestion_time))
+            print("fmu_total_congestion_time:" + str( sum(self.MQ.topology.top_fmu.fmu_congestion_time) ) )
+            print("number_of_times_more_than_one_message_was_moved_with_a_single_switch:" + str(self.MQ.topology.top_fmu.number_of_times_more_than_one_message_was_moved_with_a_single_switch))
+            print("number_single_switch_sends:" + str(self.MQ.topology.top_fmu.number_single_switch_sends))
+            print("number_single_switch_recvs:" + str(self.MQ.topology.top_fmu.number_single_switch_recvs))
             print("fmu_channel_congestion_time:"+str(self.MQ.topology.top_fmu.channel_congestion_time))
             print("fmu_idle_mapping:"+str(self.MQ.topology.top_fmu.fmu_idle_mapping))
             print("fmu_heuristic_mapping:"+str(self.MQ.topology.top_fmu.fmu_heuristic_mapping))
