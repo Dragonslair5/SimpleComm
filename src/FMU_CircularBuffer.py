@@ -20,10 +20,12 @@ class FMU_CircularBuffer:
     def __init__(self, nFMUs: int):
         assert nFMUs > 0;
         self.nFMUs = nFMUs;
-        self.circular_buffer = []
+        self.circular_buffer : typing.List[self.CircularBufferInput];
+        self.circular_buffer = [];
         for i in range(0, nFMUs):
             self.circular_buffer.append([])
         self.biggest_buffer_size = 0;
+        self.number_of_messages_on_biggest_size = 0;
         self.biggest_amount_of_messages = 0;
 
     def insert_entry(self, fmu: int, match_id: int, size: int) -> None:
@@ -35,7 +37,7 @@ class FMU_CircularBuffer:
         newInput = self.CircularBufferInput(match_id, size);
         self.circular_buffer[fmu].append(newInput);
 
-
+    # (Private) Intern Call
     def get_total_size_on_fmu(self, fmu: int) -> int:
         assert fmu < self.nFMUs
         total_size = 0;
@@ -46,9 +48,12 @@ class FMU_CircularBuffer:
             total_size = total_size + fmu_buffer[i].size;
         if total_size > self.biggest_buffer_size:
             self.biggest_buffer_size = total_size;
+            self.number_of_messages_on_biggest_size = len(fmu_buffer);
         return total_size;
 
 
+
+    # (Private) Intern Call
     def consume_buffer(self, fmu: int) -> None:
         self.get_total_size_on_fmu(fmu); # We decided to put this here, to calculate the biggest size every time the buffer is consumed.
                                          # To consume the buffer is to move forward the head of the buffer.
@@ -62,6 +67,8 @@ class FMU_CircularBuffer:
 
 
     def consume_entry(self, fmu: int, match_id: int):
+
+        #print("Match_ID:" + str(match_id))
         if fmu >= self.nFMUs:  # This happens when using NO_CONFLICT as content model on FMU
             return;
         fmu_buffer : typing.List[self.CircularBufferInput];

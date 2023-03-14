@@ -547,13 +547,15 @@ class SimpleCommEngine:
         print("fmu_mapping:"+self.config.fmu_mapping)
         print("fmu_seek_idle_kind:"+str(self.config.fmu_seek_idle_kind))
         biggest_buffer_size = 0;
+        number_of_messages_on_biggest_buffer_size = 0
         if (isinstance(self.MQ.topology, TopHybrid) or
             isinstance(self.MQ.topology, TopFreeMemoryUnit)
         ):
             biggest_buffer_size = self.MQ.topology.fmu_circularBuffer.biggest_buffer_size;
+            number_of_messages_on_biggest_buffer_size = self.MQ.topology.fmu_circularBuffer.number_of_messages_on_biggest_size;
         # Biggest Buffer Size (Qdata size on FMU)
         print("biggest_buffer_size:"+str(biggest_buffer_size));
-        
+        print("number_of_messages_on_biggest_buffer_size:"+str(biggest_buffer_size));
         # Pivot Value
         # % of FMU usage
         hybrid_pivot_value = -1;
