@@ -555,7 +555,7 @@ class SimpleCommEngine:
             number_of_messages_on_biggest_buffer_size = self.MQ.topology.fmu_circularBuffer.number_of_messages_on_biggest_size;
         # Biggest Buffer Size (Qdata size on FMU)
         print("biggest_buffer_size:"+str(biggest_buffer_size));
-        print("number_of_messages_on_biggest_buffer_size:"+str(biggest_buffer_size));
+        print("number_of_messages_on_biggest_buffer_size:"+str(number_of_messages_on_biggest_buffer_size));
         # Pivot Value
         # % of FMU usage
         hybrid_pivot_value = -1;
