@@ -54,7 +54,7 @@ class Col_Bcast:
                 dst = my_rank + mask;
                 if dst >= num_ranks:
                     dst = dst - num_ranks;
-                sr = SendRecv(MPIC_SEND, my_rank, dst, size, baseCycle*1.01, MPI_Operations.MPI_BCAST, operation_origin=operation_origin, tag=MPIC_COLL_TAG_BCAST, col_id=col_id);
+                sr = SendRecv(MPIC_SEND, my_rank, dst, size, baseCycle, MPI_Operations.MPI_BCAST, operation_origin=operation_origin, tag=MPIC_COLL_TAG_BCAST, col_id=col_id);
                 col_id = col_id + 1;
                 sr_list.append(sr);
             mask = mask >> 1;
