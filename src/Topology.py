@@ -8,7 +8,8 @@ class Topology(ABC):
 
     def __init__(self, nRanks, configfile: SimpleCommConfiguration):
         self.nRanks = nRanks;
-        self.cores_per_node = 1; # TODO: Fix it after you include this option
+        #self.cores_per_node = 1; # TODO: Fix it after you include this option
+        self.cores_per_node = configfile.number_of_cores_per_node;
         self.topology = configfile.topology;
         self.interLatency = configfile.internode_latency;
         self.interBandwidth = configfile.internode_bandwidth;

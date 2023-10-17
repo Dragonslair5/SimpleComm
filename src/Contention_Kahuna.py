@@ -7,7 +7,8 @@ class Contention_Kahuna:
  
  
         self.nRanks = nRanks;
-        self.cores_per_node = 1; # TODO: Fix this after you include this option
+        #self.cores_per_node = 1; # TODO: Fix this after you include this option
+        self.cores_per_node = configfile.number_of_cores_per_node;
         self.interLatency = configfile.internode_latency;
         self.interBandwidth = configfile.internode_bandwidth;
         self.intraLatency = configfile.intranode_latency;
@@ -100,6 +101,12 @@ class Contention_Kahuna:
                 rankS = valid_matchesQ[i].rankS;
                 rankR = valid_matchesQ[i].rankR;
                 newFactor = sharingVector[rankS] if sharingVector[rankS] > sharingVector[rankR] else sharingVector[rankR];
+
+                #Multicore
+                if self.cores_per_node > 1:
+                    newFactor = sum(sharingVector)//2
+
+
                 increment = (window_size * (float(newFactor)/float(currentFactor))) - window_size;
                 valid_matchesQ[i].endCycle = valid_matchesQ[i].endCycle + increment;
                 valid_matchesQ[i].solvedCycle = valid_matchesQ[i].baseCycle + window_size + increment;

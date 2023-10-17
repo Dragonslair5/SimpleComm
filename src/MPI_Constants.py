@@ -35,9 +35,12 @@ class SimpleCommConfiguration:
         assert self.booster_factor >= 0, "Booster factor can not be negative -> " + str(self.booster_factor);
         self.use_booster_factor_every = int(config["Simulation"].getint("use_booster_factor_every", "1"));
         assert self.use_booster_factor_every >= 1, "Booster factor every 1 or more times"
+        self.number_of_cores_per_node = int(config["Simulation"].getint("number_of_cores_per_node", "1"));
+
 
 
         self.topology = config["TOPOLOGY"].get("topology", "KAHUNA");
+        
 
         self.internode_bandwidth = float(config["TOPOLOGY"].get("internode_bandwidth", "10"));
         self.internode_latency = float(config["TOPOLOGY"].get("internode_latency", "10"));

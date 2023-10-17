@@ -27,7 +27,10 @@ class Contention_FlexibleMemoryUnit:
 
 
         self.nRanks = nRanks;
-        self.cores_per_node = 1; # TODO: Fix this after you include this option
+        #self.cores_per_node = 1; # TODO: Fix this after you include this option
+        self.cores_per_node = configfile.number_of_cores_per_node;
+        if self.cores_per_node != 1:
+            assert False, "multicore still not available for FMU"
         self.independent_send_recv = True;
         self.eager_protocol_max_size = configfile.eager_protocol_max_size;
 
