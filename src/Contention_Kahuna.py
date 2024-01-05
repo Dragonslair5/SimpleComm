@@ -84,12 +84,29 @@ class Contention_Kahuna:
         # How Many? (using sharingVector)
         sharingVector: list[int];
         sharingVector = [0] * self.nRanks;
+        number_of_nodes = self.nRanks // self.cores_per_node;
+        sharingNodesVector: list[int];
+        sharingNodesVector = [0] * number_of_nodes;
         for i in range(0, len(valid_matchesQ)):
             if valid_matchesQ[i].baseCycle < second_lowest_cycle:
                 rankS = valid_matchesQ[i].rankS
                 rankR = valid_matchesQ[i].rankR
                 sharingVector[rankS] = sharingVector[rankS] + 1;
                 sharingVector[rankR] = sharingVector[rankR] + 1;
+                nodeS = rankS//self.cores_per_node
+                nodeR = rankR//self.cores_per_node
+                if nodeS == nodeR:
+                    sharingNodesVector[nodeS] += 1
+        # Adjusting for multicore
+        for i in range(0, number_of_nodes):
+            #print(i)
+            initial_core = i * self.cores_per_node;
+            number_of_internode_communications = sharingNodesVector[i];
+            sum_of_communications = 0;
+            for j in range(0, self.cores_per_node):
+                sum_of_communications += sharingVector[initial_core + j]
+            for j in range(0, self.cores_per_node):
+                sharingVector[initial_core + j] = sum_of_communications - number_of_internode_communications; # Removing internode because we counted it twice
         # ---
 
         # Increment
@@ -101,10 +118,6 @@ class Contention_Kahuna:
                 rankS = valid_matchesQ[i].rankS;
                 rankR = valid_matchesQ[i].rankR;
                 newFactor = sharingVector[rankS] if sharingVector[rankS] > sharingVector[rankR] else sharingVector[rankR];
-
-                #Multicore
-                if self.cores_per_node > 1:
-                    newFactor = sum(sharingVector)//2
 
 
                 increment = (window_size * (float(newFactor)/float(currentFactor))) - window_size;

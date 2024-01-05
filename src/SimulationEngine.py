@@ -46,6 +46,7 @@ class SimulationOutput:
 
         self.match_list: list[self.SimOutput_SendRecv]
         self.match_list = []
+
         
 
     def incrementOperationUsage(self, operation_ID: int):
@@ -143,6 +144,10 @@ class SimpleCommEngine:
 
         self.simOutput: SimulationOutput;
         self.simOutput = SimulationOutput();
+    
+        #Mauricio
+        self.milestone_increment = 0.0005
+        self.milestone = 0 + self.milestone_increment
 
 
     def read_traces(self, nRanks, traces_path):
@@ -272,7 +277,13 @@ class SimpleCommEngine:
                 self.list_ranks[match.rankR].concludeCollectiveSendRecv();
 
             
-
+            #Mauricio
+            #for ri in range(len(self.list_ranks)):
+            #    rank: Rank;
+            #    rank = self.list_ranks[ri];
+            #    if (rank.cycle > self.milestone):
+            #        print(str(ri) + " - " + str(  (rank.index/len(rank.trace)) * 100) + "% - " + str(self.milestone) )
+            #        self.milestone += self.milestone_increment;
             #del match;
 
 
@@ -469,7 +480,7 @@ class SimpleCommEngine:
         # Part 1
         # **** Communication Trace
         # Activated with --> print_communication_trace = False
-        # NOTE: This might be huge! Becareful using it.         
+        # NOTE: This might be huge! Becareful using it.
         self.simOutput.unload_Matches_on_the_screen();
         # ***
 
@@ -487,6 +498,8 @@ class SimpleCommEngine:
         
         # Number of Ranks
         print("number_of_ranks:"+str(self.MQ.topology.nRanks));
+        # Ranks per Node (Multicore)
+        print("ranks_per_node:"+str(self.MQ.topology.cores_per_node))
         # TOPOLOGY
         print("topology:"+self.config.topology)
         # BOOSTER FACTOR
@@ -511,6 +524,8 @@ class SimpleCommEngine:
 
         # Number of Messages
         number_of_messages=self.simOutput.numberOfMessages;
+        if number_of_messages == 0:
+            number_of_messages = 1;
         print("number_of_messages:"+str(number_of_messages));
         # Average Message Size
         average_message_size=self.simOutput.amountOfDataCommunicated/number_of_messages;
@@ -538,6 +553,10 @@ class SimpleCommEngine:
         print("most_idleness_source_mpi_operation:", max(dic_mpi_haltness, key=dic_mpi_haltness.get))
 
 
+
+
+        if (isinstance(self.MQ.topology, TopKahuna)):
+            return None;
 
         # FMU Specific 
         # ************

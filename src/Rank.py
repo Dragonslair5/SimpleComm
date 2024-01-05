@@ -281,6 +281,32 @@ class Rank:
                 processing_cycles = workload / self.processing_speed;
                 self.cycle = self.cycle + processing_cycles;
             return None;
+    
+        # Finalize
+        if(operation == "finalize"):
+            self.current_operation = "finalize-" + str(self.index);
+            #self.state = Rank.S_ENDED;
+            self.shallEnd = True;
+            # TODO: We should put a more elegant solution here
+            # Single Rank Hack to not consider communication
+            if num_ranks > 1:
+                self.state = Rank.S_COMMUNICATING;
+
+                self.collective_sr_list = self.col_barrier(self.nRanks, self.rank, self.cycle, rank_offset=0);
+                self.counter_waitingCollective = len(self.collective_sr_list[0]);
+                return self.collective_sr_list.pop(0);
+            else:
+                self.state = Rank.S_ENDED;
+                return None;
+
+    
+        # TODO: We should put a more elegant solution here
+        # Single Rank Hack to not consider communication 
+        if num_ranks == 1:
+            return None;
+    
+
+        # Communication
         if(operation == "send"):
             self.state = Rank.S_COMMUNICATING;
             target=int(workload[2]);
@@ -336,7 +362,6 @@ class Rank:
             self.counter_waitingCollective = len(self.collective_sr_list[0]);
             return self.collective_sr_list.pop(0);
 
-            
 
         if(operation == "barrier"):
             self.current_operation = "barrier-" + str(self.index);
@@ -395,17 +420,6 @@ class Rank:
         
         
         
-        
-        
-        if(operation == "finalize"):
-            self.current_operation = "finalize-" + str(self.index);
-            #self.state = Rank.S_ENDED;
-            self.shallEnd = True;
-            self.state = Rank.S_COMMUNICATING;
-
-            self.collective_sr_list = self.col_barrier(self.nRanks, self.rank, self.cycle, rank_offset=0);
-            self.counter_waitingCollective = len(self.collective_sr_list[0]);
-            return self.collective_sr_list.pop(0);
 
         # No blocking operations
         if(operation == "isend"):
