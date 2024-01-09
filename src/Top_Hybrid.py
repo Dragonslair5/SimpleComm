@@ -53,13 +53,19 @@ class TopHybrid(Topology):
 
     # Decide if a match should be served by FMU
     def isThroughFMU_preMatch(self, rankS: int, rankR: int, size: int)->bool:
-        #return True
         # Negative value means to use only the network
         if self.pivotValue < 0:
             return False;
     
+        # Intranode (it is implemented on Contention_Kahuna).
+        nodeS = rankS // self.cores_per_node;
+        nodeR = rankR // self.cores_per_node;
+        if nodeS == nodeR: # Intranode
+            return False;
+
         if size >= self.pivotValue:
             return True;
+        
         return False
 
 
@@ -103,7 +109,7 @@ class TopHybrid(Topology):
             return pivotValue;
 
 
-        assert False, "FMU is worst than Network for large messages, but better on small messages. We did not implement this case."
+        assert False, "FMU is worse than Network for large messages, but better on small messages. We did not implement this case."
 
 
 
@@ -164,6 +170,7 @@ class TopHybrid(Topology):
             if self.isThroughFMU(match):
                 fmu_matchesQ.append(match)
             else:
+                match.isNetwork = True;
                 network_matchesQ.append(match);
         
         # *** Find Lowest
@@ -213,7 +220,7 @@ class TopHybrid(Topology):
                     self.total_messages_network = self.total_messages_network + 1;
 
         assert readyMatch is not None, "what?"
-
+        #print("FMU: " + str(self.total_messages_fmu) + "   Network: " + str(self.total_messages_network))
         # Remove the readyMatch from matchQ of the Message Queue
         readyMatchID = readyMatch.id;
         readyMatch = None;

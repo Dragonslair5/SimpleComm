@@ -146,7 +146,7 @@ class MessageQueue:
             self.op_message = self.op_message + " fmu: " + str(earliest_match.fmu_in_use);
 
 
-        if not self.topology.independent_send_recv:
+        if not self.topology.independent_send_recv or earliest_match.isNetwork:
             earliest_match.send_endCycle = earliest_match.endCycle;
             earliest_match.recv_endCycle = earliest_match.endCycle;
             earliest_match.send_conclusionCycle = earliest_match.endCycle;

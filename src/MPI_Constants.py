@@ -273,6 +273,9 @@ class MQ_Match:
         self.recv_origin = recv_origin; # The operations name
         self.recv_operation_ID = recv_operation_ID; # The operation ID
 
+        self.isNetwork = False; # Trick for marking it on Hybrid
+
+
         # NOTE: We are still using this for debugging purpose
         # Ordering for when it matters (TAG not negative)
         self.positionS = positionS; # Ordering

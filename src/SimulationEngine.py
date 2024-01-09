@@ -238,6 +238,7 @@ class SimpleCommEngine:
             # ********* RECV
             if match.blocking_recv:
                 #assert match.recv_original_baseCycle <= match.recv_endCycle
+                #print("old: " + str(match.recv_original_baseCycle) + "   new: " + str(match.recv_endCycle) + "   ID: " + str(match.id))
                 assert math.isclose(match.recv_original_baseCycle, match.recv_endCycle) or match.recv_original_baseCycle < match.recv_endCycle
                 if not self.MQ.topology.independent_send_recv:
                     # * 1.100 due to floating point imprecision (purely empirical value)
