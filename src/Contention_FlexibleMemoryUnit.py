@@ -594,8 +594,10 @@ class Contention_FlexibleMemoryUnit_General(Contention_FlexibleMemoryUnit):
 
 
                 # Delay
+                # Note that we addapted the comparison to the multicore scenario, to ranks that share a same node (i.e. the same CFMU)
                 if (
-                    rank_in_usage == partner_rank
+                    (rank_in_usage // self.cores_per_node) == (partner_rank // self.cores_per_node)
+                    # rank_in_usage == partner_rank # THis was the original
                 ):
                     minToStart = 0;
                     if partner.initialized:
