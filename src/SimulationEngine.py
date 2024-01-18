@@ -501,6 +501,8 @@ class SimpleCommEngine:
         print("number_of_ranks:"+str(self.MQ.topology.nRanks));
         # Ranks per Node (Multicore)
         print("ranks_per_node:"+str(self.MQ.topology.cores_per_node))
+        # Number of Nodes
+        #print("number_of_nodes:"+str(self.MQ.topology.nRanks//self.MQ.topology.cores_per_node))
         # TOPOLOGY
         print("topology:"+self.config.topology)
         # BOOSTER FACTOR

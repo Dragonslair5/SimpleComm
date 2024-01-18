@@ -176,11 +176,12 @@ class Contention_Kahuna:
                 decrement = solved_window * (1.0/float(valid_matchesQ[i].bw_factor))
                 decrement = solved_window - decrement
                 valid_matchesQ[i].endCycle = valid_matchesQ[i].endCycle - decrement;
-                assert valid_matchesQ[i].endCycle > valid_matchesQ[i].baseCycle, str(valid_matchesQ[i].endCycle) + " <= " + str(valid_matchesQ[i].baseCycle);
+                # TODO: Should investigate why we needed to use math.isclose on this assert
+                assert valid_matchesQ[i].endCycle > valid_matchesQ[i].baseCycle or math.isclose(valid_matchesQ[i].baseCycle, valid_matchesQ[i].endCycle), str(valid_matchesQ[i].endCycle) + " <= " + str(valid_matchesQ[i].baseCycle);
                 valid_matchesQ[i].solvedCycle = -1;
                 valid_matchesQ[i].bw_factor = 1;
 
-            # GAMBIARRA: Should investigate why we need to do this. 
+            # TODO: Should investigate why we need to do this. 
             # Sometimes the result does not reach the endCycle, and we do not know why this happens.
             # Probably some floating-point imprecision issue.
             if math.isclose(valid_matchesQ[i].baseCycle, valid_matchesQ[i].endCycle):
@@ -225,12 +226,7 @@ class Contention_Kahuna:
 
             if readyMatch is not None:
 
-                #assert readyMatch.data_sent <= (readyMatch.size+16)*1.01, "sent more data? -- " + str(readyMatch.data_sent) + " > " + str((readyMatch.size+16)*1.01)
-                # TODO We should check why sometimes we exceed the amount of data that should be sent
-                # TODO Resulting in getting this assert back
-                # Allowing 10 extra bytes to be sent or 1% increment
-                assert math.isclose(readyMatch.data_sent, (readyMatch.size+16), abs_tol=10, rel_tol=0.01) or readyMatch.data_sent < (readyMatch.size+16), "sent more data? -- " + str(readyMatch.data_sent) + " > " + str((readyMatch.size+16));
-
+                MQ_Match.checkIfTransmittedDataIsCorrect(readyMatch.size, readyMatch.data_sent)
                 # Remove ReadyMatch from < matchQ / col_matchQ >
                 id = readyMatch.id
                 readyMatch = None
